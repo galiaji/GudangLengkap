@@ -54,7 +54,7 @@ class WoodStockSeeder extends Seeder
                                 'grade_id' => $grade->id,
                                 'diameter' => $diameter,
                                 'panjang' => $length,
-                                'quantity' => 10, // Jumlah default
+                                'quantity' => 0, // Jumlah default
                                 'total_volume' => $volume * 10, // Total volume dihitung (contoh: quantity * volume)
                                 'created_at' => now(),
                                 'updated_at' => now(),

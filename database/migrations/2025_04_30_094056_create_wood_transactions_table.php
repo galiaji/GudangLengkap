@@ -13,14 +13,10 @@ return new class extends Migration
     {
         Schema::create('wood_transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('jenis_kayu_id')->constrained('wood_types')->onDelete('cascade'); // Pastikan tabel 'wood_types' ada
-            $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade'); // Pastikan tabel 'grades' ada
-            $table->unsignedInteger('diameter');
-            $table->unsignedInteger('panjang'); // Tambahkan ini
-            $table->unsignedInteger('quantity');
-            $table->decimal('volume', 8, 2)->default(0);
-            $table->decimal('subtotal', 10, 2)->default(0);
-            $table->timestamps();
+            $table->string('seller_name'); // Nama penjual
+            $table->decimal('grand_total_volume', 12, 3)->default(0); // Grand total volume
+            $table->decimal('grand_total_price', 15, 2)->default(0); // Grand total pembelian
+            $table->timestamps(); 
         });
     }
 

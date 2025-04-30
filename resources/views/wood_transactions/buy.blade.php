@@ -5,7 +5,10 @@
     <h1 class="mb-4">Beli Stok</h1>
     <form action="{{ route('wood_transactions.storeBuy') }}" method="POST">
         @csrf
-
+        <div class="mb-4">
+            <label for="seller_name" class="form-label">Nama Penjual</label>
+            <input type="text" name="seller_name" id="seller_name" class="form-control" placeholder="Masukkan nama penjual" required>
+        </div>
         <div class="row">
             @foreach($woodTypes as $type)
             <div class="col-md-6 mb-4">
@@ -63,6 +66,7 @@
                                                            data-grade="{{ $grade->id }}" 
                                                            data-price="{{ $price }}" 
                                                            placeholder="pcs" 
+                                                           value="0" 
                                                            required>
                                                 </td>
                                                 @endforeach
@@ -92,10 +96,21 @@
                             </div>
                         </div>
                         @endforeach
+
+                        
                     </div>
                 </div>
             </div>
             @endforeach
+            <div class="row mt-4">
+                            <div class="col-md-6">
+                                <label for="transaction_total_volume" class="form-label">Total Volume Transaksi (m³)</label>
+                                <input type="text" id="transaction_total_volume" class="form-control transaction-total-volume mb-3" readonly>
+
+                                <label for="transaction_total_price" class="form-label">Total Harga Transaksi (Rp)</label>
+                                <input type="text" id="transaction_total_price" class="form-control transaction-total-price" readonly>
+                            </div>
+                        </div>
         </div>
 
         <button type="submit" class="btn btn-primary">Tambah Stok</button>
@@ -103,8 +118,17 @@
 </div>
 
 <script>
+    function formatRupiah(angka) {
+        return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
     document.addEventListener('input', function (event) {
         if (event.target.classList.contains('quantity')) {
+            // Pastikan inputan diatur ke 0 jika kosong
+            if (event.target.value === '') {
+                event.target.value = 0;
+            }
+
             const woodTypeId = event.target.dataset.woodType;
             const gradeId = event.target.dataset.grade;
             const panjang = event.target.dataset.panjang;
@@ -114,7 +138,6 @@
             let subtotalVolume = 0;
             let subtotalPrice = 0;
 
-            // Filter input berdasarkan woodType, grade, dan panjang
             document.querySelectorAll(`.quantity[data-wood-type="${woodTypeId}"][data-grade="${gradeId}"][data-panjang="${panjang}"]`).forEach(input => {
                 const quantity = parseFloat(input.value) || 0;
                 const volume = parseFloat(input.closest('td').querySelector('input[name="volume[]"]').value) || 0;
@@ -122,19 +145,17 @@
                 subtotalPrice += quantity * volume * price;
             });
 
-            // Update subtotal fields
             const subtotalVolumeField = document.getElementById(`subtotal_volume_${woodTypeId}_${gradeId}_${panjang}`);
             const subtotalPriceField = document.getElementById(`subtotal_price_${woodTypeId}_${gradeId}_${panjang}`);
             if (subtotalVolumeField && subtotalPriceField) {
-                subtotalVolumeField.value = subtotalVolume.toFixed(2);
-                subtotalPriceField.value = subtotalPrice.toFixed(2);
+                subtotalVolumeField.value = subtotalVolume.toFixed(3);
+                subtotalPriceField.value = formatRupiah(subtotalPrice.toFixed(2));
             }
 
             // Hitung total volume dan harga untuk seluruh grade dalam jenis kayu tertentu
             let totalVolume = 0;
             let totalPrice = 0;
 
-            // Filter input berdasarkan woodType dan grade
             document.querySelectorAll(`.quantity[data-wood-type="${woodTypeId}"][data-grade="${gradeId}"]`).forEach(input => {
                 const quantity = parseFloat(input.value) || 0;
                 const volume = parseFloat(input.closest('td').querySelector('input[name="volume[]"]').value) || 0;
@@ -143,12 +164,34 @@
                 totalPrice += quantity * volume * price;
             });
 
-            // Update total fields
             const totalVolumeField = document.getElementById(`total_volume_${woodTypeId}_${gradeId}`);
             const totalPriceField = document.getElementById(`total_price_${woodTypeId}_${gradeId}`);
             if (totalVolumeField && totalPriceField) {
-                totalVolumeField.value = totalVolume.toFixed(2);
-                totalPriceField.value = totalPrice.toFixed(2);
+                totalVolumeField.value = totalVolume.toFixed(3);
+                totalPriceField.value = formatRupiah(totalPrice.toFixed(2));
+            }
+
+            // Hitung grand total volume dan harga untuk seluruh transaksi
+            let grandTotalVolume = 0;
+            let grandTotalPrice = 0;
+
+            document.querySelectorAll('.quantity').forEach(input => {
+                const quantity = parseFloat(input.value) || 0;
+                const volumeInput = input.closest('td').querySelector('input[name="volume[]"]');
+                const price = parseFloat(input.dataset.price) || 0;
+
+                if (volumeInput) {
+                    const volume = parseFloat(volumeInput.value) || 0;
+                    grandTotalVolume += quantity * volume;
+                    grandTotalPrice += quantity * volume * price;
+                }
+            });
+
+            const grandTotalVolumeField = document.getElementById('transaction_total_volume');
+            const grandTotalPriceField = document.getElementById('transaction_total_price');
+            if (grandTotalVolumeField && grandTotalPriceField) {
+                grandTotalVolumeField.value = grandTotalVolume.toFixed(3);
+                grandTotalPriceField.value = formatRupiah(grandTotalPrice.toFixed(2));
             }
         }
     });
