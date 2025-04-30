@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedInteger('diameter');
             $table->unsignedInteger('panjang');
-            $table->decimal('volume', 8, 2);
+            $table->decimal('volume', 8, 3);
             $table->timestamps();
         });
     }

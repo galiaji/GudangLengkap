@@ -54,7 +54,7 @@ class DiameterSeeder extends Seeder
                 DB::table('diameters')->insert([
                     'diameter' => $diameter,
                     'panjang' => $length,
-                    'volume' => $volume_dm3 / 1000, // konversi dm³ ke m³
+                    'volume' => round($volume_dm3 / 1000, 3), // Membatasi hingga 3 angka desimal
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

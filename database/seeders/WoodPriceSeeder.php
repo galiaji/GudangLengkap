@@ -21,7 +21,7 @@ class WoodPriceSeeder extends Seeder
         foreach ($woodTypes as $type) { // Iterasi jenis kayu
             foreach ($grades as $grade) { // Iterasi grade
                 foreach ($lengths as $length) { // Iterasi panjang
-                    $pricePerM3 = rand(500000, 2000000); // Harga per m3 random antara 500,000 dan 2,000,000
+                    $pricePerM3 = 450000; // Harga per m3 random antara 500,000 dan 2,000,000
 
                     WoodPrice::updateOrCreate([
                         'wood_type_id' => $type->id,
