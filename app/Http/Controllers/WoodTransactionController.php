@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\WoodTransaction;
 use App\Models\WoodTransactionDetail;
+use App\Models\WoodStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -18,28 +19,71 @@ class WoodTransactionController extends Controller
     // Halaman form pembelian
     public function buy()
     {
-        $grades = [
-            'Rijek 1' => [10, 11, 12, 14, 15],
-            'Rijek 2' => [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
-            'Storty 1' => [13, 14, 15],
-            'Storty 2' => [16, 17, 18],
-            'Super 1' => [19, 20, 21, 22, 23, 24],
-            'Super 2' => [25, 26, 27, 28, 29, 30],
+        $woodTypes = ['Mahoni', 'Keras', 'Sengon'];
+
+        $stocks = \App\Models\WoodStock::whereIn('wood_type', $woodTypes)->get();
+
+        // Mapping grade ke rentang
+        $gradeRanges = [
+            'Rijek 1' => 'Rijek 10 - 15',
+            'Rijek 2' => 'Rijek 16 - 30',
+            'Storty 1' => 'Storty 13 - 15',
+            'Storty 2' => 'Storty 16 - 18',
+            'Super 1' => 'Super 19 - 25',
+            'Super 2' => 'Super 25 Up',
         ];
 
-        $panjang = [100, 130, 200, 260];
+        // Buat array asosiatif: $grades[grade] = [diameter1, diameter2, ...]
+        $grades = [];
+        foreach ($stocks as $stock) {
+            $grades[$stock->grade][] = $stock->diameter;
+        }
+        // Hilangkan duplikat diameter
+        foreach ($grades as $grade => $diameters) {
+            $grades[$grade] = array_values(array_unique($diameters));
+            sort($grades[$grade]);
+        }
 
-        $allowedLengths = [
-            'Rijek' => [100, 130],
-            'Storty' => [130],
-            'Super' => [130, 200],
-        ];
+        // Allowed length per grade
+        $allowedLengths = [];
+        foreach ($stocks as $stock) {
+            $allowedLengths[$stock->grade][] = $stock->panjang;
+        }
+        foreach ($allowedLengths as $grade => $panjangs) {
+            $allowedLengths[$grade] = array_values(array_unique($panjangs));
+            sort($allowedLengths[$grade]);
+        }
 
-        $jenisKayu = 'Mahoni'; // atau bisa array jika multiple
+        // Ambil volume unik per diameter & panjang (tanpa grade)
+       $stocks = DB::table('wood_stocks')->get();
 
-        return view('wood_transactions.buy', compact(
-            'grades', 'panjang', 'jenisKayu', 'allowedLengths'
-        ));
+// Ambil volume unik per diameter & panjang (tanpa grade)
+        $volumes = [];
+        foreach ($stocks as $row) {
+            // Jika kombinasi diameter-panjang belum pernah di-set, baru set
+            if (!isset($volumes[$row->diameter][$row->panjang])) {
+                $volumes[$row->diameter][$row->panjang] = $row->volume ?? $row->volume_per_batang;
+            }
+        }
+
+        $jenisKayu = 'Mahoni';
+
+        // Ambil harga per m3 dari tabel wood_prices
+        $woodPrices = DB::table('wood_prices')->whereIn('wood_type', $woodTypes)->get();
+        $hargaPerM3 = [];
+        foreach ($woodPrices as $price) {
+            $hargaPerM3[$price->grade][$price->panjang] = $price->price_per_m3;
+        }
+
+        return view('wood_transactions.buy', [
+            'woodTypes' => $woodTypes,
+            'grades' => $grades,
+            'allowedLengths' => $allowedLengths, // sekarang per grade!
+            'hargaPerM3' => $hargaPerM3,
+            'jenisKayu' => $jenisKayu,
+            'volumes' => $volumes,
+            'gradeRanges' => $gradeRanges,
+        ]);
     }
 
     // Simpan transaksi pembelian

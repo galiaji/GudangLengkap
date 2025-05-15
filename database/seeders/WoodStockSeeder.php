@@ -78,7 +78,7 @@ class WoodStockSeeder extends Seeder
                                     'panjang' => $length,
                                     'quantity' => 0,
                                     'total_volume' => 0,
-                                    'volume' => $volume,
+                                    'volume' => $volume / 1000,
                                     'created_at' => now(),
                                     'updated_at' => now(),
                                 ]);

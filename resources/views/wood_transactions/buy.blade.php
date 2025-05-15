@@ -3,23 +3,65 @@
 @section('title', 'Input Kayu')
 
 @section('content')
+@php use Illuminate\Support\Str; @endphp
 <style>
+    .grade-table {
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 2px 8px #e0f2f1;
+    }
     .grade-table th, .grade-table td {
-        border: 1px solid #888;
+        border: 1px solid #c5e1a5;
         text-align: center;
         padding: 4px 6px;
+        font-size: 0.97rem;
     }
     .grade-table th {
-        background: #888;
+        background: #33691E;
         color: #fff;
+        font-weight: 600;
     }
     .grade-table .row-label {
-        background: #eee;
+        background: #f1f8e9;
         font-weight: bold;
+        color: #33691E;
     }
     .grade-table .summary {
-        background: #b2ffb2;
+        background: #A5D6A7;
         font-weight: bold;
+        color: #33691E;
+    }
+    .grade-table input[type="number"] {
+        min-width: 60px;
+        text-align: right;
+    }
+    .form-control:focus {
+        border-color: #689F38;
+        box-shadow: 0 0 0 0.1rem #c5e1a5;
+    }
+    .btn-primary {
+        background-color: #33691E;
+        border-color: #33691E;
+        font-weight: 600;
+        border-radius: 6px;
+    }
+    .btn-primary:hover, .btn-primary:focus {
+        background-color: #558B2F;
+        border-color: #558B2F;
+    }
+    h2 {
+        color: #33691E;
+        font-weight: 700;
+        letter-spacing: 1px;
+    }
+    label {
+        color: #33691E;
+        font-weight: 600;
+    }
+    @media (max-width: 768px) {
+        .grade-table th, .grade-table td { font-size: 0.89rem; }
+        h2 { font-size: 1.2rem; }
     }
 </style>
 
@@ -29,8 +71,8 @@
         <div class="row">
             @foreach ($grades as $grade => $diameters)
                 @php
-                    $prefix = explode(' ', $grade)[0];
-                    $allowed = $allowedLengths[$prefix] ?? [];
+                    $allowed = $allowedLengths[$grade] ?? [];
+                    $gradeSafe = str_replace([' ', '/', '\\', '.', ','], '_', $grade);
                 @endphp
                 <div class="col-md-6 mb-4">
                     <table class="grade-table w-100 mb-3">
@@ -65,19 +107,19 @@
                             <tr class="summary">
                                 <td colspan="2">Total PCS</td>
                                 @foreach ($allowed as $p)
-                                    <td class="total-pcs" data-grade="{{ $grade }}" data-panjang="{{ $p }}">0</td>
+                                    <td class="total-pcs" data-grade="{{ $gradeSafe }}" data-panjang="{{ $p }}">0</td>
                                 @endforeach
                             </tr>
                             <tr class="summary">
                                 <td colspan="2">Total Volume</td>
                                 @foreach ($allowed as $p)
-                                    <td class="total-volume" data-grade="{{ $grade }}" data-panjang="{{ $p }}">0.000</td>
+                                    <td class="total-volume" data-grade="{{ $gradeSafe }}" data-panjang="{{ $p }}">0.000</td>
                                 @endforeach
                             </tr>
                             <tr class="summary">
                                 <td colspan="2">Total Pembayaran</td>
                                 @foreach ($allowed as $p)
-                                    <td class="total-bayar" data-grade="{{ $grade }}" data-panjang="{{ $p }}">Rp0</td>
+                                    <td class="total-bayar" data-grade="{{ $gradeSafe }}" data-panjang="{{ $p }}">Rp0</td>
                                 @endforeach
                             </tr>
                         </tbody>
@@ -98,49 +140,56 @@
 </div>
 
 <script>
-    // Data volume per batang dari backend
     const volumes = @json($volumes);
+    const hargaPerM3 = @json($hargaPerM3);
+    const grades = @json($grades);
+    const allowedLengths = @json($allowedLengths);
 
-    // Fungsi hitung volume: jumlah pcs * volume per batang
-    function hitungVolume(grade, diameter, pcs) {
-        let volPerBatang = (volumes[grade] && volumes[grade][diameter]) ? parseFloat(volumes[grade][diameter]) : 0;
-        return pcs * volPerBatang;
+    // Fungsi JS untuk samakan gradeSafe dengan Blade
+    function gradeSafe(str) {
+        return str.replace(/[\s\/\\\.,]/g, '_');
     }
 
     function updateSummary() {
-        let grandVolume = 0;
-        let grandBayar = 0;
+        Object.keys(grades).forEach(function(grade) {
+            let gradeSafeStr = gradeSafe(grade);
+            let diameters = grades[grade];
+            let allowed = allowedLengths[grade] || [];
 
-        @foreach ($grades as $grade => $diameters)
-            @php $prefix = explode(' ', $grade)[0]; $allowed = $allowedLengths[$prefix] ?? []; @endphp
-            @foreach ($allowed as $p)
+            allowed.forEach(function(p) {
                 let totalPcs = 0, totalVol = 0, totalBayar = 0;
-                @foreach ($diameters as $d)
-                    let input = document.querySelector('input[name="pcs[{{ $grade }}][{{ $d }}][{{ $p }}]"]');
+
+                diameters.forEach(function(d) {
+                    let input = document.querySelector('input[name="pcs['+grade+']['+d+']['+p+']"]');
                     let pcs = input ? parseInt(input.value) || 0 : 0;
                     totalPcs += pcs;
-                    // Ambil volume per batang dari tabel volumes
-                    let vol = hitungVolume("{{ $grade }}", {{ $d }}, pcs);
-                    totalVol += vol;
-                    totalBayar += vol * (hargaPerM3["{{ $grade }}"] || 0);
-                @endforeach
-                document.querySelector('.total-pcs[data-grade="{{ $grade }}"][data-panjang="{{ $p }}"]').textContent = totalPcs;
-                document.querySelector('.total-volume[data-grade="{{ $grade }}"][data-panjang="{{ $p }}"]').textContent = totalVol.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
-                document.querySelector('.total-bayar[data-grade="{{ $grade }}"][data-panjang="{{ $p }}"]').textContent = 'Rp' + totalBayar.toLocaleString('id-ID');
-                grandVolume += totalVol;
-                grandBayar += totalBayar;
-            @endforeach
-        @endforeach
 
-        document.getElementById('grandTotalVolume').textContent = grandVolume.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
-        document.getElementById('grandTotalBayar').textContent = grandBayar.toLocaleString('id-ID');
+                    // Ambil volume per batang dari volumes[diameter][panjang]
+                    let volPerBatang = (volumes[d] && volumes[d][p]) ? parseFloat(volumes[d][p]) : 0;
+                    totalVol += pcs * volPerBatang;
+                });
+
+                // Hitung total bayar per panjang di grade ini
+                let harga = (hargaPerM3[grade] && hargaPerM3[grade][p]) ? hargaPerM3[grade][p] : 0;
+                totalBayar = totalVol * harga;
+
+                // Update ke tabel
+                let pcsCell = document.querySelector('.total-pcs[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
+                let volCell = document.querySelector('.total-volume[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
+                let bayarCell = document.querySelector('.total-bayar[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
+                if (pcsCell) pcsCell.textContent = totalPcs;
+                if (volCell) volCell.textContent = totalVol.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
+                if (bayarCell) bayarCell.textContent = 'Rp' + totalBayar.toLocaleString('id-ID');
+            });
+        });
     }
 
+    // Jalankan saat input berubah
     document.querySelectorAll('.pcs-input').forEach(input => {
         input.addEventListener('input', updateSummary);
     });
 
-    // Inisialisasi pertama
-    updateSummary();
+    // Jalankan saat halaman pertama kali dimuat
+    document.addEventListener('DOMContentLoaded', updateSummary);
 </script>
 @endsection
