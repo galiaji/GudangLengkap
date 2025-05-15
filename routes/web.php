@@ -26,6 +26,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/wood-transactions/sell', [WoodTransactionController::class, 'sell'])->name('wood_transactions.sell');
     Route::post('/wood-transactions/sell', [WoodTransactionController::class, 'storeSell'])->name('wood_transactions.storeSell');
 
+Route::get('/transaksi', [WoodTransactionController::class, 'index'])->name('transaksi.index');
+Route::get('/transaksi/{id}', [WoodTransactionController::class, 'show'])->name('transaksi.show');
+Route::get('/transaksi/create/{jenis}', function($jenis) {
+    return view('transaksi.create', compact('jenis'));
+})->name('transaksi.create');
+
 
     Route::get('/stock/{woodType}', [App\Http\Controllers\StockController::class, 'detail'])->name('stock.detail');
 });

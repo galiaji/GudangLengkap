@@ -16,16 +16,9 @@ class WoodTransaction extends Model
      */
     protected $table = 'wood_transactions';
 
-    /**
-     * Kolom yang dapat diisi secara massal.
-     *
-     * @var array
-     */
-    protected $fillable = [
-        'seller_name',
-        'transaction_total_volume',
-        'transaction_total_price',
-    ];
+    
+    protected $fillable = ['id_transaksi', 'jenis_transaksi', 'atas_nama', 'volume_m3', 'total_pembayaran', 'tanggal_transaksi'];
+
 
     /**
      * Relasi ke model WoodTransactionDetail.

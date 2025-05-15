@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('wood_type_id')->constrained('wood_types')->cascadeOnDelete();
             $table->foreignId('grade_id')->constrained()->cascadeOnDelete();
             $table->unsignedInteger('quantity')->nullable();
-            $table->decimal('total_volume', 8, 2)->default(0);
+            $table->decimal('total_volume', 8, 3)->default(0);
             $table->unique(['wood_type_id', 'grade_id', 'diameter', 'panjang']);
             $table->timestamps();
 
