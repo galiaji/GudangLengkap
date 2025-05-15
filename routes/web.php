@@ -7,31 +7,29 @@ use App\Http\Controllers\WoodTransactionController;
 
 // Display the login form.
 Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
-
-// Process the login form submission.
 Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
 
 // Semua rute yang membutuhkan autentikasi
 Route::middleware('auth')->group(function () {
-        Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
     // Wood Price
     Route::get('/wood-prices', [WoodPriceController::class, 'index'])->name('wood_prices.index');
     Route::get('/wood-prices/{id}/edit', [WoodPriceController::class, 'edit'])->name('wood_prices.edit');
     Route::put('/wood-prices/{id}', [WoodPriceController::class, 'update'])->name('wood_prices.update');
 
-    // Wood Transaction
-    Route::get('/wood-transactions/buy', [WoodTransactionController::class, 'buy'])->name('wood_transactions.buy');
-    Route::post('/wood-transactions/buy', [WoodTransactionController::class, 'storeBuy'])->name('wood_transactions.storeBuy');
-    Route::get('/wood-transactions/sell', [WoodTransactionController::class, 'sell'])->name('wood_transactions.sell');
-    Route::post('/wood-transactions/sell', [WoodTransactionController::class, 'storeSell'])->name('wood_transactions.storeSell');
+    // Form & proses beli stok
+    Route::get('/transaksi/beli', [WoodTransactionController::class, 'buy'])->name('wood_transactions.buy');
+    Route::post('/transaksi/beli', [WoodTransactionController::class, 'storeBuy'])->name('wood_transactions.storeBuy');
 
-Route::get('/transaksi', [WoodTransactionController::class, 'index'])->name('transaksi.index');
-Route::get('/transaksi/{id}', [WoodTransactionController::class, 'show'])->name('transaksi.show');
-Route::get('/transaksi/create/{jenis}', function($jenis) {
-    return view('transaksi.create', compact('jenis'));
-})->name('transaksi.create');
+    // Form & proses jual stok
+    Route::get('/transaksi/jual', [WoodTransactionController::class, 'sell'])->name('wood_transactions.sell');
+    Route::post('/transaksi/jual', [WoodTransactionController::class, 'storeSell'])->name('wood_transactions.storeSell');
 
+    // List & detail transaksi
+    Route::get('/transaksi', [WoodTransactionController::class, 'index'])->name('transaksi.index');
+    Route::get('/transaksi/{transaksi}', [WoodTransactionController::class, 'show'])->name('transaksi.show');
 
+    // Stock detail
     Route::get('/stock/{woodType}', [App\Http\Controllers\StockController::class, 'detail'])->name('stock.detail');
 });

@@ -16,9 +16,13 @@ class WoodTransaction extends Model
      */
     protected $table = 'wood_transactions';
 
-    
-    protected $fillable = ['id_transaksi', 'jenis_transaksi', 'atas_nama', 'volume_m3', 'total_pembayaran', 'tanggal_transaksi'];
-
+    protected $fillable = [
+        'jenis_transaksi', // Pembelian/Penjualan
+        'atas_nama',
+        'total_volume',
+        'total_pembayaran',
+        'tanggal_transaksi'
+    ];
 
     /**
      * Relasi ke model WoodTransactionDetail.
@@ -27,6 +31,6 @@ class WoodTransaction extends Model
      */
     public function details()
     {
-        return $this->hasMany(WoodTransactionDetail::class, 'wood_transaction_id');
+        return $this->hasMany(WoodTransactionDetail::class, 'transaksi_id');
     }
 }

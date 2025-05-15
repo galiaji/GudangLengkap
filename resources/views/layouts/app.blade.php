@@ -124,6 +124,9 @@
                             <a class="nav-link" href="{{ route('transaksi.index') }}">Transaksi</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="{{ route('wood_transactions.buy') }}">Beli Stok</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{{ route('wood_transactions.sell') }}">Jual Stok</a>
                         </li>
                         <li class="nav-item">
@@ -140,14 +143,14 @@
         <!-- Sidebar -->
         <div id="sidebar" class="border-end">
             <div class="sidebar-content">
-              <h5>Menu Sidebar</h5>
-<div class="d-grid gap-2">
-    <a href="{{ route('wood_transactions.buy') }}" class="btn btn-sidebar">Beli Stok</a>
-    <a href="{{ route('wood_transactions.sell') }}" class="btn btn-sidebar">Jual Stok</a>
-    <a href="{{ route('wood_prices.index') }}" class="btn btn-sidebar">Harga Kayu</a>
-    <!-- Tambahkan button lain sesuai kebutuhan -->
-</div>
-                       </div>
+                <h5>Menu Sidebar</h5>
+                <div class="d-grid gap-2">
+                    <a href="{{ route('transaksi.index') }}" class="btn btn-sidebar">Transaksi</a>
+                    <a href="{{ route('wood_transactions.buy') }}" class="btn btn-sidebar">Beli Stok</a>
+                    <a href="{{ route('wood_transactions.sell') }}" class="btn btn-sidebar">Jual Stok</a>
+                    <a href="{{ route('wood_prices.index') }}" class="btn btn-sidebar">Harga Kayu</a>
+                </div>
+            </div>
         </div>
         <!-- Konten Utama -->
         <main class="flex-grow-1 p-3">
