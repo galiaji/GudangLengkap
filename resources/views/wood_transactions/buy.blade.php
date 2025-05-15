@@ -68,6 +68,20 @@
 <div class="container-fluid">
     <h2 class="mb-4">Input Kayu - {{ $jenisKayu }}</h2>
     <form>
+        <div class="row mb-3">
+            <div class="col-md-4 mb-2">
+                <label>Atas Nama:</label>
+                <input type="text" name="atas_nama" class="form-control w-auto d-inline-block" style="width:200px;">
+            </div>
+            <div class="col-md-4 mb-2">
+                <label for="wood_type">Jenis Kayu:</label>
+                <select name="wood_type" id="wood_type" class="form-control w-auto d-inline-block" style="width:200px;">
+                    @foreach ($woodTypes as $type)
+                        <option value="{{ $type }}">{{ $type }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
         <div class="row">
             @foreach ($grades as $grade => $diameters)
                 @php
@@ -127,14 +141,12 @@
                 </div>
             @endforeach
         </div>
-        <div class="mb-3">
-            <label>Atas Nama:</label>
-            <input type="text" name="atas_nama" class="form-control w-auto d-inline-block" style="width:200px;">
-        </div>
         <div>
             <strong>Total Volume:</strong> <span id="grandTotalVolume">0.000</span> m³<br>
             <strong>Total Pembayaran:</strong> Rp<span id="grandTotalBayar">0</span>
         </div>
+        <input type="hidden" name="total_volume" id="inputTotalVolume">
+        <input type="hidden" name="total_pembayaran" id="inputTotalBayar">
         <button type="submit" class="btn btn-primary mt-3">Simpan</button>
     </form>
 </div>
@@ -193,6 +205,10 @@
         // Update grand total di bawah form
         document.getElementById('grandTotalVolume').textContent = grandVolume.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
         document.getElementById('grandTotalBayar').textContent = grandBayar.toLocaleString('id-ID');
+
+        // Update nilai ke input hidden
+        document.getElementById('inputTotalVolume').value = grandVolume;
+        document.getElementById('inputTotalBayar').value = grandBayar;
     }
 
     // Jalankan saat input berubah
@@ -202,5 +218,69 @@
 
     // Jalankan saat halaman pertama kali dimuat
     document.addEventListener('DOMContentLoaded', updateSummary);
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Ambil data utama
+        const atas_nama = document.querySelector('[name="atas_nama"]').value;
+        const wood_type = document.querySelector('[name="wood_type"]').value;
+        const total_volume = document.getElementById('grandTotalVolume').textContent.replace(/\./g, '').replace(',', '.');
+        const total_pembayaran = document.getElementById('grandTotalBayar').textContent.replace(/\./g, '').replace(',', '.').replace(/^Rp/, '');
+
+        // Kumpulkan detail
+        let details = [];
+        Object.keys(grades).forEach(function(grade) {
+            let diameters = grades[grade];
+            let allowed = allowedLengths[grade] || [];
+            allowed.forEach(function(p) {
+                diameters.forEach(function(d) {
+                    let input = document.querySelector('input[name="pcs['+grade+']['+d+']['+p+']"]');
+                    let pcs = input ? parseInt(input.value) || 0 : 0;
+                    if (pcs > 0) {
+                        // Volume per batang
+                        let volPerBatang = (volumes[d] && volumes[d][p]) ? parseFloat(volumes[d][p]) : 0;
+                        let volume = pcs * volPerBatang;
+                        let harga = (hargaPerM3[grade] && hargaPerM3[grade][p]) ? hargaPerM3[grade][p] : 0;
+                        let totalHarga = volume * harga;
+                        details.push({
+                            grade: grade,
+                            diameter: d,
+                            panjang: p,
+                            pcs: pcs,
+                            volume: volume,
+                            harga: totalHarga
+                        });
+                    }
+                });
+            });
+        });
+
+        // Kirim via AJAX
+        fetch("{{ route('wood_transactions.storeBuy') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                atas_nama: atas_nama,
+                wood_type: wood_type,
+                total_volume: total_volume,
+                total_pembayaran: total_pembayaran,
+                details: details
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('Transaksi berhasil disimpan!');
+                window.location.href = data.redirect_url;
+            } else {
+                alert('Gagal: ' + (data.message || 'Terjadi kesalahan'));
+            }
+        })
+        .catch(err => alert('Gagal: ' + err));
+    });
 </script>
 @endsection

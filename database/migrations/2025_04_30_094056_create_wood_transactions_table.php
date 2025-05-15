@@ -26,7 +26,7 @@ return new class extends Migration
             $table->id(); // Primary Key otomatis
             $table->string('jenis_transaksi'); // Jenis Transaksi
             $table->string('atas_nama'); // Nama Pemilik
-            $table->decimal('volume_m3', 10, 3); // Volume dalam m3
+            $table->decimal('total_volume', 10, 3); // Volume dalam m3
             $table->decimal('total_pembayaran', 15, 2); // Total Pembayaran
             $table->dateTime('tanggal_transaksi'); // Tanggal Transaksi
             $table->timestamps(); // Kolom created_at & updated_at otomatis

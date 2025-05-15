@@ -91,11 +91,10 @@ class WoodTransactionController extends Controller
     {
         $request->validate([
             'atas_nama' => 'required|string',
+            'wood_type' => 'required|string',
             'total_volume' => 'required|numeric',
             'total_pembayaran' => 'required|numeric',
-            'tanggal_transaksi' => 'required|date',
             'details' => 'required|array|min:1',
-            'details.*.wood_type' => 'required|string',
             'details.*.grade' => 'required|string',
             'details.*.diameter' => 'required|numeric',
             'details.*.panjang' => 'required|numeric',
@@ -106,18 +105,21 @@ class WoodTransactionController extends Controller
 
         DB::beginTransaction();
         try {
-            $transaksi = WoodTransaction::create([
+            // Simpan transaksi utama
+            $transaksi = \App\Models\WoodTransaction::create([
                 'jenis_transaksi' => 'Pembelian',
                 'atas_nama' => $request->atas_nama,
+                'wood_type' => $request->wood_type,
                 'total_volume' => $request->total_volume,
                 'total_pembayaran' => $request->total_pembayaran,
-                'tanggal_transaksi' => $request->tanggal_transaksi,
+                'tanggal_transaksi' => now(),
             ]);
 
+            // Simpan detail
             foreach ($request->details as $detail) {
-                WoodTransactionDetail::create([
+                \App\Models\WoodTransactionDetail::create([
                     'wood_transaction_id' => $transaksi->id,
-                    'wood_type' => $detail['wood_type'],
+                    'wood_type' => $request->wood_type,
                     'grade' => $detail['grade'],
                     'diameter' => $detail['diameter'],
                     'panjang' => $detail['panjang'],
@@ -125,19 +127,40 @@ class WoodTransactionController extends Controller
                     'volume' => $detail['volume'],
                     'harga' => $detail['harga'],
                 ]);
-                DB::table('wood_stocks')
-                    ->where('wood_type', $detail['wood_type'])
-                    ->where('grade', $detail['grade'])
-                    ->where('diameter', $detail['diameter'])
-                    ->where('panjang', $detail['panjang'])
-                    ->increment('quantity', $detail['pcs']);
+
+                // Update stok (jika perlu)
+                $stock = \App\Models\WoodStock::where([
+                    'wood_type' => $request->wood_type,
+                    'grade' => $detail['grade'],
+                    'diameter' => $detail['diameter'],
+                    'panjang' => $detail['panjang'],
+                ])->first();
+                if ($stock) {
+                    $stock->increment('quantity', $detail['pcs']);
+                    $stock->increment('total_volume', $detail['volume']);
+                } else {
+                    \App\Models\WoodStock::create([
+                        'wood_type' => $request->wood_type,
+                        'grade' => $detail['grade'],
+                        'diameter' => $detail['diameter'],
+                        'panjang' => $detail['panjang'],
+                        'quantity' => $detail['pcs'],
+                        'total_volume' => $detail['volume'],
+                    ]);
+                }
             }
 
             DB::commit();
-            return redirect()->route('transaksi.show', $transaksi->id)->with('success', 'Transaksi berhasil disimpan!');
+            return response()->json([
+                'success' => true,
+                'redirect_url' => route('transaksi.show', $transaksi->id) // atau route lain sesuai aplikasi Anda
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 
