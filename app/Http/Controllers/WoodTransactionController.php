@@ -3,15 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\WoodTransaction;
+use App\Models\WoodTransactionDetail;
+use App\Models\WoodStock;
 use App\Models\WoodType;
 use App\Models\Grade;
 use App\Models\Diameter;
 use Illuminate\Http\Request;
-use App\Models\WoodTransactionDetail;
-use App\Models\WoodStock;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-
 
 class WoodTransactionController extends Controller
 {
@@ -34,65 +32,44 @@ class WoodTransactionController extends Controller
     public function storeBuy(Request $request)
     {
         $request->validate([
-            'seller_name' => 'required|string',
-            'details' => 'required|array',
-            'details.*.jenis_kayu_id' => 'required|exists:wood_types,id',
-            'details.*.grade_id' => 'required|exists:grades,id',
-            'details.*.diameter' => 'required|integer|min:1',
-            'details.*.panjang' => 'required|integer|min:1',
-            'details.*.quantity' => 'required|integer|min:1',
-            'details.*.total_volume' => 'required|numeric|min:0',
+            'seller_name' => 'required|string|max:255',
+            'transaction_total_volume' => 'required|numeric|min:0',
+            'transaction_total_price' => 'required|numeric|min:0',
+            'details.*.jenis_kayu_id' => 'required|integer|exists:wood_types,id',
+            'details.*.grade_id' => 'required|integer|exists:grades,id',
+            'details.*.diameter' => 'required|numeric|min:0',
+            'details.*.panjang' => 'required|integer|min:0',
+            'details.*.volume' => 'required|numeric|min:0',
+            'details.*.price' => 'required|numeric|min:0',
+            'details.*.quantity' => 'required|integer|min:0',
         ]);
 
-        \Log::info('Request Data:', $request->all()); // Debug input data
-
-        DB::beginTransaction();
-
-        try {
-            // Simpan transaksi utama
+        DB::transaction(function () use ($request) {
+            // Simpan data transaksi ke tabel wood_transactions
             $transaction = WoodTransaction::create([
                 'seller_name' => $request->seller_name,
-                'grand_total_volume' => collect($request->details)->sum('total_volume'),
-                'grand_total_price' => collect($request->details)->sum(function ($detail) {
-                    return $detail['quantity'] * $detail['total_volume'];
-                }),
+                'grand_total_volume' => $request->transaction_total_volume,
+                'grand_total_price' => $request->transaction_total_price,
             ]);
 
-            \Log::info('Transaction Created:', $transaction->toArray()); // Debug transaksi
-
-            // Simpan detail transaksi
+            // Simpan detail transaksi ke tabel wood_transaction_details
             foreach ($request->details as $detail) {
-                $transactionDetail = WoodTransactionDetail::create([
+                WoodTransactionDetail::create([
                     'wood_transaction_id' => $transaction->id,
                     'jenis_kayu_id' => $detail['jenis_kayu_id'],
                     'grade_id' => $detail['grade_id'],
-                    'volume' => $detail['total_volume'],
-                    'price' => $detail['quantity'] * $detail['total_volume'],
-                ]);
-
-                \Log::info('Transaction Detail Created:', $transactionDetail->toArray()); // Debug detail transaksi
-
-                // Perbarui stok
-                $stock = WoodStock::firstOrNew([
-                    'wood_type_id' => $detail['jenis_kayu_id'],
-                    'grade_id' => $detail['grade_id'],
                     'diameter' => $detail['diameter'],
                     'panjang' => $detail['panjang'],
+                    'quantity' => $detail['quantity'],
+                    'volume' => $detail['volume'],
+                    'price_per_m3' => $detail['price'],
+                    'subtotal_volume' => $detail['quantity'] * $detail['volume'],
+                    'subtotal_price' => $detail['quantity'] * $detail['volume'] * $detail['price'],
                 ]);
-                $stock->quantity += $detail['quantity'];
-                $stock->save();
-
-                \Log::info('Stock Updated:', $stock->toArray()); // Debug stok
             }
+        });
 
-            DB::commit();
-
-            return redirect()->route('wood_transactions.buy')->with('success', 'Transaksi berhasil disimpan dan stok diperbarui.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error:', ['exception' => $e->getMessage()]); // Debug error
-            return redirect()->back()->withErrors(['error' => 'Terjadi kesalahan saat menyimpan transaksi.']);
-        }
+        return redirect()->route('wood_transactions.buy')->with('success', 'Transaksi berhasil disimpan.');
     }
 
     /**
@@ -111,6 +88,8 @@ class WoodTransactionController extends Controller
     {
         $request->validate([
             'id' => 'required|exists:wood_transactions,id',
+            'jenis_kayu_id' => 'required|exists:wood_types,id',
+            'grade_id' => 'required|exists:grades,id',
             'diameter' => 'required|integer|min:1',
             'panjang' => 'required|integer|min:1',
             'quantity' => 'required|integer|min:1',
@@ -119,12 +98,10 @@ class WoodTransactionController extends Controller
         DB::beginTransaction();
 
         try {
-            $transaction = WoodTransaction::findOrFail($request->id);
-
             // Periksa stok
             $stock = WoodStock::where([
-                'wood_type_id' => $transaction->wood_type_id,
-                'grade_id' => $transaction->grade_id,
+                'wood_type_id' => $request->jenis_kayu_id,
+                'grade_id' => $request->grade_id,
                 'diameter' => $request->diameter,
                 'panjang' => $request->panjang,
             ])->first();
@@ -134,8 +111,26 @@ class WoodTransactionController extends Controller
             }
 
             // Kurangi stok
-            $stock->quantity -= $request->quantity;
-            $stock->save();
+            $stock->update([
+                'quantity' => $stock->quantity - $request->quantity,
+                'total_volume' => $stock->total_volume - ($request->quantity * $stock->volume),
+            ]);
+
+            // Simpan transaksi penjualan
+            $transactionDetailData = [
+                'wood_transaction_id' => $request->id,
+                'jenis_kayu_id' => $request->jenis_kayu_id,
+                'grade_id' => $request->grade_id,
+                'diameter' => $request->diameter,
+                'panjang' => $request->panjang,
+                'quantity' => $request->quantity,
+                'volume' => $stock->volume,
+                'price_per_m3' => $stock->price_per_m3,
+                'subtotal_volume' => $request->quantity * $stock->volume,
+                'subtotal_price' => $request->quantity * $stock->volume * $stock->price_per_m3,
+            ];
+
+            WoodTransactionDetail::create($transactionDetailData);
 
             DB::commit();
 

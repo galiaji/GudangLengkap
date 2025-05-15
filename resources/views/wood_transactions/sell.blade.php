@@ -37,7 +37,8 @@
         </table>
         @endforeach
 
-        <button type="submit" class="btn btn-primary">Kurangi Stok</button>
+        <!-- Input untuk penjualan -->
+        <button type="submit" class="btn btn-danger">Kurangi Stok</button>
     </form>
 </div>
 @endsection
