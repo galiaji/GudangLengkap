@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\WoodTransaction;
 use App\Models\WoodTransactionDetail;
-use App\Models\WoodType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -19,8 +18,28 @@ class WoodTransactionController extends Controller
     // Halaman form pembelian
     public function buy()
     {
-        $jenisKayu = WoodType::pluck('name')->toArray();
-        return view('wood_transactions.buy', compact('jenisKayu'));
+        $grades = [
+            'Rijek 1' => [10, 11, 12, 14, 15],
+            'Rijek 2' => [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+            'Storty 1' => [13, 14, 15],
+            'Storty 2' => [16, 17, 18],
+            'Super 1' => [19, 20, 21, 22, 23, 24],
+            'Super 2' => [25, 26, 27, 28, 29, 30],
+        ];
+
+        $panjang = [100, 130, 200, 260];
+
+        $allowedLengths = [
+            'Rijek' => [100, 130],
+            'Storty' => [130],
+            'Super' => [130, 200],
+        ];
+
+        $jenisKayu = 'Mahoni'; // atau bisa array jika multiple
+
+        return view('wood_transactions.buy', compact(
+            'grades', 'panjang', 'jenisKayu', 'allowedLengths'
+        ));
     }
 
     // Simpan transaksi pembelian
@@ -32,7 +51,7 @@ class WoodTransactionController extends Controller
             'total_pembayaran' => 'required|numeric',
             'tanggal_transaksi' => 'required|date',
             'details' => 'required|array|min:1',
-            'details.*.jenis_kayu' => 'required|string',
+            'details.*.wood_type' => 'required|string',
             'details.*.grade' => 'required|string',
             'details.*.diameter' => 'required|numeric',
             'details.*.panjang' => 'required|numeric',
@@ -53,8 +72,8 @@ class WoodTransactionController extends Controller
 
             foreach ($request->details as $detail) {
                 WoodTransactionDetail::create([
-                    'transaksi_id' => $transaksi->id,
-                    'jenis_kayu' => $detail['jenis_kayu'],
+                    'wood_transaction_id' => $transaksi->id,
+                    'wood_type' => $detail['wood_type'],
                     'grade' => $detail['grade'],
                     'diameter' => $detail['diameter'],
                     'panjang' => $detail['panjang'],
@@ -62,6 +81,12 @@ class WoodTransactionController extends Controller
                     'volume' => $detail['volume'],
                     'harga' => $detail['harga'],
                 ]);
+                DB::table('wood_stocks')
+                    ->where('wood_type', $detail['wood_type'])
+                    ->where('grade', $detail['grade'])
+                    ->where('diameter', $detail['diameter'])
+                    ->where('panjang', $detail['panjang'])
+                    ->increment('quantity', $detail['pcs']);
             }
 
             DB::commit();

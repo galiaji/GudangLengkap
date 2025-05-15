@@ -25,7 +25,6 @@ return new class extends Migration
         Schema::create('wood_transactions', function (Blueprint $table) {
             $table->id(); // Primary Key otomatis
             $table->string('jenis_transaksi'); // Jenis Transaksi
-            $table->string('tr'); // Kode Transaksi
             $table->string('atas_nama'); // Nama Pemilik
             $table->decimal('volume_m3', 10, 3); // Volume dalam m3
             $table->decimal('total_pembayaran', 15, 2); // Total Pembayaran

@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('diameters', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedInteger('diameter');
-            $table->unsignedInteger('panjang');
-            $table->decimal('volume', 8, 3);
-            $table->timestamps();
-        });
+        // Schema::create('diameters', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->unsignedInteger('diameter');
+        //     $table->unsignedInteger('panjang');
+        //     $table->decimal('volume', 8, 3);
+        //     $table->timestamps();
+        // });
     }
 
     /**

@@ -13,14 +13,13 @@ return new class extends Migration
     {
         Schema::create('wood_prices', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('wood_type_id')->constrained('wood_types')->onDelete('cascade'); // Pastikan tabel 'wood_types' ada
-            $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade'); // Pastikan tabel 'grades' ada
-            // $table->foreignId('diameter_id')->constrained('diameters')->onDelete('cascade'); // Pastikan tabel 'diameters' ada
+            $table->string('wood_type');
+            $table->string('grade');
             $table->unsignedInteger('panjang');
             $table->decimal('price_per_m3', 12, 2);
             $table->timestamps();
-        
-            $table->unique(['wood_type_id', 'grade_id', 'panjang']);
+
+            $table->unique(['wood_type', 'grade', 'panjang']);
         });
     }
 

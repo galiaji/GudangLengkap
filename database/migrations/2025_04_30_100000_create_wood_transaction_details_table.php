@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('wood_transaction_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('wood_transaction_id')->constrained('wood_transactions')->onDelete('cascade'); // Relasi ke tabel utama
-            $table->foreignId('jenis_kayu_id')->constrained('wood_types')->onDelete('cascade'); // Jenis kayu
-            $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade'); // Grade kayu
+            $table->foreignId('wood_transaction_id')->constrained('wood_transactions')->onDelete('cascade');
+            $table->string('wood_type');
+            $table->string('grade');
             $table->decimal('diameter', 5, 2);
             $table->integer('panjang');
             $table->integer('pcs');
-            $table->decimal('volume', 10, 2);
+            $table->decimal('volume', 10, 3);
             $table->decimal('harga', 15, 2);
             $table->timestamps();
         });

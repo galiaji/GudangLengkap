@@ -3,7 +3,7 @@
 @section('content')
 <div class="container-fluid py-4">
     <h1 class="text-center mb-4" style="color:#33691E; font-size:2.2rem; letter-spacing:1px;">
-        Statistik Stok {{ $woodType->name }}
+        Statistik Stok {{ $woodType }}
     </h1>
 
     <div class="row g-4">
@@ -11,12 +11,15 @@
         <div class="col-md-6">
             <div class="card shadow-sm">
                 <div class="card-header bg-success text-white text-center fw-bold">
-                    Grade: {{ $grade->name }}
+                    Grade: {{ $gradeRanges[$grade] ?? $grade }}
                 </div>
                 <div class="card-body p-3">
                     @php
-                        $gradeStocks = $stocks->where('grade_id', $grade->id);
+                        $gradeStocks = $stocks->where('grade', $grade);
                         $uniquePanjang = $gradeStocks->pluck('panjang')->unique()->sort();
+                        // Tentukan diameter minimum dan maksimum dari data stok grade ini
+                        $minDiameter = $gradeStocks->min('diameter');
+                        $maxDiameter = $gradeStocks->max('diameter');
                     @endphp
 
                     <div class="table-responsive">
@@ -39,28 +42,30 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @for($d = $grade->min_diameter; $d <= $grade->max_diameter; $d++)
-                                    @php
-                                        $rowTotalPcs = 0;
-                                        $rowTotalVolume = 0;
-                                    @endphp
-                                    <tr class="text-center">
-                                        <td>{{ $d }}</td>
-                                        @foreach($uniquePanjang as $p)
-                                            @php
-                                                $items = $gradeStocks->where('diameter', $d)->where('panjang', $p);
-                                                $pcs = $items->sum('quantity');
-                                                $volume = $items->sum('total_volume');
-                                                $rowTotalPcs += $pcs;
-                                                $rowTotalVolume += $volume;
-                                            @endphp
-                                            <td>{{ $pcs ?: 0 }}</td>
-                                            <td>{{ $pcs ? number_format($volume, 3) : '0.000' }}</td>
-                                        @endforeach
-                                        <td class="fw-bold">{{ $rowTotalPcs }}</td>
-                                        <td class="fw-bold">{{ number_format($rowTotalVolume, 3) }}</td>
-                                    </tr>
-                                @endfor
+                                @if($minDiameter !== null && $maxDiameter !== null)
+                                    @for($d = $minDiameter; $d <= $maxDiameter; $d++)
+                                        @php
+                                            $rowTotalPcs = 0;
+                                            $rowTotalVolume = 0;
+                                        @endphp
+                                        <tr class="text-center">
+                                            <td>{{ $d }}</td>
+                                            @foreach($uniquePanjang as $p)
+                                                @php
+                                                    $items = $gradeStocks->where('diameter', $d)->where('panjang', $p);
+                                                    $pcs = $items->sum('quantity');
+                                                    $volume = $items->sum('total_volume');
+                                                    $rowTotalPcs += $pcs;
+                                                    $rowTotalVolume += $volume;
+                                                @endphp
+                                                <td>{{ $pcs ?: 0 }}</td>
+                                                <td>{{ $pcs ? number_format($volume, 3) : '0.000' }}</td>
+                                            @endforeach
+                                            <td class="fw-bold">{{ $rowTotalPcs }}</td>
+                                            <td class="fw-bold">{{ number_format($rowTotalVolume, 3) }}</td>
+                                        </tr>
+                                    @endfor
+                                @endif
 
                                 @php
                                     $gradeTotalPcs = $gradeStocks->sum('quantity');

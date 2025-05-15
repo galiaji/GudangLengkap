@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('grades', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->unsignedInteger('min_diameter'); // Kolom untuk diameter minimum
-            $table->unsignedInteger('max_diameter'); // Kolom untuk diameter maksimum
-            $table->timestamps();
-        });
+        // Schema::create('grades', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->string('name');
+        //     $table->unsignedInteger('min_diameter'); // Kolom untuk diameter minimum
+        //     $table->unsignedInteger('max_diameter'); // Kolom untuk diameter maksimum
+        //     $table->timestamps();
+        // });
     }
 
     /**

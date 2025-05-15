@@ -9,12 +9,19 @@ class WoodTransactionDetail extends Model
 {
     use HasFactory;
 
-     protected $fillable = [
-        'transaksi_id', 'jenis_kayu', 'grade', 'diameter', 'panjang', 'pcs', 'volume', 'harga'
+    protected $fillable = [
+        'wood_transaction_id', // foreign key ke tabel wood_transactions
+        'wood_type',
+        'grade',
+        'diameter',
+        'panjang',
+        'pcs',
+        'volume',
+        'harga'
     ];
 
-    public function transaksi()
+    public function transaction()
     {
-        return $this->belongsTo(WoodTransaction::class, 'transaksi_id');
+        return $this->belongsTo(WoodTransaction::class, 'wood_transaction_id');
     }
 }

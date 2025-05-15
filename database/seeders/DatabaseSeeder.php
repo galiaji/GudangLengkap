@@ -16,9 +16,9 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             UserSeeder::class,
-            WoodTypeSeeder::class,
-            GradeSeeder::class,
-            DiameterSeeder::class,
+            // WoodTypeSeeder::class,
+            // GradeSeeder::class,
+            // DiameterSeeder::class,
             WoodStockSeeder::class,
             WoodPriceSeeder::class,
         ]);

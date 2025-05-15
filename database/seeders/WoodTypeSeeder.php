@@ -13,9 +13,9 @@ class WoodTypeSeeder extends Seeder
      */
     public function run(): void
     {
-        $types = ['Mahoni', 'Keras', 'Sengon'];
-        foreach ($types as $type) {
-            WoodType::create(['name' => $type]);
-        }
+        // $types = ['Mahoni', 'Keras', 'Sengon'];
+        // foreach ($types as $type) {
+        //     WoodType::create(['name' => $type]);
+        // }
     }
 }

@@ -31,6 +31,7 @@ class WoodTransaction extends Model
      */
     public function details()
     {
-        return $this->hasMany(WoodTransactionDetail::class, 'transaksi_id');
+        // Pastikan foreign key sesuai migrasi: wood_transaction_id
+        return $this->hasMany(WoodTransactionDetail::class, 'wood_transaction_id');
     }
 }

@@ -12,53 +12,77 @@ class WoodStockSeeder extends Seeder
      */
     public function run(): void
     {
-        // Ambil data grades dari tabel grades
-        $grades = DB::table('grades')->get();
+        $gradesArr = [
+            'Rijek 1' => [10, 11, 12, 14, 15],
+            'Rijek 2' => [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+            'Storty 1' => [13, 14, 15],
+            'Storty 2' => [16, 17, 18],
+            'Super 1' => [19, 20, 21, 22, 23, 24],
+            'Super 2' => [25, 26, 27, 28, 29, 30],
+        ];
 
-        // Ambil semua wood types dari tabel wood_types
-        $woodTypes = DB::table('wood_types')->get();
+        $allowedLengths = [
+            'Rijek' => [100, 130],
+            'Storty' => [130],
+            'Super' => [130, 200],
+        ];
 
-        // Daftar panjang kayu yang ingin dimasukkan
-        $lengths = [100, 130, 200, 260]; // Contoh panjang kayu
+        // Volume per batang (diameter x panjang)
+        $volumes = [
+            10 => [100 => 8, 130 => 10, 200 => 16],
+            11 => [100 => 9, 130 => 12, 200 => 18],
+            12 => [100 => 11, 130 => 14, 200 => 22],
+            13 => [100 => 13, 130 => 17, 200 => 26],
+            14 => [100 => 15, 130 => 20, 200 => 30],
+            15 => [100 => 17, 130 => 23, 200 => 35],
+            16 => [100 => 20, 130 => 26, 200 => 40],
+            17 => [100 => 22, 130 => 29, 200 => 45],
+            18 => [100 => 25, 130 => 33, 200 => 50],
+            19 => [100 => 28, 130 => 37, 200 => 56],
+            20 => [100 => 31, 130 => 41, 200 => 62],
+            21 => [100 => 34, 130 => 45, 200 => 69],
+            22 => [100 => 38, 130 => 49, 200 => 76],
+            23 => [100 => 41, 130 => 53, 200 => 83],
+            24 => [100 => 45, 130 => 58, 200 => 90],
+            25 => [100 => 49, 130 => 63, 200 => 98],
+            26 => [100 => 53, 130 => 68, 200 => 106],
+            27 => [100 => 57, 130 => 74, 200 => 114],
+            28 => [100 => 61, 130 => 80, 200 => 123],
+            29 => [100 => 66, 130 => 86, 200 => 132],
+            30 => [100 => 70, 130 => 92, 200 => 141],
+        ];
 
-        // Loop melalui setiap wood type, grade, dan panjang
-        foreach ($woodTypes as $woodType) {
-            foreach ($grades as $grade) {
-                foreach ($lengths as $length) {
-                    // Ambil rentang diameter dari grade
-                    $minDiameter = $grade->min_diameter;
-                    $maxDiameter = $grade->max_diameter;
+        foreach (['Mahoni', 'Keras', 'Sengon'] as $woodType) {
+            foreach ($gradesArr as $gradeName => $diameters) {
+                $prefix = explode(' ', $gradeName)[0];
+                $allowed = $allowedLengths[$prefix] ?? [];
 
-                    // Ambil diameter minimum sebagai contoh
-                    $diameter = $minDiameter;
+                foreach ($diameters as $diameter) {
+                    foreach ($allowed as $length) {
+                        // Ambil volume dari array $volumes
+                        $volume = isset($volumes[$diameter][$length]) ? $volumes[$diameter][$length] : null;
 
-                    // Ambil volume dari tabel diameters berdasarkan diameter dan panjang
-                    $volume = DB::table('diameters')
-                        ->where('diameter', $diameter)
-                        ->where('panjang', $length)
-                        ->value('volume');
+                        if ($volume !== null) {
+                            $exists = DB::table('wood_stocks')
+                                ->where('wood_type', $woodType)
+                                ->where('grade', $gradeName)
+                                ->where('diameter', $diameter)
+                                ->where('panjang', $length)
+                                ->exists();
 
-                    // Jika volume ditemukan, periksa apakah data sudah ada
-                    if ($volume !== null) {
-                        $exists = DB::table('wood_stocks')
-                            ->where('wood_type_id', $woodType->id)
-                            ->where('grade_id', $grade->id)
-                            ->where('diameter', $diameter)
-                            ->where('panjang', $length)
-                            ->exists();
-
-                        // Jika data belum ada, masukkan ke tabel wood_stocks
-                        if (!$exists) {
-                            DB::table('wood_stocks')->insert([
-                                'wood_type_id' => $woodType->id,
-                                'grade_id' => $grade->id,
-                                'diameter' => $diameter,
-                                'panjang' => $length,
-                                'quantity' => 0, // Jumlah default
-                                'total_volume' => $volume * 0, // Total volume dihitung (contoh: quantity * volume)
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ]);
+                            if (!$exists) {
+                                DB::table('wood_stocks')->insert([
+                                    'wood_type' => $woodType,
+                                    'grade' => $gradeName,
+                                    'diameter' => $diameter,
+                                    'panjang' => $length,
+                                    'quantity' => 0,
+                                    'total_volume' => 0,
+                                    'volume' => $volume,
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ]);
+                            }
                         }
                     }
                 }

@@ -1,11 +1,8 @@
 <?php
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\WoodType; // Import the WoodType model
-use App\Models\Grade;
-use App\Models\WoodPrice; // Import the WoodPrice model
+use Illuminate\Support\Facades\DB;
 
 class WoodPriceSeeder extends Seeder
 {
@@ -14,21 +11,27 @@ class WoodPriceSeeder extends Seeder
      */
     public function run(): void
     {
-        $woodTypes = WoodType::all(); // Jenis kayu
-        $grades = Grade::all(); // Grade
-        $lengths = [100, 130, 200, 260]; // Panjang yang berbeda
+        $woodTypes = ['Mahoni', 'Keras', 'Sengon'];
+        $grades = [
+            'Rijek 1', 'Rijek 2',
+            'Storty 1', 'Storty 2',
+            'Super 1', 'Super 2'
+        ];
+        $lengths = [100, 130, 200, 260];
 
-        foreach ($woodTypes as $type) { // Iterasi jenis kayu
-            foreach ($grades as $grade) { // Iterasi grade
-                foreach ($lengths as $length) { // Iterasi panjang
-                    $pricePerM3 = 450000; // Harga per m3 random antara 500,000 dan 2,000,000
+        foreach ($woodTypes as $type) {
+            foreach ($grades as $grade) {
+                foreach ($lengths as $length) {
+                    $pricePerM3 = 450000; // Atur harga sesuai kebutuhan
 
-                    WoodPrice::updateOrCreate([
-                        'wood_type_id' => $type->id,
-                        'grade_id' => $grade->id,
-                        'panjang' => $length, // Panjang sebagai bagian dari kombinasi unik
+                    DB::table('wood_prices')->updateOrInsert([
+                        'wood_type' => $type,
+                        'grade' => $grade,
+                        'panjang' => $length,
                     ], [
                         'price_per_m3' => $pricePerM3,
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
             }

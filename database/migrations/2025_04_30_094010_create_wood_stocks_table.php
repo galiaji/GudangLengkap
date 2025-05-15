@@ -13,18 +13,18 @@ return new class extends Migration
     {
         Schema::create('wood_stocks', function (Blueprint $table) {
             $table->id();
+            $table->string('wood_type'); // ubah dari wood_type_id
+            $table->string('grade');     // ubah dari grade_id
             $table->unsignedInteger('diameter');
             $table->unsignedInteger('panjang');
-            $table->foreignId('wood_type_id')->constrained('wood_types')->cascadeOnDelete();
-            $table->foreignId('grade_id')->constrained()->cascadeOnDelete();
+            $table->decimal('volume', 8, 3)->default(0);
             $table->unsignedInteger('quantity')->nullable();
             $table->decimal('total_volume', 8, 3)->default(0);
-            $table->unique(['wood_type_id', 'grade_id', 'diameter', 'panjang']);
+            $table->unique(['wood_type', 'grade', 'diameter', 'panjang']);
             $table->timestamps();
 
-            // Tambahkan indeks untuk performa
             $table->index('diameter');
-            $table->index('grade_id');
+            $table->index('grade');
         });
     }
 

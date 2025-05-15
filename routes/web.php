@@ -15,8 +15,8 @@ Route::middleware('auth')->group(function () {
 
     // Wood Price
     Route::get('/wood-prices', [WoodPriceController::class, 'index'])->name('wood_prices.index');
-    Route::get('/wood-prices/{id}/edit', [WoodPriceController::class, 'edit'])->name('wood_prices.edit');
-    Route::put('/wood-prices/{id}', [WoodPriceController::class, 'update'])->name('wood_prices.update');
+    Route::get('wood-prices/{hashid}/edit', [WoodPriceController::class, 'edit'])->name('wood_prices.edit');
+    Route::put('wood-prices/{hashid}', [WoodPriceController::class, 'update'])->name('wood_prices.update');
 
     // Form & proses beli stok
     Route::get('/transaksi/beli', [WoodTransactionController::class, 'buy'])->name('wood_transactions.buy');

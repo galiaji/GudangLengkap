@@ -22,31 +22,12 @@ class WoodStock extends Model
      * @var array
      */
     protected $fillable = [
-        'wood_type_id',
-        'grade_id',
+        'wood_type',   // ubah dari wood_type_id
+        'grade',       // ubah dari grade_id
         'diameter',
         'panjang',
         'quantity',
         'total_volume',
+        'volume',
     ];
-
-    /**
-     * Relasi ke model WoodType.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function woodType()
-    {
-        return $this->belongsTo(WoodType::class, 'wood_type_id');
-    }
-
-    /**
-     * Relasi ke model Grade.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function grade()
-    {
-        return $this->belongsTo(Grade::class, 'grade_id');
-    }
 }
