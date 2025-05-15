@@ -151,6 +151,9 @@
     }
 
     function updateSummary() {
+        let grandVolume = 0;
+        let grandBayar = 0;
+
         Object.keys(grades).forEach(function(grade) {
             let gradeSafeStr = gradeSafe(grade);
             let diameters = grades[grade];
@@ -180,8 +183,16 @@
                 if (pcsCell) pcsCell.textContent = totalPcs;
                 if (volCell) volCell.textContent = totalVol.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
                 if (bayarCell) bayarCell.textContent = 'Rp' + totalBayar.toLocaleString('id-ID');
+
+                // Akumulasi grand total
+                grandVolume += totalVol;
+                grandBayar += totalBayar;
             });
         });
+
+        // Update grand total di bawah form
+        document.getElementById('grandTotalVolume').textContent = grandVolume.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
+        document.getElementById('grandTotalBayar').textContent = grandBayar.toLocaleString('id-ID');
     }
 
     // Jalankan saat input berubah
