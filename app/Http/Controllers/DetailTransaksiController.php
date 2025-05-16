@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\WoodTransaction;
 use App\Models\WoodTransactionDetail;
 use Illuminate\Http\Request;
 
@@ -17,8 +18,8 @@ class DetailTransaksiController extends Controller
     // Menampilkan satu detail transaksi
     public function show($id)
     {
-        $detail = WoodTransactionDetail::findOrFail($id);
-        return response()->json($detail);
+        $transaksi = WoodTransaction::with('details')->findOrFail($id);
+        return view('wood_transactions.show', compact('transaksi'));
     }
 
     // Tambahkan method lain sesuai kebutuhan (store, update, destroy, dll)
