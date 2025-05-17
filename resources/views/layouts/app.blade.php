@@ -159,6 +159,29 @@
                 display: none;
             }
         }
+        .btn-sidebar.logout-btn {
+            background-color: #ffebee;
+            color: #c62828;
+            border: none;
+            font-weight: 600;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            width: 100%;
+            min-width: 48px;
+            height: 48px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            font-size: 1.3rem;
+            transition: background 0.2s, color 0.2s;
+            position: relative;
+            overflow: hidden;
+            gap: 12px;
+        }
+        .btn-sidebar.logout-btn:hover, .btn-sidebar.logout-btn:focus {
+            background-color: #ffcdd2;
+            color: #b71c1c;
+        }
     </style>
 </head>
 <body>
@@ -208,8 +231,15 @@
             <div class="sidebar-bottom">
                 <a href="{{ route('account.manage') }}" class="btn btn-sidebar" title="Manage Akun">
                     <i class="bi bi-person-circle"></i>
-                    <span class="sidebar-label">Akun</span>
+                    <span class="sidebar-label">Manage Akun</span>
                 </a>
+                <form action="{{ route('logout') }}" method="POST" class="w-100 mt-2">
+                    @csrf
+                    <button type="submit" class="btn btn-sidebar logout-btn" title="Logout">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="sidebar-label">Logout</span>
+                    </button>
+                </form>
             </div>
         </div>
         <!-- Konten Utama -->
