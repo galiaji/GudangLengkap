@@ -223,16 +223,20 @@
                     <i class="bi bi-list-ul"></i>
                     <span class="sidebar-label">Transaksi</span>
                 </a>
-                <a href="{{ route('wood_prices.index') }}" class="btn btn-sidebar" title="Stel Harga">
-                    <i class="bi bi-cash-coin"></i>
-                    <span class="sidebar-label">Harga</span>
-                </a>
+                @if(auth()->user() && auth()->user()->role === 'admin')
+                    <a href="{{ route('wood_prices.index') }}" class="btn btn-sidebar" title="Stel Harga">
+                        <i class="bi bi-cash-coin"></i>
+                        <span class="sidebar-label">Harga</span>
+                    </a>
+                @endif
             </div>
             <div class="sidebar-bottom mt-auto p-2">
-                <a href="{{ route('account.index') }}" class="btn btn-sidebar" title="Manage Akun">
-                    <i class="bi bi-person-circle"></i>
-                    <span class="sidebar-label">Akun</span>
-                </a>
+                @if(auth()->user() && auth()->user()->role === 'admin')
+                    <a href="{{ route('account.index') }}" class="btn btn-sidebar" title="Manage Akun">
+                        <i class="bi bi-person-circle"></i>
+                        <span class="sidebar-label">Akun</span>
+                    </a>
+                @endif
                 <form action="{{ route('logout') }}" method="POST" class="w-100 mt-2">
                     @csrf
                     <button type="submit" class="btn btn-sidebar logout-btn" title="Logout">
@@ -243,8 +247,8 @@
             </div>
         </div>
         <!-- Konten Utama -->
-        <div class="main-content flex-grow-1 col p-0">
-          @yield('content')
+        <div class="main-content flex-grow-1 col p-0 ps-4">
+            @yield('content')
         </div>
       </div>
     </div>

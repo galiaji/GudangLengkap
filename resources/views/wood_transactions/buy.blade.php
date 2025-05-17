@@ -8,19 +8,41 @@
     .grade-table {
         border-radius: 8px;
         overflow: hidden;
-        background: #fff;
+        background: #f5fbe8;
         box-shadow: 0 2px 8px #e0f2f1;
+        width: 100%;
+        table-layout: fixed;
     }
     .grade-table th, .grade-table td {
-        border: 1px solid #c5e1a5;
+        border: 1px solid #222;
         text-align: center;
-        padding: 4px 6px;
+        padding: 6px 10px;
         font-size: 0.97rem;
+        vertical-align: middle;
+        word-break: break-word;
     }
     .grade-table th {
-        background: #33691E;
-        color: #fff;
+        background: #33691E !important; /* hijau tua */
+        color: #fff !important;
         font-weight: 600;
+    }
+    .grade-table-total {
+        height: auto !important;      /* Pastikan tinggi mengikuti isi */
+        min-height: unset !important; /* Hilangkan min-height jika ada */
+    }
+    .grade-table-total th, .grade-table-total td {
+        padding: 6px 10px;            /* Perkecil padding */
+        font-size: 1rem;
+        vertical-align: middle;
+    }
+    .grade-table-total td:first-child {
+        text-align: left;
+        font-weight: bold;
+        width: 60%;
+    }
+    .grade-table-total td:last-child {
+        text-align: right;
+        width: 40%;
     }
     .grade-table .row-label {
         background: #f1f8e9;
@@ -41,14 +63,17 @@
         box-shadow: 0 0 0 0.1rem #c5e1a5;
     }
     .btn-primary {
-        background-color: #33691E;
-        border-color: #33691E;
-        font-weight: 600;
+        background-color: #8BC34A !important;   /* hijau terang */
+        border-color: #689F38 !important;       /* hijau tua */
+        color: #fff !important;
+        font-weight: 700;
         border-radius: 6px;
+        transition: background 0.2s;
     }
     .btn-primary:hover, .btn-primary:focus {
-        background-color: #558B2F;
-        border-color: #558B2F;
+        background-color: #689F38 !important;   /* hijau tua saat hover */
+        border-color: #558B2F !important;
+        color: #fff !important;
     }
     h2 {
         color: #33691E;
@@ -62,6 +87,10 @@
     @media (max-width: 768px) {
         .grade-table th, .grade-table td { font-size: 0.89rem; }
         h2 { font-size: 1.2rem; }
+    }
+    .card,
+    .grade-table {
+        background: #f5fbe8; /* warna background halaman */
     }
 </style>
 
@@ -148,14 +177,28 @@
                                 </table>
                             </div>
                         @endforeach
-                    </div>
-                    <div>
-                        <strong>Total Volume:</strong> <span id="grandTotalVolume">0.000</span> m³<br>
-                        <strong>Total Pembayaran:</strong> Rp<span id="grandTotalBayar">0</span>
+
+                        <!-- Kolom total, letakkan setelah loop -->
+                        <div class="col-md-3 mb-4 d-flex flex-column align-items-start">
+                            <table class="grade-table grade-table-total w-100 mb-3">
+                                <thead>
+                                    <tr>
+                                        <th>Total Volume</th>
+                                        <th>Total Pembayaran</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><span id="grandTotalVolume">0.000</span> m³</td>
+                                        <td>Rp<span id="grandTotalBayar">0</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button type="submit" class="btn btn-primary mt-2 w-100">Simpan</button>
+                        </div>
                     </div>
                     <input type="hidden" name="total_volume" id="inputTotalVolume">
                     <input type="hidden" name="total_pembayaran" id="inputTotalBayar">
-                    <button type="submit" class="btn btn-primary mt-3">Simpan</button>
                 </form>
             </div>
         </div>

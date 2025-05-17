@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Transaksi')
+
 @section('content')
 <style>
     .transaksi-title {
@@ -13,9 +15,10 @@
     .transaksi-card {
         border-radius: 10px;
         box-shadow: 0 2px 8px #e0f2f1;
-        background: #fff;
-        max-width: 1100px;
-        margin: 32px auto 0 auto;
+        background: #f5fbe8; /* samakan dengan background halaman */
+        width: 100%;
+        margin-top: 32px;
+        margin-bottom: 24px;
         padding: 32px 24px 24px 24px;
         display: flex;
         flex-direction: column;
@@ -35,7 +38,7 @@
     }
     .transaksi-card .card-body {
         padding: 0;
-        background: #fff;
+        background: inherit;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
@@ -103,8 +106,6 @@
     }
     @media (max-width: 768px) {
         .transaksi-card { padding: 12px 2px 2px 2px; }
-        .transaksi-card .card-header { font-size: 1.1rem; padding: 12px 0 12px 0; }
-        .table thead th, .table tbody td, .table tbody th { padding: 6px 3px; }
     }
     .sidebar {
         width: 220px;
@@ -112,52 +113,54 @@
         max-width: 220px;
     }
 </style>
-<div class="transaksi-card">
-    <div class="card-header">
-        Manajemen Transaksi
-    </div>
-    <div class="card-body table-container-transaksi">
-        <div class="mb-3 text-start">
-            <a href="{{ route('wood_transactions.buy') }}" class="btn btn-primary me-2">+ Transaksi Pembelian</a>
-            <a href="{{ route('wood_transactions.sell') }}" class="btn btn-success">+ Transaksi Penjualan</a>
+<div class="main-content flex-grow-1 col p-0 ps-4">
+    <div class="transaksi-card">
+        <div class="card-header">
+            Manajemen Transaksi
         </div>
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover shadow-sm mb-0 w-100">
-                <thead>
-                    <tr>
-                        <th>No.</th>
-                        <th>Id Transaksi</th>
-                        <th>Jenis Transaksi</th>
-                        <th>Atas Nama</th>
-                        <th>Volume (m³)</th>
-                        <th>Total Pembayaran</th>
-                        <th>Tanggal Transaksi</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($transaksi as $index => $item)
-                    <tr class="row-color-{{ $index % 4 }}">
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ $item->id ?? '' }}</td>
-                        <td>{{ ucfirst($item->jenis_transaksi ?? '') }}</td>
-                        <td>{{ $item->atas_nama ?? '' }}</td>
-                        <td>{{ number_format((float)($item->total_volume ?? 0), 3, ',', '.') }}</td>
-                        <td>Rp{{ number_format((float)($item->total_pembayaran ?? 0), 0, ',', '.') }}</td>
-                        <td>
-                            {{ \Carbon\Carbon::parse($item->tanggal_transaksi ?? $item->created_at)->format('d-m-Y H:i') }}
-                        </td>
-                        <td>
-                            <a href="{{ route('transaksi.show', $item->id) }}" class="btn btn-info">Detail</a>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="8" class="text-center">Belum ada data transaksi.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div class="card-body table-container-transaksi">
+            <div class="mb-3 text-start">
+                <a href="{{ route('wood_transactions.buy') }}" class="btn btn-primary me-2">+ Transaksi Pembelian</a>
+                <a href="{{ route('wood_transactions.sell') }}" class="btn btn-success">+ Transaksi Penjualan</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover shadow-sm mb-0 w-100">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Id Transaksi</th>
+                            <th>Jenis Transaksi</th>
+                            <th>Atas Nama</th>
+                            <th>Volume (m³)</th>
+                            <th>Total Pembayaran</th>
+                            <th>Tanggal Transaksi</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($transaksi as $index => $item)
+                        <tr class="row-color-{{ $index % 4 }}">
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $item->id ?? '' }}</td>
+                            <td>{{ ucfirst($item->jenis_transaksi ?? '') }}</td>
+                            <td>{{ $item->atas_nama ?? '' }}</td>
+                            <td>{{ number_format((float)($item->total_volume ?? 0), 3, ',', '.') }}</td>
+                            <td>Rp{{ number_format((float)($item->total_pembayaran ?? 0), 0, ',', '.') }}</td>
+                            <td>
+                                {{ \Carbon\Carbon::parse($item->tanggal_transaksi ?? $item->created_at)->format('d-m-Y H:i') }}
+                            </td>
+                            <td>
+                                <a href="{{ route('transaksi.show', $item->id) }}" class="btn btn-info">Detail</a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="8" class="text-center">Belum ada data transaksi.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
