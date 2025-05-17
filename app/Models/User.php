@@ -12,7 +12,7 @@ class User extends Authenticatable
 
     // Tambahkan 'username' ke fillable agar bisa diisi mass assignment
     protected $fillable = [
-        'name', 'email', 'username', 'password',
+        'name', 'username', 'email', 'password'
     ];
 
     protected $hidden = [

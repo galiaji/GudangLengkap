@@ -170,8 +170,7 @@ class WoodTransactionController extends Controller
         } catch (\Exception $e) {
           return response()->json([
               'success' => false,
-              'errors' => $e->errors(),
-              'message' => 'Validasi gagal. Silakan periksa input Anda.'
+              'message' => 'Validasi gagal. Silakan periksa input Anda. ' . $e->getMessage()
             ], 422);
         }
     }

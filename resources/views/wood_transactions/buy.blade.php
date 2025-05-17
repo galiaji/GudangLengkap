@@ -70,7 +70,7 @@
         <div class="card shadow-sm" style="border-radius:10px; overflow-x:auto; padding:0;">
             <div class="card-body" style="padding:18px 12px;">
                 <h2 class="mb-4">Input Kayu - {{ $jenisKayu }}</h2>
-                <form>
+                <form id="form-transaksi" autocomplete="off">
                     <div class="mb-3 d-flex align-items-center" style="max-width:320px;">
                         <label class="mb-0 me-2" style="min-width:90px;">Atas Nama :</label>
                         <input type="text" name="atas_nama" class="form-control" style="width:180px;" placeholder="(wajib diisi)">
@@ -258,7 +258,7 @@
     // Jalankan saat halaman pertama kali dimuat
     document.addEventListener('DOMContentLoaded', updateSummary);
 
-    document.querySelector('form').addEventListener('submit', function(e) {
+    document.querySelector('#form-transaksi').addEventListener('submit', function(e) {
         e.preventDefault();
 
         // Ambil data utama
@@ -317,6 +317,7 @@
             } catch (e) {
                 throw new Error('Gagal membaca respon server.');
             }
+            // Selalu tampilkan error dari backend jika validasi gagal
             if (res.ok && data.success) {
                 document.getElementById('successModalMsg').innerHTML = 'Transaksi berhasil disimpan!';
                 var successModal = new bootstrap.Modal(document.getElementById('successModal'), {
@@ -327,7 +328,7 @@
 
                 setTimeout(function() {
                     window.location.href = data.redirect_url;
-                }, 10);
+                }, 2000);
             } else {
                 let msg = data.message || 'Terjadi kesalahan.';
                 if (data.errors) {

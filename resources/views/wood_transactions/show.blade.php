@@ -109,7 +109,7 @@
     <table class="meta-table">
         <tr>
             <td class="label"><b>Tipe transaksi</b></td>
-            <td>: Pembelian</td>
+            <td>: {{ $transaksi->jenis_transaksi }}</td>
         </tr>
         <tr>
             <td class="label"><b>Atas nama</b></td>

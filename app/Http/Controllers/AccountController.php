@@ -21,42 +21,39 @@ class AccountController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:100',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users,username',
             'email' => 'required|email|unique:users,email',
-            'username' => 'required|string|max:50|unique:users,username',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|confirmed|min:6',
         ]);
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'username' => $request->username, // <-- ini wajib!
-            'password' => Hash::make($request->password),
-        ]);
-        return redirect()->route('account.manage')->with('success', 'Akun berhasil ditambahkan.');
+
+        $validated['password'] = bcrypt($validated['password']);
+        \App\Models\User::create($validated);
+
+        return redirect()->route('account.index')->with('success', 'Akun berhasil ditambahkan!');
     }
 
-    public function edit(User $user)
+    public function edit(User $account)
     {
-        return view('account.edit', compact('user'));
+        return view('account.edit', compact('account'));
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $account)
     {
-        $request->validate([
-            'username' => 'required|string|max:50|unique:users,username,'.$user->id,
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|unique:users,email,'.$user->id,
-            'password' => 'nullable|string|min:6|confirmed',
+        $validated = $request->validate([
+            'name' => 'required',
+            'username' => 'required|unique:users,username,'.$account->id,
+            'email' => 'required|email|unique:users,email,'.$account->id,
+            'password' => 'nullable|min:6',
         ]);
-        $user->username = $request->username;
-        $user->name = $request->name;
-        $user->email = $request->email;
         if ($request->password) {
-            $user->password = Hash::make($request->password);
+            $validated['password'] = bcrypt($request->password);
+        } else {
+            unset($validated['password']);
         }
-        $user->save();
-        return redirect()->route('account.manage')->with('success', 'Akun berhasil diupdate.');
+        $account->update($validated);
+        return redirect()->route('account.index')->with('success', 'Akun berhasil diupdate!');
     }
 
     public function destroy(User $user)

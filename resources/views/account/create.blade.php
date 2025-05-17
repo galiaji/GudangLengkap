@@ -40,30 +40,39 @@
                 Tambah Akun
             </div>
             <div class="card-body">
+                @if($errors->any())
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
                 <form action="{{ route('account.store') }}" method="POST">
                     @csrf
                     <div class="mb-3">
                         <label>Nama</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <input type="text" name="name" class="form-control" placeholder="Nama" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Username</label>
+                        <input type="text" name="username" class="form-control" placeholder="Username" required>
                     </div>
                     <div class="mb-3">
                         <label>Email</label>
-                        <input type="email" name="email" class="form-control" required>
+                        <input type="email" name="email" class="form-control" placeholder="Email" required>
                     </div>
                     <div class="mb-3">
                         <label>Password</label>
-                        <input type="password" name="password" class="form-control" required>
+                        <input type="password" name="password" class="form-control" placeholder="Password" required>
                     </div>
                     <div class="mb-3">
                         <label>Konfirmasi Password</label>
                         <input type="password" name="password_confirmation" class="form-control" required>
                     </div>
-                    <div class="mb-3">
-                        <label>Username</label>
-                        <input type="text" name="username" class="form-control" required>
-                    </div>
                     <button class="btn btn-primary" style="background:#33691E; border-color:#33691E;">Simpan</button>
-                    <a href="{{ route('account.manage') }}" class="btn btn-secondary">Kembali</a>
+                    <a href="{{ route('account.index') }}" class="btn btn-secondary">Kembali</a>
                 </form>
             </div>
         </div>

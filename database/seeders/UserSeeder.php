@@ -20,8 +20,14 @@ class UserSeeder extends Seeder
             'password' => Hash::make('password'), // password: "password"
         ]);
 
+        User::create([
+            'username' => 'Galih',
+            'name'     => 'Galih Aji Syafaat',
+            'email'    => 'syafaat@example.com',
+            'password' => Hash::make('1313'), // password: "1313"
+        ]);
+
         // Optionally, create more users or use a factory for bulk seeding.
-        // For example:
         // User::factory()->count(10)->create();
     }
 }

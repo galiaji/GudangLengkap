@@ -32,10 +32,6 @@
         font-weight: bold;
         color: #33691E;
     }
-    .grade-table input[type="number"] {
-        min-width: 60px;
-        text-align: right;
-    }
     .form-control:focus {
         border-color: #689F38;
         box-shadow: 0 0 0 0.1rem #c5e1a5;
@@ -70,10 +66,10 @@
         <div class="card shadow-sm" style="border-radius:10px; overflow-x:auto; padding:0;">
             <div class="card-body" style="padding:18px 12px;">
                 <h2 class="mb-4">Jual Kayu - {{ $jenisKayu }}</h2>
-                <form>
+                <form id="form-transaksi" autocomplete="off">
                     <div class="mb-3 d-flex align-items-center" style="max-width:320px;">
                         <label class="mb-0 me-2" style="min-width:90px;">Atas Nama:</label>
-                        <input type="text" name="atas_nama" class="form-control" style="width:180px;" placeholder="Masukkan nama customer" required>
+                        <input type="text" name="atas_nama" class="form-control" style="width:180px;" placeholder="(wajib diisi)" autocomplete="off">
                     </div>
                     <div class="mb-3 d-flex align-items-center" style="max-width:320px;">
                         <label for="wood_type" class="mb-0 me-2" style="min-width:90px;">Jenis Kayu:</label>
@@ -90,7 +86,7 @@
                                 $allowed = $allowedLengths[$grade] ?? [];
                                 $gradeSafe = str_replace([' ', '/', '\\', '.', ','], '_', $grade);
                             @endphp
-                            <div class="col-md-6 mb-4">
+                            <div class="col-md-3 mb-4">
                                 <table class="grade-table w-100 mb-3">
                                     <thead>
                                         <tr>
@@ -113,8 +109,14 @@
                                                 <td>{{ $d }}</td>
                                                 @foreach ($allowed as $p)
                                                     <td>
-                                                        <input type="number" min="0" class="form-control form-control-sm pcs-input"
-                                                            name="pcs[{{ $grade }}][{{ $d }}][{{ $p }}]" value="0">
+                                                        <input type="text" inputmode="numeric" pattern="[0-9]*"
+                                                            class="form-control form-control-sm pcs-input"
+                                                            name="pcs[{{ $grade }}][{{ $d }}][{{ $p }}]"
+                                                            value=""
+                                                            placeholder="0"
+                                                            autocomplete="off"
+                                                            onfocus="this.placeholder=''"
+                                                            onblur="if(this.value===''){this.placeholder='0'}">
                                                     </td>
                                                 @endforeach
                                             </tr>
@@ -243,7 +245,7 @@
 
     document.addEventListener('DOMContentLoaded', updateSummary);
 
-    document.querySelector('form').addEventListener('submit', function(e) {
+    document.querySelector('#form-transaksi').addEventListener('submit', function(e) {
         e.preventDefault();
 
         const atas_nama = document.querySelector('[name="atas_nama"]').value;

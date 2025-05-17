@@ -228,10 +228,10 @@
                     <span class="sidebar-label">Harga</span>
                 </a>
             </div>
-            <div class="sidebar-bottom">
-                <a href="{{ route('account.manage') }}" class="btn btn-sidebar" title="Manage Akun">
+            <div class="sidebar-bottom mt-auto p-2">
+                <a href="{{ route('account.index') }}" class="btn btn-sidebar" title="Manage Akun">
                     <i class="bi bi-person-circle"></i>
-                    <span class="sidebar-label">Manage Akun</span>
+                    <span class="sidebar-label">Akun</span>
                 </a>
                 <form action="{{ route('logout') }}" method="POST" class="w-100 mt-2">
                     @csrf

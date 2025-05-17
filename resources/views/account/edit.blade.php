@@ -40,20 +40,20 @@
                 Edit Akun
             </div>
             <div class="card-body">
-                <form action="{{ route('account.update', $user) }}" method="POST">
+                <form action="{{ route('account.update', $account) }}" method="POST">
                     @csrf
                     @method('PUT')
                     <div class="mb-3">
                         <label>Nama</label>
-                        <input type="text" name="name" class="form-control" value="{{ $user->name }}" required>
+                        <input type="text" name="name" class="form-control" value="{{ $account->name }}" required>
                     </div>
                     <div class="mb-3">
                         <label>Email</label>
-                        <input type="email" name="email" class="form-control" value="{{ $user->email }}" required>
+                        <input type="email" name="email" class="form-control" value="{{ $account->email }}" required>
                     </div>
                     <div class="mb-3">
                         <label>Username</label>
-                        <input type="text" name="username" class="form-control" value="{{ $user->username }}" required>
+                        <input type="text" name="username" class="form-control" value="{{ $account->username }}" required>
                     </div>
                     <div class="mb-3">
                         <label>Password (isi jika ingin ganti)</label>
@@ -64,7 +64,7 @@
                         <input type="password" name="password_confirmation" class="form-control">
                     </div>
                     <button class="btn btn-primary" style="background:#33691E; border-color:#33691E;">Update</button>
-                    <a href="{{ route('account.manage') }}" class="btn btn-secondary">Kembali</a>
+                    <a href="{{ route('account.index') }}" class="btn btn-secondary">Kembali</a>
                 </form>
             </div>
         </div>
