@@ -2,67 +2,79 @@
 
 @section('content')
 <style>
-    body, html { background: #fff !important; }
+    body, html { background: #F1F8E9 !important; }
     .kop-usaha {
         font-size: 1.15rem;
         font-weight: bold;
         text-align: center;
-        color: #2d5c88;
+        color: #111 !important;
         margin-bottom: 0.2rem;
         letter-spacing: 1px;
     }
     .meta-table {
-        font-size: 0.90rem;
+        font-size: 0.95rem;
         margin-bottom: 0.5rem;
         margin-left: 0.2rem;
+        color: #111 !important;
     }
     .meta-table td {
         padding: 1px 4px 1px 0;
         vertical-align: top;
+        color: #111 !important;
     }
     .meta-table .label {
-        color: #222;
-        font-weight: 500;
+        color: #111 !important;
+        font-weight: 600;
         min-width: 90px;
         display: inline-block;
     }
     .transaksi-table {
         border-collapse: collapse;
         width: 100%;
-        font-size: 0.78rem;
+        font-size: 0.85rem;
         margin: 0.5rem 0 0.7rem 0;
         table-layout: fixed;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px #e0f2f1;
     }
     .transaksi-table th, .transaksi-table td {
-        border: 1px solid #222;
-        padding: 2px 3px;
+        border: 1px solid #222 !important;
+        padding: 4px 6px;
         text-align: center;
         min-width: 36px;
         max-width: 80px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        color: #111 !important;
     }
     .transaksi-table th {
-        background: #e0e0e0;
-        font-weight: 600;
-        font-size: 0.80rem;
+        background: #e0e0e0 !important;
+        color: #111 !important;
+        font-weight: 700;
+        font-size: 0.90rem;
     }
     .transaksi-table td {
-        font-size: 0.78rem;
+        font-size: 0.85rem;
+        color: #111 !important;
     }
     .transaksi-summary {
-        font-size: 0.95rem;
+        font-size: 1rem;
         margin: 0.5rem 0 0.2rem 0.2rem;
         text-align: left;
+        color: #111 !important;
+        font-weight: 600;
     }
     .print-btn {
         display: inline-block;
         margin: 0.2rem 0 0.5rem 0.2rem;
-        color: #1976d2;
+        color: #222 !important;
         text-decoration: underline;
         cursor: pointer;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
+        font-weight: 600;
     }
     #transaksi-area {
         background: #fff !important;
@@ -70,9 +82,16 @@
         width: 700px;
         max-width: 98vw;
         margin: 24px auto 0 auto;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        border-radius: 6px;
-        padding: 16px 18px 18px 18px;
+        box-shadow: 0 2px 8px #e0f2f1;
+        border-radius: 8px;
+        padding: 20px 22px 22px 22px;
+        border: 1px solid #222 !important;
+        color: #111 !important;
+    }
+    .tabel-scroll {
+        overflow-x: auto;
+        background: #fff;
+        border-radius: 8px;
     }
     @media print {
         body, html { background: #fff !important; }
@@ -81,7 +100,7 @@
         .meta-table, .transaksi-summary { font-size: 0.80rem; }
         .transaksi-table th, .transaksi-table td { font-size: 0.75rem; padding: 1px 3px; }
         .container, .container-fluid { width: 100% !important; margin: 0; padding: 0; }
-        #transaksi-area { box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; }
+        #transaksi-area { box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; border: none !important; }
     }
 </style>
 

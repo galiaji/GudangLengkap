@@ -11,16 +11,20 @@ class WoodPriceSeeder extends Seeder
      */
     public function run(): void
     {
-        $woodTypes = ['Mahoni', 'Keras', 'Sengon'];
-        $grades = [
-            'Rijek 1', 'Rijek 2',
-            'Storty 1', 'Storty 2',
-            'Super 1', 'Super 2'
+        // Allowed length per grade (samakan dengan stock)
+        $allowedLengthsByGrade = [
+            'Rijek 1'   => [100, 130],
+            'Rijek 2'   => [100, 130],
+            'Storty 1'  => [130],
+            'Storty 2'  => [130],
+            'Super 1'   => [130, 200],
+            'Super 2'   => [130, 200],
         ];
-        $lengths = [100, 130, 200, 260];
+
+        $woodTypes = ['Mahoni', 'Keras', 'Sengon'];
 
         foreach ($woodTypes as $type) {
-            foreach ($grades as $grade) {
+            foreach ($allowedLengthsByGrade as $grade => $lengths) {
                 foreach ($lengths as $length) {
                     $pricePerM3 = 450000; // Atur harga sesuai kebutuhan
 

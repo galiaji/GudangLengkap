@@ -13,12 +13,12 @@ class WoodStockSeeder extends Seeder
     public function run(): void
     {
         $gradesArr = [
-            'Rijek 1' => [10, 11, 12,13, 14, 15],
-            'Rijek 2' => [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
             'Storty 1' => [13, 14, 15],
             'Storty 2' => [16, 17, 18],
             'Super 1' => [19, 20, 21, 22, 23, 24,25],
             'Super 2' => [26, 27, 28, 29, 30],
+            'Rijek 1' => [10, 11, 12,13, 14, 15],
+            'Rijek 2' => [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
         ];
 
         $allowedLengths = [

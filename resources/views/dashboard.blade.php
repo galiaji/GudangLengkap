@@ -1,49 +1,100 @@
 @extends('layouts.app')
 
+@section('title', 'Dashboard')
+
 @section('content')
-<div class="container-fluid" style="min-height: 100vh; background: #f5f8ee; padding: 40px;">
-  <h1 class="text-center mb-4" style="color: #7c5c4a; font-size: 2.2rem; letter-spacing: 1px;">
-    Statistik Stock
-  </h1>
-  
-  @foreach($woodTypes as $type)
-    <div class="card mb-4">
-      <!-- Header Card dengan nama jenis kayu -->
-      <div class="card-header text-center" style="background: #7c5c4a; color: #fff; font-weight: 600;">
-        {{ $type }}
-      </div>
-      
-      <div class="card-body">
+@php
+    $mainGreen = '#33691E';
+    $lightGreen = '#A5D6A7';
+@endphp
+<style>
+    .dashboard-card {
+        border-radius: 10px;
+        box-shadow: 0 2px 8px #e0f2f1;
+        overflow: hidden;
+        margin-bottom: 32px;
+    }
+    .dashboard-card .card-header {
+        background: #33691E;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.15rem;
+        letter-spacing: 1px;
+        border-bottom: 1px solid #A5D6A7;
+    }
+    .dashboard-card .card-body {
+        padding: 18px 12px;
+        background: #fff;
+    }
+    .dashboard-table th, .dashboard-table td {
+        border: 1px solid #c5e1a5;
+        text-align: center;
+        padding: 4px 6px;
+        font-size: 0.97rem;
+    }
+    .dashboard-table th {
+        background: #33691E;
+        color: #fff;
+        font-weight: 600;
+    }
+    .dashboard-table .row-label {
+        background: #f1f8e9;
+        font-weight: bold;
+        color: #33691E;
+    }
+    h1 {
+        color: #33691E;
+        font-weight: 700;
+        letter-spacing: 1px;
+    }
+    @media (max-width: 768px) {
+        .dashboard-table th, .dashboard-table td { font-size: 0.89rem; }
+        h1 { font-size: 1.2rem; }
+    }
+</style>
+
+<div class="d-flex justify-content-center">
+    <div style="width:100%; max-width: 98vw;">
+        <h1 class="text-center mb-4">Statistik Stock</h1>
         <div class="row">
-          <!-- Kolom Chart: memanfaatkan 8 dari 12 kolom -->
-          <div class="col-md-8 mb-3 mb-md-0">
-            <canvas id="chart-{{ Str::slug($type) }}" style="cursor:pointer; width: 100%; height: 300px;"></canvas>
-          </div>
-          <!-- Kolom Tabel: lebar 4 kolom -->
-          <div class="col-md-4">
-            <table class="table table-striped table-bordered mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Grade</th>
-                  <th class="text-end">Total Pcs</th>
-                  <th class="text-end">Volume (M³)</th>
-                </tr>
-              </thead>
-              <tbody>
-                @foreach($stockData[$type] as $row)
-                  <tr>
-                    <td>{{ $gradeRanges[$row['grade']] ?? $row['grade'] }}</td>
-                    <td class="text-end">{{ $row['pcs'] ?? 0 }}</td>
-                    <td class="text-end">{{ number_format($row['volume'], 3) }}</td>
-                  </tr>
-                @endforeach
-              </tbody>
-            </table>
-          </div>
+            @foreach($woodTypes as $type)
+                <div class="col-md-6 mb-4">
+                    <div class="dashboard-card card">
+                        <div class="card-header text-center">
+                            {{ $type }}
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8 mb-3 mb-md-0">
+                                    <canvas id="chart-{{ Str::slug($type) }}" style="cursor:pointer; width: 100%; height: 300px;"></canvas>
+                                </div>
+                                <div class="col-md-4">
+                                    <table class="dashboard-table w-100 mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Grade</th>
+                                                <th class="text-end">Pcs</th>
+                                                <th class="text-end">Volume (M³)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($stockData[$type] as $row)
+                                                <tr>
+                                                    <td class="row-label">{{ $gradeRanges[$row['grade']] ?? $row['grade'] }}</td>
+                                                    <td class="text-end">{{ $row['pcs'] ?? 0 }}</td>
+                                                    <td class="text-end">{{ number_format($row['volume'], 3) }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
         </div>
-      </div>
     </div>
-  @endforeach
 </div>
 @endsection
 
@@ -56,7 +107,6 @@
   const woodTypes = @json($woodTypes);
   const stockData = @json($stockData);
 
-  // Palet warna hijau konsisten dengan stock_detail
   const mainGreen = '#33691E';
   const lightGreen = '#A5D6A7';
   const barColors = [

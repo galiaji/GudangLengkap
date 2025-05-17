@@ -1,14 +1,89 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    .stock-statistik-card {
+        border-radius: 10px;
+        box-shadow: 0 2px 8px #e0f2f1;
+        overflow: hidden;
+        margin-bottom: 32px;
+        background: #fff;
+        max-width: 1100px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .stock-statistik-card .card-header {
+        background: #33691E;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.3rem;
+        letter-spacing: 1px;
+        border-bottom: 1px solid #A5D6A7;
+        text-align: center;
+        padding: 22px 0 22px 0;
+    }
+    .stock-statistik-card .card-body {
+        padding: 24px 18px;
+        background: #fff;
+    }
+    .stock-statistik-title {
+        color: #33691E;
+        font-size: 2.2rem;
+        letter-spacing: 1px;
+        margin-bottom: 2rem;
+        text-align: center;
+        font-weight: 700;
+    }
+    .card-header.bg-success {
+        background: #388e3c !important;
+        font-size: 1.1rem;
+        letter-spacing: 0.5px;
+    }
+    .table th, .table td {
+        text-align: center;
+        vertical-align: middle;
+        font-size: 14px;
+        padding: 6px 4px;
+        white-space: nowrap;
+    }
+    .table thead th {
+        background: #c8e6c9 !important;
+        color: #33691E;
+        font-weight: 700;
+    }
+    .row.g-3 {
+        --bs-gutter-x: 1rem;
+        --bs-gutter-y: 1.5rem;
+    }
+    @media (max-width: 1200px) {
+        .stock-statistik-title { font-size: 1.5rem; }
+        .stock-statistik-card { max-width: 100%; }
+    }
+    @media (max-width: 768px) {
+        .stock-statistik-title { font-size: 1.1rem; }
+        .stock-statistik-card .card-body { padding: 10px 2px; }
+        .table th, .table td { font-size: 12px; padding: 4px 2px; }
+    }
+</style>
 <div class="container-fluid py-4">
-    <h1 class="text-center mb-4" style="color:#33691E; font-size:2.2rem; letter-spacing:1px;">
-        Statistik Stok {{ $woodType }}
-    </h1>
+    <h2 class="stock-statistik-title mb-4">Statistik Stok {{ $woodType }}</h2>
+    <div class="row g-4 justify-content-center">
+        @php
+            $gradesArr = is_array($grades) ? $grades : $grades->toArray();
+            $rijek = [];
+            $mainGrades = [];
+            foreach($gradesArr as $g) {
+                if(stripos($g, 'Rijek') !== false) {
+                    $rijek[] = $g;
+                } else {
+                    $mainGrades[] = $g;
+                }
+            }
+            $orderedGrades = array_merge($mainGrades, $rijek);
+        @endphp
 
-    <div class="row g-4">
-        @foreach($grades as $grade)
-        <div class="col-md-6">
+        @foreach($orderedGrades as $grade)
+        <div class="col-lg-4 col-md-6 col-12 mb-3">
             <div class="card shadow-sm">
                 <div class="card-header bg-success text-white text-center fw-bold">
                     Grade: {{ $gradeRanges[$grade] ?? $grade }}
@@ -17,13 +92,12 @@
                     @php
                         $gradeStocks = $stocks->where('grade', $grade);
                         $uniquePanjang = $gradeStocks->pluck('panjang')->unique()->sort();
-                        // Tentukan diameter minimum dan maksimum dari data stok grade ini
                         $minDiameter = $gradeStocks->min('diameter');
                         $maxDiameter = $gradeStocks->max('diameter');
                     @endphp
 
                     <div class="table-responsive">
-                        <table class="table table-bordered table-sm" style="font-size:14px;">
+                        <table class="table table-bordered table-sm mb-0">
                             <thead class="table-success text-center align-middle">
                                 <tr>
                                     <th rowspan="2">Diameter</th>
@@ -48,7 +122,7 @@
                                             $rowTotalPcs = 0;
                                             $rowTotalVolume = 0;
                                         @endphp
-                                        <tr class="text-center">
+                                        <tr>
                                             <td>{{ $d }}</td>
                                             @foreach($uniquePanjang as $p)
                                                 @php
@@ -71,7 +145,7 @@
                                     $gradeTotalPcs = $gradeStocks->sum('quantity');
                                     $gradeTotalVolume = $gradeStocks->sum('total_volume');
                                 @endphp
-                                <tr class="table-success fw-bold text-center">
+                                <tr class="table-success fw-bold">
                                     <td>Total</td>
                                     @foreach($uniquePanjang as $p)
                                         @php
@@ -86,7 +160,7 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div> <!-- table-responsive -->
+                    </div>
                 </div>
             </div>
         </div>

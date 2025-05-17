@@ -32,4 +32,12 @@ Route::middleware('auth')->group(function () {
 
     // Stock detail
     Route::get('/stock/{woodType}', [App\Http\Controllers\StockController::class, 'detail'])->name('stock.detail');
+
+    // Account management
+    Route::get('/akun', [App\Http\Controllers\AccountController::class, 'index'])->name('account.manage');
+    Route::get('/akun/create', [App\Http\Controllers\AccountController::class, 'create'])->name('account.create');
+    Route::post('/akun', [App\Http\Controllers\AccountController::class, 'store'])->name('account.store');
+    Route::get('/akun/{user}/edit', [App\Http\Controllers\AccountController::class, 'edit'])->name('account.edit');
+    Route::put('/akun/{user}', [App\Http\Controllers\AccountController::class, 'update'])->name('account.update');
+    Route::delete('/akun/{user}', [App\Http\Controllers\AccountController::class, 'destroy'])->name('account.destroy');
 });

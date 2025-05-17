@@ -65,92 +65,131 @@
     }
 </style>
 
-<div class="container-fluid">
-    <h2 class="mb-4">Input Kayu - {{ $jenisKayu }}</h2>
-    <form>
-        <div class="row mb-3">
-            <div class="col-md-4 mb-2">
-                <label>Atas Nama:</label>
-                <input type="text" name="atas_nama" class="form-control w-auto d-inline-block" style="width:200px;">
-            </div>
-            <div class="col-md-4 mb-2">
-                <label for="wood_type">Jenis Kayu:</label>
-                <select name="wood_type" id="wood_type" class="form-control w-auto d-inline-block" style="width:200px;">
-                    @foreach ($woodTypes as $type)
-                        <option value="{{ $type }}">{{ $type }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="row">
-            @foreach ($grades as $grade => $diameters)
-                @php
-                    $allowed = $allowedLengths[$grade] ?? [];
-                    $gradeSafe = str_replace([' ', '/', '\\', '.', ','], '_', $grade);
-                @endphp
-                <div class="col-md-6 mb-4">
-                    <table class="grade-table w-100 mb-3">
-                        <thead>
-                            <tr>
-                                <th rowspan="2" class="row-label">Grade</th>
-                                <th rowspan="2" class="row-label">Diameter</th>
-                                <th colspan="{{ count($allowed) }}">Panjang</th>
-                            </tr>
-                            <tr>
-                                @foreach ($allowed as $p)
-                                    <th class="row-label">{{ $p }}</th>
-                                @endforeach
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($diameters as $d)
-                                <tr>
-                                    @if ($loop->first)
-                                        <td class="row-label" rowspan="{{ count($diameters) }}">{{ $grade }}</td>
-                                    @endif
-                                    <td>{{ $d }}</td>
-                                    @foreach ($allowed as $p)
-                                        <td>
-                                            <input type="number" min="0" class="form-control form-control-sm pcs-input"
-                                                name="pcs[{{ $grade }}][{{ $d }}][{{ $p }}]" value="0">
-                                        </td>
-                                    @endforeach
-                                </tr>
+<div class="d-flex justify-content-center">
+    <div style="width:100%; max-width: 98vw;">
+        <div class="card shadow-sm" style="border-radius:10px; overflow-x:auto; padding:0;">
+            <div class="card-body" style="padding:18px 12px;">
+                <h2 class="mb-4">Input Kayu - {{ $jenisKayu }}</h2>
+                <form>
+                    <div class="mb-3 d-flex align-items-center" style="max-width:320px;">
+                        <label class="mb-0 me-2" style="min-width:90px;">Atas Nama :</label>
+                        <input type="text" name="atas_nama" class="form-control" style="width:180px;" placeholder="(wajib diisi)">
+                    </div>
+                    <div class="mb-3 d-flex align-items-center" style="max-width:320px;">
+                        <label for="wood_type" class="mb-0 me-2" style="min-width:90px;">Jenis Kayu :</label>
+                        <select name="wood_type" id="wood_type" class="form-control" style="width:180px;" required>
+                            <option value="" disabled selected>Pilih jenis kayu</option>
+                            @foreach ($woodTypes as $type)
+                                <option value="{{ $type }}">{{ $type }}</option>
                             @endforeach
-                            <!-- Summary rows -->
-                            <tr class="summary">
-                                <td colspan="2">Total PCS</td>
-                                @foreach ($allowed as $p)
-                                    <td class="total-pcs" data-grade="{{ $gradeSafe }}" data-panjang="{{ $p }}">0</td>
-                                @endforeach
-                            </tr>
-                            <tr class="summary">
-                                <td colspan="2">Total Volume</td>
-                                @foreach ($allowed as $p)
-                                    <td class="total-volume" data-grade="{{ $gradeSafe }}" data-panjang="{{ $p }}">0.000</td>
-                                @endforeach
-                            </tr>
-                            <tr class="summary">
-                                <td colspan="2">Total Pembayaran</td>
-                                @foreach ($allowed as $p)
-                                    <td class="total-bayar" data-grade="{{ $gradeSafe }}" data-panjang="{{ $p }}">Rp0</td>
-                                @endforeach
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            @endforeach
+                        </select>
+                    </div>
+                    <div class="row">
+                        @foreach ($grades as $grade => $diameters)
+                            @php
+                                $allowed = $allowedLengths[$grade] ?? [];
+                                $gradeSafe = str_replace([' ', '/', '\\', '.', ','], '_', $grade);
+                            @endphp
+                            <div class="col-md-3 mb-4">
+                                <table class="grade-table w-100 mb-3">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" class="row-label">Grade</th>
+                                            <th rowspan="2" class="row-label">Diameter</th>
+                                            <th colspan="{{ count($allowed) }}">Panjang</th>
+                                        </tr>
+                                        <tr>
+                                            @foreach ($allowed as $p)
+                                                <th class="row-label">{{ $p }}</th>
+                                            @endforeach
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($diameters as $d)
+                                            <tr>
+                                                @if ($loop->first)
+                                                    <td class="row-label" rowspan="{{ count($diameters) }}">{{ $grade }}</td>
+                                                @endif
+                                                <td>{{ $d }}</td>
+                                                @foreach ($allowed as $p)
+                                                    <td>
+                                                        <input type="text" inputmode="numeric" pattern="[0-9]*"
+                                                            class="form-control form-control-sm pcs-input"
+                                                            name="pcs[{{ $grade }}][{{ $d }}][{{ $p }}]"
+                                                            value=""
+                                                            placeholder="0"
+                                                            autocomplete="off"
+                                                            onfocus="this.placeholder=''"
+                                                            onblur="if(this.value===''){this.placeholder='0'}">
+                                                    </td>
+                                                @endforeach
+                                            </tr>
+                                        @endforeach
+                                        <!-- Summary rows -->
+                                        <tr class="summary">
+                                            <td colspan="2">Total PCS</td>
+                                            @foreach ($allowed as $p)
+                                                <td class="total-pcs" data-grade="{{ $gradeSafe }}" data-panjang="{{ $p }}">0</td>
+                                            @endforeach
+                                        </tr>
+                                        <tr class="summary">
+                                            <td colspan="2">Total Volume</td>
+                                            @foreach ($allowed as $p)
+                                                <td class="total-volume" data-grade="{{ $gradeSafe }}" data-panjang="{{ $p }}">0.000</td>
+                                            @endforeach
+                                        </tr>
+                                        <tr class="summary">
+                                            <td colspan="2">Total Pembayaran</td>
+                                            @foreach ($allowed as $p)
+                                                <td class="total-bayar" data-grade="{{ $gradeSafe }}" data-panjang="{{ $p }}">Rp0</td>
+                                            @endforeach
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div>
+                        <strong>Total Volume:</strong> <span id="grandTotalVolume">0.000</span> m³<br>
+                        <strong>Total Pembayaran:</strong> Rp<span id="grandTotalBayar">0</span>
+                    </div>
+                    <input type="hidden" name="total_volume" id="inputTotalVolume">
+                    <input type="hidden" name="total_pembayaran" id="inputTotalBayar">
+                    <button type="submit" class="btn btn-primary mt-3">Simpan</button>
+                </form>
+            </div>
         </div>
-        <div>
-            <strong>Total Volume:</strong> <span id="grandTotalVolume">0.000</span> m³<br>
-            <strong>Total Pembayaran:</strong> Rp<span id="grandTotalBayar">0</span>
-        </div>
-        <input type="hidden" name="total_volume" id="inputTotalVolume">
-        <input type="hidden" name="total_pembayaran" id="inputTotalBayar">
-        <button type="submit" class="btn btn-primary mt-3">Simpan</button>
-    </form>
+    </div>
 </div>
 
+<!-- Modal Sukses -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-success">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="successModalLabel">Berhasil</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body" id="successModalMsg">
+        Transaksi berhasil disimpan!
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Modal Gagal -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="errorModalLabel">Gagal</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body" id="errorModalMsg">
+        Terjadi kesalahan saat menyimpan transaksi.
+      </div>
+    </div>
+  </div>
+</div>
 <script>
     const volumes = @json($volumes);
     const hargaPerM3 = @json($hargaPerM3);
@@ -271,16 +310,59 @@
                 details: details
             })
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert('Transaksi berhasil disimpan!');
-                window.location.href = data.redirect_url;
+        .then(async res => {
+            let data;
+            try {
+                data = await res.json();
+            } catch (e) {
+                throw new Error('Gagal membaca respon server.');
+            }
+            if (res.ok && data.success) {
+                document.getElementById('successModalMsg').innerHTML = 'Transaksi berhasil disimpan!';
+                var successModal = new bootstrap.Modal(document.getElementById('successModal'), {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                successModal.show();
+
+                setTimeout(function() {
+                    window.location.href = data.redirect_url;
+                }, 10);
             } else {
-                alert('Gagal: ' + (data.message || 'Terjadi kesalahan'));
+                let msg = data.message || 'Terjadi kesalahan.';
+                if (data.errors) {
+                    msg += '<ul style="margin:8px 0 0 16px;padding:0;">';
+                    Object.values(data.errors).forEach(function(errArr) {
+                        errArr.forEach(function(err) {
+                            msg += '<li>' + err + '</li>';
+                        });
+                    });
+                    msg += '</ul>';
+                }
+                document.getElementById('errorModalMsg').innerHTML = msg;
+                var errorModal = new bootstrap.Modal(document.getElementById('errorModal'), {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                errorModal.show();
             }
         })
-        .catch(err => alert('Gagal: ' + err));
+        .catch(error => {
+            let msg = 'Gagal: ';
+            if (error && error.message) {
+                msg += error.message;
+            } else if (typeof error === 'string') {
+                msg += error;
+            } else {
+                msg += 'Terjadi kesalahan tidak diketahui.';
+            }
+            document.getElementById('errorModalMsg').innerHTML = msg;
+            var errorModal = new bootstrap.Modal(document.getElementById('errorModal'), {
+                backdrop: 'static',
+                keyboard: false
+            });
+            errorModal.show();
+        });
     });
 </script>
 @endsection
