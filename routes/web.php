@@ -15,33 +15,27 @@ Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
-    // Wood Price
-    Route::get('/wood-prices', [WoodPriceController::class, 'index'])->name('wood_prices.index');
-    Route::get('wood-prices/{hashid}/edit', [WoodPriceController::class, 'edit'])->name('wood_prices.edit');
-    Route::put('wood-prices/{hashid}', [WoodPriceController::class, 'update'])->name('wood_prices.update');
+    // Hanya admin yang boleh akses harga kayu & akun
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/wood-prices', [WoodPriceController::class, 'index'])->name('wood_prices.index');
+        Route::get('wood-prices/{hashid}/edit', [WoodPriceController::class, 'edit'])->name('wood_prices.edit');
+        Route::put('wood-prices/{hashid}', [WoodPriceController::class, 'update'])->name('wood_prices.update');
+        Route::resource('account', AccountController::class);
+    });
 
-    // Form & proses beli stok
+    // Semua user login bisa akses transaksi & stok
     Route::get('/transaksi/beli', [WoodTransactionController::class, 'buy'])->name('wood_transactions.buy');
     Route::post('/transaksi/beli', [WoodTransactionController::class, 'storeBuy'])->name('wood_transactions.storeBuy');
-
-    // Form & proses jual stok
     Route::get('/transaksi/jual', [WoodTransactionController::class, 'sell'])->name('wood_transactions.sell');
     Route::post('/transaksi/jual', [WoodTransactionController::class, 'storeSell'])->name('wood_transactions.storeSell');
-
-    // List & detail transaksi
     Route::get('/transaksi', [WoodTransactionController::class, 'index'])->name('transaksi.index');
     Route::get('/transaksi/{transaksi}', [WoodTransactionController::class, 'show'])->name('transaksi.show');
-
-    // Stock detail
     Route::get('/stock/{woodType}', [App\Http\Controllers\StockController::class, 'detail'])->name('stock.detail');
-
-    // Account management
-    Route::resource('account', AccountController::class);
 
     Route::post('/logout', function () {
         Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
-        return redirect('/'); // Redirect ke halaman login setelah logout
-    })->middleware('auth')->name('logout');
+        return redirect('/');
+    })->name('logout');
 });
