@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Vinkla\Hashids\Facades\Hashids;
 
 class WoodTransaction extends Model
 {
@@ -33,5 +34,10 @@ class WoodTransaction extends Model
     {
         // Pastikan foreign key sesuai migrasi: wood_transaction_id
         return $this->hasMany(WoodTransactionDetail::class, 'wood_transaction_id');
+    }
+
+    public function getHashidAttribute()
+    {
+        return Hashids::encode($this->id);
     }
 }

@@ -64,9 +64,36 @@
         .stock-statistik-card .card-body { padding: 10px 2px; }
         .table th, .table td { font-size: 12px; padding: 4px 2px; }
     }
+    @media print {
+        .d-print-none { display: none !important; }
+        .d-print-block { display: block !important; }
+        .btn, .navbar, .sidebar, .footer {
+            display: none !important;
+        }
+        .container-fluid {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            background: #fff !important;
+        }
+    }
+    .d-print-block { display: none; }
 </style>
-<div class="container-fluid py-4">
-    <h2 class="stock-statistik-title mb-4">Statistik Stok {{ $woodType }}</h2>
+<div class="container-fluid py-4" id="laporan-stock">
+    <div class="d-print-none">
+        <h2 class="stock-statistik-title mb-4">Statistik Stok {{ $woodType }}</h2>
+        <div class="mb-3 text-end">
+            <button onclick="window.print()" class="btn btn-outline-success">
+                <i class="bi bi-printer"></i> Print Laporan
+            </button>
+        </div>
+    </div>
+    <div class="d-none d-print-block mb-4">
+        <h2 class="text-center">Laporan Stok {{ $woodType }}</h2>
+        <div class="text-end" style="font-size:13px;">Dicetak: {{ now()->format('d-m-Y H:i') }}</div>
+        <hr>
+    </div>
     <div class="row g-4 justify-content-center">
         @php
             $gradesArr = is_array($grades) ? $grades : $grades->toArray();

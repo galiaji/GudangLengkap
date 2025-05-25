@@ -18,6 +18,7 @@ class UserSeeder extends Seeder
             'name'     => 'Test User',
             'email'    => 'testuser@example.com',
             'password' => Hash::make('password'), // password: "password"
+            'role'     => 'admin',
         ]);
 
         User::create([
@@ -25,6 +26,7 @@ class UserSeeder extends Seeder
             'name'     => 'Galih Aji Syafaat',
             'email'    => 'syafaat@example.com',
             'password' => Hash::make('1313'), // password: "1313"
+            'role'     => 'admin',
         ]);
 
         // Optionally, create more users or use a factory for bulk seeding.

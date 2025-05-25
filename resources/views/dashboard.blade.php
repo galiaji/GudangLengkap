@@ -13,6 +13,9 @@
         box-shadow: 0 2px 8px #e0f2f1;
         overflow: hidden;
         margin-bottom: 32px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
     .dashboard-card .card-header {
         background: #33691E;
@@ -25,12 +28,14 @@
     .dashboard-card .card-body {
         padding: 18px 12px;
         background: #fff;
+        flex: 1 1 auto;
     }
     .dashboard-table th, .dashboard-table td {
         border: 1px solid #c5e1a5;
         text-align: center;
         padding: 4px 6px;
         font-size: 0.97rem;
+        word-break: break-word;
     }
     .dashboard-table th {
         background: #33691E;
@@ -47,15 +52,132 @@
         font-weight: 700;
         letter-spacing: 1px;
     }
-    @media (max-width: 768px) {
-        .dashboard-table th, .dashboard-table td { font-size: 0.89rem; }
-        h1 { font-size: 1.2rem; }
+    /* Responsive: Tablet */
+    @media (max-width: 991.98px) {
+        .dashboard-card .row {
+            flex-direction: column !important;
+        }
+        .dashboard-card .col-md-8, .dashboard-card .col-md-4 {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-bottom: 12px;
+        }
+        .dashboard-card .col-md-4 {
+            margin-bottom: 0;
+        }
+        .dashboard-table th, .dashboard-table td {
+            font-size: 0.92rem;
+            padding: 4px 3px;
+        }
+        h1 { font-size: 1.1rem; }
+    }
+    /* Responsive: Mobile */
+    @media (max-width: 575.98px) {
+        .dashboard-card {
+            margin-bottom: 18px;
+        }
+        .dashboard-card .card-body {
+            padding: 10px 2px;
+        }
+        .dashboard-table th, .dashboard-table td {
+            font-size: 0.86rem;
+            padding: 3px 2px;
+        }
+        .dashboard-card .row {
+            flex-direction: column !important;
+        }
+        .dashboard-card .col-md-8, .dashboard-card .col-md-4 {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-bottom: 10px;
+        }
+        .dashboard-card .col-md-4 {
+            margin-bottom: 0;
+        }
+        h1 { font-size: 1rem; }
+        .dashboard-table {
+            min-width: 220px;
+            font-size: 0.85rem;
+        }
+        .dashboard-table th, .dashboard-table td {
+            white-space: nowrap;
+        }
+        .dashboard-table {
+            overflow-x: auto;
+            display: block;
+        }
+    }
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
+        html, body {
+            width: 100%;
+            height: auto;
+            zoom: 0.8;
+        }
+        .d-print-none { display: none !important; }
+        .btn, .navbar, .sidebar, .footer {
+            display: none !important;
+        }
+        body, .container-fluid, .dashboard-card {
+            background: #fff !important;
+            color: #000 !important;
+            box-shadow: none !important;
+        }
+        h1, .card-header {
+            color: #000 !important;
+        }
+        .dashboard-card .row {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            align-items: flex-start !important;
+        }
+        .dashboard-card .col-md-8, 
+        .dashboard-card .col-md-4 {
+            float: none !important;
+            display: block !important;
+            width: 66.6667% !important;
+            max-width: 66.6667% !important;
+            box-sizing: border-box;
+        }
+        .dashboard-card .col-md-4 {
+            width: 33.3333% !important;
+            max-width: 33.3333% !important;
+        }
+        .dashboard-card .mb-3 {
+            margin-bottom: 0 !important;
+        }
+        .row {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 0 !important;
+        }
+        .col-md-6 {
+            flex: 0 0 50% !important;
+            max-width: 50% !important;
+            box-sizing: border-box;
+        }
+        .mb-4 {
+            margin-bottom: 0.5rem !important;
+        }
     }
 </style>
 
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="text-center mb-4 flex-grow-1">Statistik Stock</h1>
+    <button onclick="window.print()" class="btn btn-outline-success d-print-none ms-3">
+        <i class="bi bi-printer"></i> Print Laporan
+    </button>
+</div>
+
+<div class="d-none d-print-block mb-3 text-end" style="font-size:13px;">
+    Dicetak: {{ now()->format('d-m-Y H:i') }}
+</div>
+
 <div class="d-flex justify-content-center">
     <div style="width:100%; max-width: 98vw;">
-        <h1 class="text-center mb-4">Statistik Stock</h1>
         <div class="row">
             @foreach($woodTypes as $type)
                 <div class="col-md-6 mb-4">

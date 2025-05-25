@@ -16,7 +16,8 @@ return new class extends Migration
             $table->string('wood_type');
             $table->string('grade');
             $table->unsignedInteger('panjang');
-            $table->decimal('price_per_m3', 12, 2);
+            $table->decimal('harga_beli_per_m3', 12, 2)->nullable();
+            $table->decimal('harga_jual_per_m3', 12, 2)->nullable();
             $table->timestamps();
 
             $table->unique(['wood_type', 'grade', 'panjang']);

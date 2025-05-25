@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     @stack('styles')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.png') }}">
     <style>
         body {
             overflow-x: hidden;
@@ -16,12 +17,18 @@
             background: #33691E;
             border-bottom: 2px solid #A5D6A7;
             min-height: 60px;
+            padding: 0 16px;
         }
         .navbar-brand {
             color: #fff !important;
-            font-size: 1.7rem;
+            font-size: 1.5rem;
             font-weight: 700;
             letter-spacing: 1px;
+            padding: 0;
+            margin: 0;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
         }
         .sidebar-toggle-header {
             background: none;
@@ -32,36 +39,166 @@
             display: none;
         }
         @media (max-width: 991.98px) {
+            .navbar {
+                min-height: 44px;
+                padding: 0 8px !important;
+            }
+            .navbar-brand {
+                font-size: 1.1rem !important;
+                letter-spacing: 0.5px;
+            }
             .sidebar-toggle-header {
-                display: inline-block;
+                display: inline-block !important;
+                font-size: 1.3rem !important;
+                margin-right: 4px !important;
+                padding: 0 !important;
+            }
+            .container-fluid.d-flex {
+                flex-direction: row !important;
+                padding: 0 !important;
+            }
+            .navbar .dropdown {
+                margin-left: auto !important;
+            }
+            .navbar .dropdown-toggle {
+                font-size: 0.85rem !important;
+                padding: 1px 4px !important;
+            }
+            .navbar .dropdown-menu {
+                font-size: 0.85rem !important;
+                min-width: 160px;
+                right: 0;
+                left: auto;
+            }
+            .navbar .dropdown img {
+                height: 24px !important;
+                width: 24px !important;
+            }
+            #sidebar {
+                position: fixed;
+                left: -220px;
+                top: 0;
+                height: 100vh;
+                width: 200px !important;
+                min-width: 64px !important;
+                max-width: 220px !important;
+                z-index: 1050;
+                transition: left 0.3s;
+                box-shadow: 2px 0 8px #e0f2f1;
+            }
+            #sidebar.show {
+                left: 0;
+            }
+            .main-content {
+                margin-left: 0 !important;
+                padding: 12px 4px 4px 4px !important;
+            }
+            .sidebar-toggle-btn {
+                display: none;
+            }
+            body {
+                overflow-x: hidden;
             }
         }
+        @media (max-width: 575.98px) {
+            .navbar {
+                min-height: 36px;
+                padding: 0 4px !important;
+            }
+            .navbar-brand {
+                font-size: 0.95rem !important;
+                letter-spacing: 0.2px;
+            }
+            .sidebar-toggle-header {
+                font-size: 1.1rem !important;
+                margin-right: 2px !important;
+            }
+            .navbar .dropdown-toggle {
+                font-size: 0.85rem !important;
+                padding: 1px 2px !important;
+            }
+            .navbar .dropdown-menu {
+                font-size: 0.85rem !important;
+                min-width: 120px;
+                right: 0;
+                left: auto;
+            }
+            .navbar .dropdown img {
+                height: 24px !important;
+                width: 24px !important;
+            }
+            #sidebar {
+                width: 90vw !important;
+                max-width: 98vw !important;
+            }
+            .main-content {
+                padding: 6px 1px !important;
+            }
+            footer {
+                font-size: 0.85rem !important;
+                padding: 8px 2px !important;
+            }
+        }
+        /* --- Sidebar Desktop --- */
         #sidebar {
-            width: 140px;
+            width: 180px;
             min-width: 64px;
-            max-width: 140px;
+            max-width: 180px;
             background: #388E3C;
             color: #fff;
             min-height: 100vh;
-            transition: width 0.3s, min-width 0.3s, max-width 0.3s;
+            transition: width 0.3s, min-width 0.3s, max-width 0.3s, left 0.3s;
             box-shadow: 2px 0 8px #e0f2f1;
             padding: 0;
             z-index: 100;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
+        /* --- Sidebar Collapsed Desktop --- */
         #sidebar.collapsed {
-            width: 64px !important;
-            min-width: 64px !important;
-            max-width: 64px !important;
+            width: 56px !important;
+            min-width: 56px !important;
+            max-width: 56px !important;
         }
-        #sidebar .sidebar-content, #sidebar .sidebar-bottom {
-            padding: 18px 6px 6px 6px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            transition: padding 0.3s;
-            gap: 4px;
+        /* --- Sidebar Tablet --- */
+        @media (max-width: 991.98px) {
+            #sidebar {
+                position: fixed;
+                left: -75vw;
+                top: 0;
+                height: 100vh;
+                width: 70vw !important;
+                min-width: 120px !important;
+                max-width: 80vw !important;
+                z-index: 1050;
+                transition: left 0.3s, width 0.3s;
+                box-shadow: 2px 0 8px #e0f2f1;
+            }
+            #sidebar.show {
+                left: 0;
+            }
+        }
+        /* --- Sidebar Mobile --- */
+        @media (max-width: 575.98px) {
+            #sidebar {
+                width: 82vw !important;
+                min-width: 0 !important;
+                max-width: 90vw !important;
+                left: -90vw;
+            }
+            #sidebar.show {
+                left: 0;
+            }
+            .btn-sidebar {
+                font-size: 1rem;
+                height: 42px;
+                padding: 0 8px;
+            }
+            .sidebar-content, .sidebar-bottom {
+                padding: 10px 4px 4px 4px !important;
+                gap: 2px;
+            }
         }
         .btn-sidebar {
             background-color: #A5D6A7;
@@ -76,11 +213,11 @@
             padding: 0 12px;
             display: flex;
             align-items: center;
-            font-size: 1.3rem;
+            font-size: 1.15rem;
             transition: background 0.2s, color 0.2s;
             position: relative;
             overflow: hidden;
-            gap: 12px;
+            gap: 10px;
         }
         .btn-sidebar .sidebar-label {
             display: inline;
@@ -94,14 +231,6 @@
             opacity: 1;
             width: auto;
         }
-        .btn-sidebar:hover, .btn-sidebar:focus {
-            background-color: #689F38;
-            color: #fff;
-        }
-        .btn-sidebar:hover .sidebar-label,
-        .btn-sidebar:focus .sidebar-label {
-            color: #fff;
-        }
         #sidebar.collapsed .sidebar-label {
             opacity: 0;
             width: 0;
@@ -110,6 +239,22 @@
             overflow: hidden;
             display: inline-block;
             transition: opacity 0.3s, width 0.3s;
+        }
+        .btn-sidebar:hover, .btn-sidebar:focus {
+            background-color: #689F38;
+            color: #fff;
+        }
+        .btn-sidebar:hover .sidebar-label,
+        .btn-sidebar:focus .sidebar-label {
+            color: #fff;
+        }
+        #sidebar .sidebar-content, #sidebar .sidebar-bottom {
+            padding: 18px 6px 6px 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            transition: padding 0.3s;
+            gap: 4px;
         }
         #sidebar .sidebar-bottom {
             margin-top: auto;
@@ -139,62 +284,70 @@
         }
         @media (max-width: 991.98px) {
             #sidebar {
-                position: fixed;
-                left: -220px;
-                top: 0;
-                height: 100vh;
-                width: 220px !important;
-                min-width: 64px !important;
-                max-width: 220px !important;
-                z-index: 1050;
-                transition: left 0.3s;
+                width: 70vw !important;
+                min-width: 120px !important;
+                max-width: 90vw !important;
+                left: -90vw;
             }
             #sidebar.show {
                 left: 0;
             }
-            .main-content {
-                margin-left: 0 !important;
-            }
-            .sidebar-toggle-btn {
-                display: none;
-            }
         }
-        .btn-sidebar.logout-btn {
-            background-color: #ffebee;
-            color: #c62828;
-            border: none;
-            font-weight: 600;
-            border-radius: 6px;
-            margin-bottom: 6px;
-            width: 100%;
-            min-width: 48px;
-            height: 48px;
-            padding: 0 12px;
-            display: flex;
-            align-items: center;
-            font-size: 1.3rem;
-            transition: background 0.2s, color 0.2s;
-            position: relative;
-            overflow: hidden;
-            gap: 12px;
-        }
-        .btn-sidebar.logout-btn:hover, .btn-sidebar.logout-btn:focus {
-            background-color: #ffcdd2;
-            color: #b71c1c;
+        @media (max-width: 575.98px) {
+            #sidebar {
+                width: 80vw !important;
+                min-width: 0 !important;
+                max-width: 90vw !important;
+                left: -90vw;
+            }
+            #sidebar.show {
+                left: 0;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Header -->
     <header>
-        <nav class="navbar navbar-expand-lg">
-            <div class="container-fluid justify-content-center align-items-center">
-                <button class="sidebar-toggle-header d-lg-none" id="sidebarToggleHeader" aria-label="Toggle sidebar">
-                    <i class="bi bi-list"></i>
-                </button>
-                <span class="navbar-brand mx-auto">
-                    UD. Tiga PutraKarya Sentosa
-                </span>
+        <nav class="navbar navbar-expand-lg shadow-sm" style="background: #33691E; border-bottom: 2px solid #A5D6A7; min-height: 56px;">
+            <div class="container-fluid d-flex justify-content-between align-items-center flex-nowrap">
+                <div class="d-flex align-items-center flex-shrink-1">
+                    <button class="sidebar-toggle-header d-lg-none me-2" id="sidebarToggleHeader" aria-label="Toggle sidebar">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <span class="navbar-brand mb-0">
+                        <i class="bi bi-tree-fill me-2"></i> UD. Tiga PutraKarya Sentosa
+                    </span>
+                </div>
+                <div class="d-flex align-items-center justify-content-end flex-shrink-0 ms-auto">
+                    <!-- Dropdown Profil -->
+                    <div class="dropdown">
+                        <button class="btn btn-link dropdown-toggle d-flex align-items-center text-white text-decoration-none" type="button" id="dropdownProfile" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight:600;">
+                            <span class="me-2 d-none d-sm-inline">{{ auth()->user() ? auth()->user()->name : '' }}</span>
+                            <img src="{{ asset('favicon.png') }}" alt="Logo" style="height:28px; width:28px; border-radius:6px; object-fit:cover;">
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownProfile">
+                            <li class="px-3 py-2">
+                                <div style="font-weight:600;">{{ auth()->user() ? auth()->user()->name : '' }}</div>
+                                <div style="font-size:0.93rem; color:#33691E;">{{ auth()->user() ? auth()->user()->email : '' }}</div>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('account.profile') }}">
+                                    <i class="bi bi-person-circle me-2"></i> Profil Saya
+                                </a>
+                            </li>
+                            <li>
+                                <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="bi bi-box-arrow-right me-2"></i> Logout
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </nav>
     </header>
@@ -204,7 +357,7 @@
         <!-- Sidebar -->
         <div id="sidebar" class="border-end d-flex flex-column col-auto p-0">
             <button class="sidebar-toggle-btn d-none d-lg-flex" id="sidebarToggle" aria-label="Toggle sidebar">
-                <i class="bi bi-chevron-double-left"></i>
+                <i class="bi bi-list"></i>
             </button>
             <div class="sidebar-content flex-grow-1">
                 <a href="{{ route('dashboard') }}" class="btn btn-sidebar" title="Laporan Stock">
@@ -224,9 +377,9 @@
                     <span class="sidebar-label">Transaksi</span>
                 </a>
                 @if(auth()->user() && auth()->user()->role === 'admin')
-                    <a href="{{ route('wood_prices.index') }}" class="btn btn-sidebar" title="Stel Harga">
+                    <a href="{{ route('wood_prices.index') }}" class="btn btn-sidebar" title="Harga Kayu">
                         <i class="bi bi-cash-coin"></i>
-                        <span class="sidebar-label">Harga</span>
+                        <span class="sidebar-label">Harga Kayu</span>
                     </a>
                 @endif
             </div>
@@ -288,8 +441,20 @@
                     }
                 }
             });
+            // Tutup sidebar setelah klik menu di mobile
+            sidebar.querySelectorAll('.btn-sidebar').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    if(window.innerWidth <= 991.98) {
+                        sidebar.classList.remove('show');
+                    }
+                });
+            });
         });
     </script>
     @yield('scripts')
+    <!-- Footer -->
+    <footer class="text-center py-3 mt-auto" style="background: #33691E; color: #fff; font-size: 1rem; letter-spacing: 1px;">
+        &copy; {{ date('Y') }} UD. Tiga PutraKarya Sentosa &mdash; Sistem Pembukuan Stok Kayu
+    </footer>
 </body>
 </html>

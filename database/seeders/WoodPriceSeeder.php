@@ -26,14 +26,16 @@ class WoodPriceSeeder extends Seeder
         foreach ($woodTypes as $type) {
             foreach ($allowedLengthsByGrade as $grade => $lengths) {
                 foreach ($lengths as $length) {
-                    $pricePerM3 = 450000; // Atur harga sesuai kebutuhan
+                    $hargaBeli = 400000; // Contoh harga beli
+                    $hargaJual = 450000; // Contoh harga jual
 
                     DB::table('wood_prices')->updateOrInsert([
                         'wood_type' => $type,
                         'grade' => $grade,
                         'panjang' => $length,
                     ], [
-                        'price_per_m3' => $pricePerM3,
+                        'harga_beli_per_m3' => $hargaBeli,
+                        'harga_jual_per_m3' => $hargaJual,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);

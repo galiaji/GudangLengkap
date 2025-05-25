@@ -54,6 +54,54 @@
     .table-responsive {
         margin-bottom: 0;
     }
+
+    /* Responsive: Tablet */
+    @media (max-width: 991.98px) {
+        .account-card .card-body {
+            padding: 14px 4px 12px 4px;
+        }
+        .table th, .table td {
+            font-size: 0.93rem;
+            padding: 4px 3px;
+        }
+        .btn-sm {
+            font-size: 0.92rem;
+            padding: 2px 7px;
+        }
+        .account-card .card-header {
+            font-size: 1.05rem;
+            padding: 10px 0;
+        }
+    }
+
+    /* Responsive: Mobile */
+    @media (max-width: 575.98px) {
+        .account-card {
+            margin-bottom: 14px;
+        }
+        .account-card .card-body {
+            padding: 8px 1px 8px 1px;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .table {
+            min-width: 600px;
+            font-size: 0.85rem;
+        }
+        .table th, .table td {
+            font-size: 0.85rem;
+            padding: 3px 2px;
+        }
+        .btn-sm {
+            font-size: 0.85rem;
+            padding: 2px 6px;
+        }
+        .account-card .card-header {
+            font-size: 0.97rem;
+            padding: 8px 0;
+        }
+    }
 </style>
 <div class="d-flex justify-content-center">
     <div class="w-100">
@@ -75,8 +123,10 @@
                                 <th style="width:40px;">No.</th>
                                 <th>Nama</th>
                                 <th>Username</th>
-                                <th>Email</th>                                
+                                <th>Email</th>
+                                <th>Role</th> <!-- Tambahkan kolom Role -->
                                 <th>Ditambahkan Pada</th>
+                                <th>Diupdate Pada</th>
                                 <th style="width:110px;">Aksi</th>
                             </tr>
                         </thead>
@@ -88,20 +138,26 @@
                                 <td>{{ $user->username }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td>
+                                    <span class="badge bg-success" style="font-size:0.97rem;">{{ ucfirst($user->role) }}</span>
+                                </td>
+                                <td>
                                     {{ \Carbon\Carbon::parse($user->created_at)->format('d-m-Y H:i') }}
                                 </td>
                                 <td>
-                                    <a href="{{ route('account.edit', $user) }}" class="btn btn-primary btn-sm">Edit</a>
-                                    <form action="{{ route('account.destroy', $user) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Yakin hapus akun ini?')">
+                                    {{ \Carbon\Carbon::parse($user->updated_at)->format('d-m-Y H:i') }}
+                                </td>
+                                <td>
+                                    <a href="{{ route('account.edit', $user->hashid) }}" class="btn btn-primary btn-sm">Edit</a>
+                                    <form action="{{ route('account.destroy', $user) }}" method="POST" class="d-inline delete-form" style="display:none;">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="btn btn-danger btn-sm">Hapus</button>
                                     </form>
+                                    <button type="button" class="btn btn-danger btn-sm btn-delete" data-action="{{ route('account.destroy', $user->hashid) }}">Hapus</button>
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="6" class="text-center text-muted">Belum ada akun.</td>
+                                <td colspan="8" class="text-center text-muted">Belum ada akun.</td>
                             </tr>
                             @endforelse
                         </tbody>
@@ -111,4 +167,49 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Konfirmasi Hapus -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteLabel">Konfirmasi Hapus</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+        Yakin hapus akun ini?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Hapus</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let actionUrl = '';
+    document.querySelectorAll('.btn-delete').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            actionUrl = this.getAttribute('data-action');
+            var modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+            modal.show();
+        });
+    });
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        // Buat form hapus dinamis dan submit
+        let form = document.createElement('form');
+        form.method = 'POST';
+        form.action = actionUrl;
+        form.innerHTML = `
+            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="_method" value="DELETE">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    });
+});
+</script>
 @endsection

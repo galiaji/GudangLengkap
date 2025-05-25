@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Vinkla\Hashids\Facades\Hashids;
 
 class AccountController extends Controller
 {
@@ -23,42 +24,65 @@ class AccountController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users,username',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|confirmed|min:6',
+            'username' => 'required|string|max:255|unique:users',
+            'email' => 'required|email|max:255|unique:users',
+            'role' => 'required|in:admin,staff,user',
+            'password' => 'required|string|min:6|confirmed',
         ]);
 
         $validated['password'] = bcrypt($validated['password']);
-        \App\Models\User::create($validated);
+
+        User::create($validated);
 
         return redirect()->route('account.index')->with('success', 'Akun berhasil ditambahkan!');
     }
 
-    public function edit(User $account)
+    public function show($hashid)
     {
+        $id = Hashids::decode($hashid)[0] ?? null;
+        $account = \App\Models\User::findOrFail($id);
+
+        return view('account.show', compact('account'));
+    }
+
+    public function edit($hashid)
+    {
+        $id = Hashids::decode($hashid)[0] ?? null;
+        $account = \App\Models\User::findOrFail($id);
+
         return view('account.edit', compact('account'));
     }
 
-    public function update(Request $request, User $account)
+    public function update(Request $request, $hashid)
     {
+        $id = Hashids::decode($hashid)[0] ?? null;
+        $account = \App\Models\User::findOrFail($id);
+
         $validated = $request->validate([
-            'name' => 'required',
-            'username' => 'required|unique:users,username,'.$account->id,
-            'email' => 'required|email|unique:users,email,'.$account->id,
-            'password' => 'nullable|min:6',
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users,username,'.$account->id,
+            'email' => 'required|email|max:255|unique:users,email,'.$account->id,
+            'role' => 'required|in:admin,staff,user',
+            'password' => 'nullable|string|min:6|confirmed',
         ]);
-        if ($request->password) {
-            $validated['password'] = bcrypt($request->password);
+
+        if ($validated['password']) {
+            $validated['password'] = bcrypt($validated['password']);
         } else {
             unset($validated['password']);
         }
+
         $account->update($validated);
+
         return redirect()->route('account.index')->with('success', 'Akun berhasil diupdate!');
     }
 
-    public function destroy(User $user)
+    public function destroy($hashid)
     {
-        $user->delete();
-        return redirect()->route('account.manage')->with('success', 'Akun berhasil dihapus.');
+        $id = Hashids::decode($hashid)[0] ?? null;
+        $account = \App\Models\User::findOrFail($id);
+
+        $account->delete();
+        return redirect()->route('account.index')->with('success', 'Akun berhasil dihapus.');
     }
 }

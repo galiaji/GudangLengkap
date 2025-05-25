@@ -92,6 +92,39 @@
         overflow-x: auto;
         background: #fff;
         border-radius: 8px;
+        width: 100%;
+    }
+    @media (max-width: 991.98px) {
+        #transaksi-area {
+            width: 100%;
+            max-width: 100vw;
+            padding: 10px 2px 12px 2px;
+        }
+        .transaksi-table th, .transaksi-table td {
+            font-size: 0.78rem;
+            padding: 3px 3px;
+        }
+        .meta-table, .transaksi-summary {
+            font-size: 0.85rem;
+        }
+        .kop-usaha {
+            font-size: 1rem;
+        }
+    }
+    @media (max-width: 575.98px) {
+        #transaksi-area {
+            padding: 4px 0 8px 0;
+        }
+        .transaksi-table th, .transaksi-table td {
+            font-size: 0.70rem;
+            padding: 2px 2px;
+        }
+        .meta-table, .transaksi-summary {
+            font-size: 0.75rem;
+        }
+        .kop-usaha {
+            font-size: 0.95rem;
+        }
     }
     @media print {
         body, html { background: #fff !important; }
@@ -121,7 +154,12 @@
         </tr>
         <tr>
             <td class="label"><b>Jenis Barang</b></td>
-            <td>: {{ $transaksi->details->first()->wood_type ?? '-' }}</td>
+            <td>: 
+                @php
+                    $jenisBarang = $transaksi->details->pluck('wood_type')->unique()->implode(', ');
+                @endphp
+                {{ $jenisBarang ?: '-' }}
+            </td>
         </tr>
     </table>
 
@@ -129,6 +167,7 @@
     @php
         $panjangs = $transaksi->details->pluck('panjang')->unique()->sort()->values();
         $grades = $transaksi->details->pluck('grade')->unique()->values();
+        $woodTypes = $transaksi->details->pluck('wood_type')->unique()->values();
         $diameters = [];
         foreach ($grades as $grade) {
             $diameters[$grade] = $transaksi->details->where('grade', $grade)->pluck('diameter')->unique()->sort()->values();
@@ -138,6 +177,7 @@
     <table class="transaksi-table">
         <thead>
             <tr>
+                <th rowspan="2">Jenis Kayu</th>
                 <th rowspan="2">Grade</th>
                 <th rowspan="2">Diameter</th>
                 @foreach($panjangs as $p)
@@ -155,20 +195,32 @@
         <tbody>
             @foreach($grades as $grade)
                 @foreach($diameters[$grade] as $i => $diameter)
-                <tr>
-                    @if($i == 0)
-                        <td rowspan="{{ count($diameters[$grade]) }}">{{ $grade }}</td>
-                    @endif
-                    <td>{{ number_format($diameter, 2, ',', '.') }}</td>
-                    @foreach($panjangs as $p)
-                        @php
-                            $d = $transaksi->details->where('grade', $grade)->where('diameter', $diameter)->where('panjang', $p)->first();
-                        @endphp
-                        <td>{{ $d ? $d->pcs : 0 }}</td>
-                        <td>{{ $d ? number_format($d->volume, 3, ',', '.') : '0,000' }}</td>
-                        <td>{{ $d ? 'Rp'.number_format($d->harga,0,',','.') : 'Rp0' }}</td>
+                    @php
+                        $detailsByGradeDiameter = $transaksi->details->where('grade', $grade)->where('diameter', $diameter);
+                        $woodTypesInRow = $detailsByGradeDiameter->pluck('wood_type')->unique();
+                    @endphp
+                    @foreach($woodTypesInRow as $j => $woodType)
+                    <tr>
+                        @if($i == 0 && $j == 0)
+                            <td rowspan="{{ count($diameters[$grade]) * $woodTypesInRow->count() }}">{{ $grade }}</td>
+                        @endif
+                        <td>{{ $woodType }}</td>
+                        <td>{{ number_format($diameter, 2, ',', '.') }}</td>
+                        @foreach($panjangs as $p)
+                            @php
+                                $d = $transaksi->details
+                                    ->where('grade', $grade)
+                                    ->where('diameter', $diameter)
+                                    ->where('panjang', $p)
+                                    ->where('wood_type', $woodType)
+                                    ->first();
+                            @endphp
+                            <td>{{ $d ? $d->pcs : 0 }}</td>
+                            <td>{{ $d ? number_format($d->volume, 3, ',', '.') : '0,000' }}</td>
+                           <td> Rp{{ number_format($d->total_bayar_per_diameter ?? $d->harga ?? 0, 0, ',', '.') }}</td>
+                        @endforeach
+                    </tr>
                     @endforeach
-                </tr>
                 @endforeach
             @endforeach
         </tbody>
@@ -193,10 +245,42 @@ document.getElementById('download-img-btn').addEventListener('click', function(e
     }).then(function(canvas) {
         // Tampilkan kembali tombol setelah capture
         document.querySelectorAll('.no-capture').forEach(el => el.style.display = '');
-        var link = document.createElement('a');
-        link.download = 'transaksi.png';
-        link.href = canvas.toDataURL();
-        link.click();
+
+        var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+            // Tampilkan gambar hasil capture di bawah tombol
+            var img = document.createElement('img');
+            img.src = canvas.toDataURL();
+            img.style.maxWidth = '100%';
+            img.style.margin = '12px 0';
+            img.alt = 'Hasil Capture';
+            img.id = 'hasil-capture-img';
+
+            // Hapus gambar sebelumnya jika ada
+            var prevImg = document.getElementById('hasil-capture-img');
+            if (prevImg) prevImg.remove();
+
+            // Tampilkan instruksi
+            var instruksi = document.createElement('div');
+            instruksi.innerText = 'Tekan & tahan gambar lalu pilih "Download" atau "Simpan Gambar".';
+            instruksi.style.fontSize = '0.95rem';
+            instruksi.style.marginBottom = '8px';
+            instruksi.style.color = '#33691E';
+            instruksi.id = 'instruksi-capture';
+
+            var prevInstruksi = document.getElementById('instruksi-capture');
+            if (prevInstruksi) prevInstruksi.remove();
+
+            var btn = document.getElementById('download-img-btn');
+            btn.parentNode.insertBefore(instruksi, btn.nextSibling);
+            btn.parentNode.insertBefore(img, instruksi.nextSibling);
+        } else {
+            // Desktop: download otomatis
+            var link = document.createElement('a');
+            link.download = 'transaksi.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
     });
 });
 </script>

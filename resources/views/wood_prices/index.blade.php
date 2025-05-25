@@ -37,9 +37,16 @@
         color: #33691E;
     }
     .edit-btn {
-        padding: 2px 8px;
-        font-size: 0.85rem;
+        padding: 2px 6px;
+        font-size: 0.82rem;
         margin-left: 4px;
+        margin-top: 2px;
+        margin-bottom: 2px;
+        min-width: 48px;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
     .table-hover tbody tr:hover {
         background-color: #A5D6A7 !important;
@@ -54,9 +61,72 @@
         color: #33691E;
         font-weight: 600;
     }
-    @media (max-width: 768px) {
-        .grade-table th, .grade-table td { font-size: 0.89rem; }
-        h2, h3, h1 { font-size: 1.2rem; }
+    
+    @media (max-width: 991.98px) {
+        .grade-table th, .grade-table td { font-size: 0.85rem; padding: 3px 2px; }
+            .col-md-6 { flex: 0 0 100%;2, h3, h1 { font-size: 1.1rem; }
+        .col-md-6 { flex: 0 0 100%; max-width: 100%; }
+        .grade-table { font-size: 0.92rem; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    }
+    @media (max-width: 575.98px) {
+        .edit-btn {
+            padding: 2px 4px;
+            font-size: 0.78rem;
+            min-width: 38px;
+            margin-left: 2px;
+        }
+        .grade-table th, .grade-table td {
+            padding: 2px 2px;
+            font-size: 0.80rem;
+        }
+        h2, h3, h1 { font-size: 1rem; }
+        .grade-table { font-size: 0.88rem; }
+        .table-responsive { overflow-x: auto; }
+    }
+
+    /* Modal responsif */
+    .modal-dialog {
+        max-width: 420px;
+        margin: 1.75rem auto;
+    }
+    @media (max-width: 575.98px) {
+        .modal-dialog {
+            max-width: 98vw;
+            margin: 0.5rem auto;
+        }
+        .modal-content {
+            border-radius: 8px;
+            padding: 2px 2px 8px 2px;
+        }
+        .modal-header, .modal-footer {
+            padding: 8px 10px;
+        }
+        .modal-title {
+            font-size: 1.05rem;
+        }
+        .modal-body {
+            padding: 10px 10px 4px 10px;
+            font-size: 0.97rem;
+        }
+        .form-label, .modal-body strong {
+            font-size: 0.95rem;
+        }
+        .btn {
+            font-size: 0.95rem;
+            padding: 4px 10px;
+        }
+    }
+    /* Toast responsif */
+    @media (max-width: 575.98px) {
+        .toast {
+            min-width: 180px;
+            font-size: 0.95rem;
+            padding: 6px 8px;
+        }
+        .toast-body {
+            padding: 6px 8px;
+        }
     }
 </style>
 
@@ -88,6 +158,7 @@
                                         <thead>
                                             <tr>
                                                 <th style="width:120px;">Grade</th>
+                                                <th style="width:100px;">Type Harga</th>
                                                 @foreach ($allLengths as $length)
                                                     <th>{{ $length }} cm</th>
                                                 @endforeach
@@ -95,66 +166,124 @@
                                         </thead>
                                         <tbody>
                                             @foreach ($allGrades as $gIndex => $grade)
+                                                {{-- Baris BELI --}}
                                                 <tr style="background:{{ $gIndex % 2 == 0 ? '#f8fafc' : '#f1f8e9' }};">
-                                                    <td style="font-weight:500;">
+                                                    <td style="font-weight:500;" rowspan="2" class="align-middle">
                                                         {{ $gradeRanges[$grade] ?? $grade }}
                                                     </td>
+                                                    <td class="align-middle" style="font-weight:600;">Beli</td>
                                                     @foreach ($allLengths as $length)
                                                         @php
                                                             $price = $prices->where('grade', $grade)->where('panjang', $length)->first();
                                                         @endphp
                                                         <td>
                                                             @if ($price)
-                                                                <span style="font-weight:500;">
-                                                                    Rp{{ number_format($price->price_per_m3, 0, ',', '.') }}
-                                                                </span>
-                                                                <button type="button"
-                                                                        class="btn btn-warning btn-sm edit-btn"
-                                                                        data-bs-toggle="modal"
-                                                                        data-bs-target="#editHargaModal-{{ $price->id }}">
-                                                                    <i class="bi bi-pencil-square"></i> Edit
-                                                                </button>
-                                                                <!-- Modal Edit Harga -->
-                                                                <div class="modal fade" id="editHargaModal-{{ $price->id }}" tabindex="-1" aria-labelledby="editHargaModalLabel-{{ $price->id }}" aria-hidden="true">
-                                                                    <div class="modal-dialog modal-sm">
+                                                                <div style="display:flex; align-items:center; justify-content:space-between;">
+                                                                    <span style="font-weight:500;">Rp{{ number_format($price->harga_beli_per_m3, 0, ',', '.') }}</span>
+                                                                    <button type="button"
+                                                                            class="btn btn-warning btn-sm edit-btn"
+                                                                            style="margin-left:6px;padding:2px 10px;font-size:0.9rem;"
+                                                                            data-bs-toggle="modal"
+                                                                            data-bs-target="#editBeliModal-{{ $price->id }}">
+                                                                        <i class="bi bi-pencil-square"></i> Edit
+                                                                    </button>
+                                                                </div>
+                                                                <!-- Modal Edit Harga Beli -->
+                                                                <div class="modal fade" id="editBeliModal-{{ $price->id }}" tabindex="-1">
+                                                                    <div class="modal-dialog">
                                                                         <div class="modal-content">
-                                                                            <div class="modal-header py-2" style="background:#33691E;">
-                                                                                <h6 class="modal-title text-white" id="editHargaModalLabel-{{ $price->id }}">Edit Harga Kayu</h6>
-                                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="background-color:#fff;"></button>
-                                                                            </div>
-                                                                            <form action="{{ route('wood_prices.update', \Vinkla\Hashids\Facades\Hashids::encode($price->id)) }}" method="POST" class="edit-harga-form">
+                                                                            <form action="{{ route('wood_prices.updateBeli', \Vinkla\Hashids\Facades\Hashids::encode($price->id)) }}" method="POST" class="edit-harga-form">
                                                                                 @csrf
-                                                                                @method('PUT')
-                                                                                <div class="modal-body py-2 px-3" style="font-size:0.97rem;">
-                                                                                    <div class="row align-items-center mb-1">
-                                                                                        <label class="col-5 col-form-label text-start ps-2" style="padding-right:0;">Jenis Kayu</label>
-                                                                                        <div class="col-7">
-                                                                                            <input type="text" class="form-control form-control-sm pe-2" value="{{ $price->wood_type }}" disabled>
-                                                                                        </div>
+                                                                                <div class="modal-header">
+                                                                                    <h5 class="modal-title">Edit Harga Beli</h5>
+                                                                                    <span class="badge bg-success ms-2">Anda sedang mengedit HARGA BELI</span>
+                                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                                </div>
+                                                                                <div class="modal-body">
+                                                                                    <div class="mb-2">
+                                                                                        <strong>Tipe Kayu:</strong> {{ $price->wood_type }}
                                                                                     </div>
-                                                                                    <div class="row align-items-center mb-1">
-                                                                                        <label class="col-5 col-form-label text-start ps-2" style="padding-right:0;">Grade</label>
-                                                                                        <div class="col-7">
-                                                                                            <input type="text" class="form-control form-control-sm pe-2"
-                                                                                                value="{{ $gradeRanges[$price->grade] ?? $price->grade }}" disabled>
-                                                                                        </div>
+                                                                                    <div class="mb-2">
+                                                                                        <strong>Grade:</strong> {{ $price->grade }}
                                                                                     </div>
-                                                                                    <div class="row align-items-center mb-1">
-                                                                                        <label class="col-5 col-form-label text-start ps-2" style="padding-right:0;">Panjang</label>
-                                                                                        <div class="col-7">
-                                                                                            <input type="number" class="form-control form-control-sm pe-2" value="{{ $price->panjang }}" disabled>
-                                                                                        </div>
+                                                                                    <div class="mb-2">
+                                                                                        <strong>Panjang:</strong> {{ $price->panjang }} cm
                                                                                     </div>
-                                                                                    <div class="row align-items-center mb-1">
-                                                                                        <label class="col-5 col-form-label text-start ps-2" style="padding-right:0;">Harga/m³</label>
-                                                                                        <div class="col-7">
-                                                                                            <input type="text" name="price_per_m3" class="form-control form-control-sm pe-2"
-                                                                                                value="{{ number_format($price->price_per_m3, 0, ',', '.') }}"
-                                                                                                oninput="formatRupiah(this)">
-                                                                                        </div>
+                                                                                    <div class="mb-2">
+                                                                                        <strong>Tipe Harga:</strong> Beli
+                                                                                    </div>
+                                                                                    <div class="mb-3">
+                                                                                        <label for="harga_beli_per_m3_{{ $price->id }}" class="form-label">Harga Beli per m³</label>
+                                                                                        <input type="text" name="harga_beli_per_m3" id="harga_beli_per_m3_{{ $price->id }}"
+                                                                                            value="Rp{{ number_format(old('harga_beli_per_m3', $price->harga_beli_per_m3), 0, ',', '.') }}"
+                                                                                            class="form-control" required oninput="formatRupiah(this)">
                                                                                     </div>
                                                                                 </div>
-                                                                                <div class="modal-footer py-2">
+                                                                                <div class="modal-footer">
+                                                                                    <button type="submit" class="btn btn-primary btn-sm">Simpan</button>
+                                                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                                                                                </div>
+                                                                            </form>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @else
+                                                                <span style="color:#bbb;">-</span>
+                                                            @endif
+                                                        </td>
+                                                    @endforeach
+                                                </tr>
+                                                {{-- Baris JUAL --}}
+                                                <tr style="background:{{ $gIndex % 2 == 0 ? '#f8fafc' : '#f1f8e9' }};">
+                                                    <td class="align-middle" style="font-weight:600;">Jual</td>
+                                                    @foreach ($allLengths as $length)
+                                                        @php
+                                                            $price = $prices->where('grade', $grade)->where('panjang', $length)->first();
+                                                        @endphp
+                                                        <td>
+                                                            @if ($price)
+                                                                <div style="display:flex; align-items:center; justify-content:space-between;">
+                                                                    <span style="font-weight:500;">Rp{{ number_format($price->harga_jual_per_m3, 0, ',', '.') }}</span>
+                                                                    <button type="button"
+                                                                            class="btn btn-warning btn-sm edit-btn"
+                                                                            style="margin-left:6px;padding:2px 10px;font-size:0.9rem;"
+                                                                            data-bs-toggle="modal"
+                                                                            data-bs-target="#editJualModal-{{ $price->id }}">
+                                                                        <i class="bi bi-pencil-square"></i> Edit
+                                                                    </button>
+                                                                </div>
+                                                                <!-- Modal Edit Harga Jual -->
+                                                                <div class="modal fade" id="editJualModal-{{ $price->id }}" tabindex="-1">
+                                                                    <div class="modal-dialog">
+                                                                        <div class="modal-content">
+                                                                            <form action="{{ route('wood_prices.updateJual', \Vinkla\Hashids\Facades\Hashids::encode($price->id)) }}" method="POST" class="edit-harga-form">
+                                                                                @csrf
+                                                                                <div class="modal-header">
+                                                                                    <h5 class="modal-title">Edit Harga Jual</h5>
+                                                                                    <span class="badge bg-info ms-2">Anda sedang mengedit HARGA JUAL</span>
+                                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                                </div>
+                                                                                <div class="modal-body">
+                                                                                    <div class="mb-2">
+                                                                                        <strong>Tipe Kayu:</strong> {{ $price->wood_type }}
+                                                                                    </div>
+                                                                                    <div class="mb-2">
+                                                                                        <strong>Grade:</strong> {{ $price->grade }}
+                                                                                    </div>
+                                                                                    <div class="mb-2">
+                                                                                        <strong>Panjang:</strong> {{ $price->panjang }} cm
+                                                                                    </div>
+                                                                                    <div class="mb-2">
+                                                                                        <strong>Tipe Harga:</strong> Jual
+                                                                                    </div>
+                                                                                    <div class="mb-3">
+                                                                                        <label for="harga_jual_per_m3_{{ $price->id }}" class="form-label">Harga Jual per m³</label>
+                                                                                        <input type="text" name="harga_jual_per_m3" id="harga_jual_per_m3_{{ $price->id }}"
+                                                                                            value="Rp{{ number_format(old('harga_jual_per_m3', $price->harga_jual_per_m3), 0, ',', '.') }}"
+                                                                                            class="form-control" required oninput="formatRupiah(this)">
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="modal-footer">
                                                                                     <button type="submit" class="btn btn-primary btn-sm">Simpan</button>
                                                                                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
                                                                                 </div>
@@ -182,16 +311,19 @@
 </div>
 <script>
 function formatRupiah(input) {
-    let value = input.value.replace(/\D/g, '');
-    input.value = new Intl.NumberFormat('id-ID', {
-        style: 'decimal',
-        maximumFractionDigits: 0
-    }).format(value);
+    let value = input.value.replace(/[^0-9]/g, ''); // hanya angka
+    if (!value) {
+        input.value = '';
+        return;
+    }
+    input.value = 'Rp' + value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 document.querySelectorAll('.edit-harga-form').forEach(function(form) {
     form.addEventListener('submit', function (e) {
-        const priceInput = form.querySelector('[name="price_per_m3"]');
-        if(priceInput) priceInput.value = priceInput.value.replace(/\./g, '');
+        let beli = form.querySelector('[name="harga_beli_per_m3"]');
+        let jual = form.querySelector('[name="harga_jual_per_m3"]');
+        if(beli) beli.value = beli.value.replace(/\D/g, '');
+        if(jual) jual.value = jual.value.replace(/\D/g, '');
     });
 });
 document.addEventListener('DOMContentLoaded', function () {

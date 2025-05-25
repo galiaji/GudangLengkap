@@ -18,6 +18,7 @@
         font-size: 1.15rem;
         letter-spacing: 1px;
         border-bottom: 1px solid #A5D6A7;
+        padding: 14px 0;
     }
     .account-card .card-body {
         padding: 18px 12px;
@@ -31,6 +32,33 @@
         color: #33691E;
         font-weight: 700;
         letter-spacing: 1px;
+    }
+    @media (max-width: 575.98px) {
+        .account-card {
+            margin-bottom: 12px;
+        }
+        .account-card .card-header {
+            font-size: 1rem;
+            padding: 10px 0;
+        }
+        .account-card .card-body {
+            padding: 10px 2px;
+        }
+        .form-control {
+            font-size: 0.95rem;
+            padding: 6px 8px;
+        }
+        label {
+            font-size: 0.97rem;
+        }
+        button.btn, a.btn {
+            font-size: 0.95rem;
+            padding: 5px 12px;
+        }
+        div[style*="max-width: 420px"] {
+            max-width: 100% !important;
+            padding: 0 2px;
+        }
     }
 </style>
 <div class="d-flex justify-content-center">
@@ -62,6 +90,14 @@
                     <div class="mb-3">
                         <label>Email</label>
                         <input type="email" name="email" class="form-control" placeholder="Email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Role</label>
+                        <select name="role" class="form-control" required>
+                            <option value="" disabled selected>Pilih Role</option>
+                            <option value="admin">Admin</option>
+                            <option value="staff">Staff</option>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label>Password</label>

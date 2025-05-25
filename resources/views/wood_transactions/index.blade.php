@@ -104,8 +104,35 @@
     @media (max-width: 1200px) {
         .transaksi-card { max-width: 100%; }
     }
-    @media (max-width: 768px) {
-        .transaksi-card { padding: 12px 2px 2px 2px; }
+    @media (max-width: 991.98px) {
+        .transaksi-title { font-size: 1.3rem; }
+        .transaksi-card { padding: 8px 2px 2px 2px; }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .table-container-transaksi .table,
+        .table {
+            min-width: 600px;
+            font-size: 0.90rem;
+        }
+        .table thead th, .table tbody td {
+            padding: 6px 4px;
+            font-size: 0.90rem;
+        }
+    }
+    @media (max-width: 575.98px) {
+        .transaksi-title { font-size: 1.1rem; }
+        .transaksi-card { padding: 4px 0 0 0; }
+        .table-container-transaksi .table,
+        .table {
+            min-width: 480px;
+            font-size: 0.85rem;
+        }
+        .table thead th, .table tbody td {
+            padding: 4px 2px;
+            font-size: 0.85rem;
+        }
     }
     .sidebar {
         width: 220px;
@@ -119,16 +146,53 @@
             Manajemen Transaksi
         </div>
         <div class="card-body table-container-transaksi">
-            <div class="mb-3 text-start">
-                <a href="{{ route('wood_transactions.buy') }}" class="btn btn-primary me-2">+ Transaksi Pembelian</a>
-                <a href="{{ route('wood_transactions.sell') }}" class="btn btn-success">+ Transaksi Penjualan</a>
+            <form method="GET" action="{{ route('transaksi.index') }}" class="row g-2 align-items-end mb-3">
+                <div class="col-md-3">
+                    <label for="jenis_transaksi" class="form-label mb-1">Jenis Transaksi</label>
+                    <select name="jenis_transaksi" id="jenis_transaksi" class="form-control">
+                        <option value="">Semua Jenis</option>
+                        <option value="pembelian" {{ request('jenis_transaksi') == 'pembelian' ? 'selected' : '' }}>Pembelian</option>
+                        <option value="penjualan" {{ request('jenis_transaksi') == 'penjualan' ? 'selected' : '' }}>Penjualan</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="q" class="form-label mb-1">Atas Nama</label>
+                    <input type="text" name="q" id="q" value="{{ request('q') }}" class="form-control" placeholder="Cari nama...">
+                </div>
+                <div class="col-md-3">
+                    <label for="tanggal" class="form-label mb-1">Tanggal</label>
+                    <input type="date" name="tanggal" id="tanggal" value="{{ request('tanggal') }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label for="periode" class="form-label mb-1">Periode</label>
+                    <select name="periode" id="periode" class="form-control">
+                        <option value="harian" {{ request('periode') == 'harian' ? 'selected' : '' }}>Harian</option>
+                        <option value="mingguan" {{ request('periode') == 'mingguan' ? 'selected' : '' }}>Mingguan</option>
+                        <option value="bulanan" {{ request('periode') == 'bulanan' ? 'selected' : '' }}>Bulanan</option>
+                        <option value="tahunan" {{ request('periode') == 'tahunan' ? 'selected' : '' }}>Tahunan</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-success flex-fill">Cari</button>
+                    <a href="{{ route('transaksi.index') }}" class="btn btn-secondary flex-fill">Reset</a>
+                </div>
+            </form>
+            <div class="mb-3 d-print-none">
+                <a href="{{ route('transaksi.laporan.harian') }}" target="_blank" class="btn btn-outline-success">
+                    <i class="bi bi-printer"></i> Print Laporan Hari Ini
+                </a>
+                <a href="{{ route('transaksi.laporan.bulanan') }}" target="_blank" class="btn btn-outline-primary">
+                    <i class="bi bi-printer"></i> Print Laporan Bulanan
+                </a>
+                <a href="{{ route('transaksi.laporan.tahunan') }}" target="_blank" class="btn btn-outline-secondary">
+                    <i class="bi bi-printer"></i> Print Laporan Tahunan
+                </a>
             </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-hover shadow-sm mb-0 w-100">
                     <thead>
                         <tr>
                             <th>No.</th>
-                            <th>Id Transaksi</th>
                             <th>Jenis Transaksi</th>
                             <th>Atas Nama</th>
                             <th>Volume (m³)</th>
@@ -141,7 +205,6 @@
                         @forelse($transaksi as $index => $item)
                         <tr class="row-color-{{ $index % 4 }}">
                             <td>{{ $index + 1 }}</td>
-                            <td>{{ $item->id ?? '' }}</td>
                             <td>{{ ucfirst($item->jenis_transaksi ?? '') }}</td>
                             <td>{{ $item->atas_nama ?? '' }}</td>
                             <td>{{ number_format((float)($item->total_volume ?? 0), 3, ',', '.') }}</td>
@@ -150,12 +213,12 @@
                                 {{ \Carbon\Carbon::parse($item->tanggal_transaksi ?? $item->created_at)->format('d-m-Y H:i') }}
                             </td>
                             <td>
-                                <a href="{{ route('transaksi.show', $item->id) }}" class="btn btn-info">Detail</a>
+                                <a href="{{ route('transaksi.show', $item->hashid) }}" class="btn btn-info">Detail</a>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center">Belum ada data transaksi.</td>
+                            <td colspan="7" class="text-center">Belum ada data transaksi.</td>
                         </tr>
                         @endforelse
                     </tbody>

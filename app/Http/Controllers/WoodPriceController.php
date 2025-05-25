@@ -8,7 +8,7 @@ use Vinkla\Hashids\Facades\Hashids;
 
 class WoodPriceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $woodPrices = DB::table('wood_prices')->get();
 
@@ -22,10 +22,54 @@ class WoodPriceController extends Controller
             'Super 2' => 'Super 25 Up',
         ];
 
-        return view('wood_prices.index', compact('woodPrices', 'gradeRanges'));
+        // Ambil tipe harga dari query string, default 'all'
+        $tipeHarga = $request->query('tipe', 'all'); // 'beli', 'jual', atau 'all'
+
+        return view('wood_prices.index', compact('woodPrices', 'gradeRanges', 'tipeHarga'));
     }
 
-    public function edit($hashid)
+
+    public function update(Request $request, $hashid)
+    {
+        $id = Hashids::decode($hashid)[0] ?? null;
+        if (!$id) {
+            return back()->with('error', 'ID tidak valid');
+        }
+
+        $data = [];
+        if ($request->has('harga_beli_per_m3')) {
+            $data['harga_beli_per_m3'] = (int)str_replace('.', '', $request->harga_beli_per_m3);
+        }
+        if ($request->has('harga_jual_per_m3')) {
+            $data['harga_jual_per_m3'] = (int)str_replace('.', '', $request->harga_jual_per_m3);
+        }
+
+        DB::table('wood_prices')->where('id', $id)->update($data);
+
+        return redirect()->route('wood_prices.index')->with('success', 'Harga berhasil diupdate');
+    }
+
+
+    public function updateBeli(Request $request, $hashid)
+    {
+        $id = Hashids::decode($hashid)[0] ?? null;
+        if (!$id) {
+            return redirect()->route('wood_prices.index')->with('error', 'Data tidak ditemukan.');
+        }
+
+        $request->validate([
+            'harga_beli_per_m3' => 'required|numeric',
+        ]);
+
+        DB::table('wood_prices')->where('id', $id)->update([
+            'harga_beli_per_m3' => $request->harga_beli_per_m3,
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->route('wood_prices.index')->with('success', 'Harga beli berhasil diperbarui.');
+    }
+
+    public function editJual($hashid)
     {
         $id = Hashids::decode($hashid)[0] ?? null;
         $woodPrice = DB::table('wood_prices')->where('id', $id)->first();
@@ -34,10 +78,10 @@ class WoodPriceController extends Controller
             return redirect()->route('wood_prices.index')->with('error', 'Data tidak ditemukan.');
         }
 
-        return view('wood_prices.edit', compact('woodPrice'));
+        return view('wood_prices.edit_jual', compact('woodPrice'));
     }
 
-    public function update(Request $request, $hashid)
+    public function updateJual(Request $request, $hashid)
     {
         $id = Hashids::decode($hashid)[0] ?? null;
         if (!$id) {
@@ -45,14 +89,14 @@ class WoodPriceController extends Controller
         }
 
         $request->validate([
-            'price_per_m3' => 'required|numeric',
+            'harga_jual_per_m3' => 'required|numeric',
         ]);
 
         DB::table('wood_prices')->where('id', $id)->update([
-            'price_per_m3' => $request->price_per_m3,
+            'harga_jual_per_m3' => $request->harga_jual_per_m3,
             'updated_at' => now(),
         ]);
 
-        return redirect()->route('wood_prices.index')->with('success', 'Harga kayu berhasil diperbarui.');
+        return redirect()->route('wood_prices.index')->with('success', 'Harga jual berhasil diperbarui.');
     }
 }

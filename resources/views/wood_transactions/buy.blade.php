@@ -84,9 +84,27 @@
         color: #33691E;
         font-weight: 600;
     }
-    @media (max-width: 768px) {
-        .grade-table th, .grade-table td { font-size: 0.89rem; }
-        h2 { font-size: 1.2rem; }
+    @media (max-width: 991.98px) {
+        .grade-table th, .grade-table td { font-size: 0.85rem; padding: 4px 4px; }
+        .grade-table { font-size: 0.92rem; }
+        .card-body { padding: 10px 2px !important; }
+        h2 { font-size: 1.1rem; }
+        .col-md-3 { flex: 0 0 100%; max-width: 100%; }
+        .grade-table { min-width: 520px; }
+        .grade-table-total { min-width: 320px; }
+        .table-responsive, .card-body { overflow-x: auto; }
+    }
+    @media (max-width: 575.98px) {
+        .grade-table th, .grade-table td { font-size: 0.78rem; padding: 2px 2px; }
+        .grade-table { font-size: 0.88rem; min-width: 420px; }
+        .grade-table-total { min-width: 220px; }
+        h2 { font-size: 1rem; }
+        .card-body { padding: 6px 0 !important; }
+        .form-control, select { font-size: 0.95rem; }
+    }
+    @media (max-width: 400px) {
+        .grade-table { min-width: 320px; }
+        .grade-table-total { min-width: 160px; }
     }
     .card,
     .grade-table {
@@ -199,6 +217,7 @@
                     </div>
                     <input type="hidden" name="total_volume" id="inputTotalVolume">
                     <input type="hidden" name="total_pembayaran" id="inputTotalBayar">
+                    <input type="hidden" name="total_bayar_per_diameter" id="inputTotalBayarPerDiameter">
                 </form>
             </div>
         </div>
@@ -239,14 +258,22 @@
     const grades = @json($grades);
     const allowedLengths = @json($allowedLengths);
 
-    // Fungsi JS untuk samakan gradeSafe dengan Blade
     function gradeSafe(str) {
         return str.replace(/[\s\/\\\.,]/g, '_');
     }
 
+    function parseNumber(str) {
+        // Hilangkan semua karakter selain angka dan titik/koma
+        if (typeof str === 'string') {
+            str = str.replace(/[^0-9.,-]/g, '').replace(/\./g, '').replace(',', '.');
+        }
+        return parseFloat(str) || 0;
+    }
+
     function updateSummary() {
         let grandVolume = 0;
-        let grandBayar = 0;
+        let grandBayarBeli = 0;
+        const selectedWoodType = document.getElementById('wood_type').value;
 
         Object.keys(grades).forEach(function(grade) {
             let gradeSafeStr = gradeSafe(grade);
@@ -254,21 +281,27 @@
             let allowed = allowedLengths[grade] || [];
 
             allowed.forEach(function(p) {
-                let totalPcs = 0, totalVol = 0, totalBayar = 0;
+                let totalPcs = 0, totalVol = 0, totalBayarBeli = 0;
 
                 diameters.forEach(function(d) {
                     let input = document.querySelector('input[name="pcs['+grade+']['+d+']['+p+']"]');
                     let pcs = input ? parseInt(input.value) || 0 : 0;
                     totalPcs += pcs;
 
-                    // Ambil volume per batang dari volumes[diameter][panjang]
                     let volPerBatang = (volumes[d] && volumes[d][p]) ? parseFloat(volumes[d][p]) : 0;
                     totalVol += pcs * volPerBatang;
                 });
 
-                // Hitung total bayar per panjang di grade ini
-                let harga = (hargaPerM3[grade] && hargaPerM3[grade][p]) ? hargaPerM3[grade][p] : 0;
-                totalBayar = totalVol * harga;
+                // Ambil harga sesuai wood_type terpilih
+                let hargaBeli = 0;
+                if (
+                    hargaPerM3[selectedWoodType] &&
+                    hargaPerM3[selectedWoodType][grade] &&
+                    hargaPerM3[selectedWoodType][grade][p]
+                ) {
+                    hargaBeli = parseFloat(hargaPerM3[selectedWoodType][grade][p]['beli']) || 0;
+                }
+                totalBayarBeli = totalVol * hargaBeli;
 
                 // Update ke tabel
                 let pcsCell = document.querySelector('.total-pcs[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
@@ -276,21 +309,17 @@
                 let bayarCell = document.querySelector('.total-bayar[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
                 if (pcsCell) pcsCell.textContent = totalPcs;
                 if (volCell) volCell.textContent = totalVol.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
-                if (bayarCell) bayarCell.textContent = 'Rp' + totalBayar.toLocaleString('id-ID');
+                if (bayarCell) bayarCell.textContent = 'Rp' + totalBayarBeli.toLocaleString('id-ID');
 
-                // Akumulasi grand total
                 grandVolume += totalVol;
-                grandBayar += totalBayar;
+                grandBayarBeli += totalBayarBeli;
             });
         });
 
-        // Update grand total di bawah form
         document.getElementById('grandTotalVolume').textContent = grandVolume.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
-        document.getElementById('grandTotalBayar').textContent = grandBayar.toLocaleString('id-ID');
-
-        // Update nilai ke input hidden
+        document.getElementById('grandTotalBayar').textContent = grandBayarBeli.toLocaleString('id-ID');
         document.getElementById('inputTotalVolume').value = grandVolume;
-        document.getElementById('inputTotalBayar').value = grandBayar;
+        document.getElementById('inputTotalBayar').value = grandBayarBeli;
     }
 
     // Jalankan saat input berubah
@@ -307,8 +336,8 @@
         // Ambil data utama
         const atas_nama = document.querySelector('[name="atas_nama"]').value;
         const wood_type = document.querySelector('[name="wood_type"]').value;
-        const total_volume = document.getElementById('grandTotalVolume').textContent.replace(/\./g, '').replace(',', '.');
-        const total_pembayaran = document.getElementById('grandTotalBayar').textContent.replace(/\./g, '').replace(',', '.').replace(/^Rp/, '');
+        const total_volume = parseNumber(document.getElementById('grandTotalVolume').textContent);
+        const total_pembayaran = parseNumber(document.getElementById('grandTotalBayar').textContent);
 
         // Kumpulkan detail
         let details = [];
@@ -320,18 +349,25 @@
                     let input = document.querySelector('input[name="pcs['+grade+']['+d+']['+p+']"]');
                     let pcs = input ? parseInt(input.value) || 0 : 0;
                     if (pcs > 0) {
-                        // Volume per batang
+                        // Hitung volume dan total bayar per diameter
                         let volPerBatang = (volumes[d] && volumes[d][p]) ? parseFloat(volumes[d][p]) : 0;
                         let volume = pcs * volPerBatang;
-                        let harga = (hargaPerM3[grade] && hargaPerM3[grade][p]) ? hargaPerM3[grade][p] : 0;
-                        let totalHarga = volume * harga;
+                        let harga_per_m3 = 0;
+                        if (
+                            hargaPerM3[wood_type] &&
+                            hargaPerM3[wood_type][grade] &&
+                            hargaPerM3[wood_type][grade][p]
+                        ) {
+                            harga_per_m3 = parseFloat(hargaPerM3[wood_type][grade][p]['beli']) || 0;
+                        }
+                        let total_bayar_per_diameter = volume * harga_per_m3;
                         details.push({
                             grade: grade,
                             diameter: d,
                             panjang: p,
                             pcs: pcs,
                             volume: volume,
-                            harga: totalHarga
+                            harga: total_bayar_per_diameter
                         });
                     }
                 });
@@ -408,5 +444,8 @@
             errorModal.show();
         });
     });
+
+    // Trigger updateSummary saat wood_type berubah
+    document.getElementById('wood_type').addEventListener('change', updateSummary);
 </script>
 @endsection

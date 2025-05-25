@@ -81,9 +81,25 @@
         color: #33691E;
         font-weight: 600;
     }
-    @media (max-width: 768px) {
-        .grade-table th, .grade-table td { font-size: 0.89rem; }
-        h2 { font-size: 1.2rem; }
+    @media (max-width: 991.98px) {
+        .grade-table th, .grade-table td { font-size: 0.85rem; padding: 4px 4px; }
+        .grade-table { font-size: 0.92rem; min-width: 520px; }
+        .grade-table-total { min-width: 320px; }
+        .card-body { padding: 10px 2px !important; overflow-x: auto; }
+        h2 { font-size: 1.1rem; }
+        .col-md-3 { flex: 0 0 100%; max-width: 100%; }
+    }
+    @media (max-width: 575.98px) {
+        .grade-table th, .grade-table td { font-size: 0.78rem; padding: 2px 2px; }
+        .grade-table { font-size: 0.88rem; min-width: 420px; }
+        .grade-table-total { min-width: 220px; }
+        h2 { font-size: 1rem; }
+        .card-body { padding: 6px 0 !important; }
+        .form-control, select { font-size: 0.95rem; }
+    }
+    @media (max-width: 400px) {
+        .grade-table { min-width: 320px; }
+        .grade-table-total { min-width: 160px; }
     }
 </style>
 
@@ -237,9 +253,18 @@
         return str.replace(/[\s\/\\\.,]/g, '_');
     }
 
+    function parseNumber(str) {
+        // Hilangkan semua karakter selain angka dan titik/koma
+        if (typeof str === 'string') {
+            str = str.replace(/[^0-9.,-]/g, '').replace(/\./g, '').replace(',', '.');
+        }
+        return parseFloat(str) || 0;
+    }
+
     function updateSummary() {
         let grandVolume = 0;
-        let grandBayar = 0;
+        let grandBayarJual = 0;
+        const selectedWoodType = document.getElementById('wood_type').value;
 
         Object.keys(grades).forEach(function(grade) {
             let gradeSafeStr = gradeSafe(grade);
@@ -247,7 +272,7 @@
             let allowed = allowedLengths[grade] || [];
 
             allowed.forEach(function(p) {
-                let totalPcs = 0, totalVol = 0, totalBayar = 0;
+                let totalPcs = 0, totalVol = 0, totalBayarJual = 0;
 
                 diameters.forEach(function(d) {
                     let input = document.querySelector('input[name="pcs['+grade+']['+d+']['+p+']"]');
@@ -258,41 +283,57 @@
                     totalVol += pcs * volPerBatang;
                 });
 
-                let harga = (hargaPerM3[grade] && hargaPerM3[grade][p]) ? hargaPerM3[grade][p] : 0;
-                totalBayar = totalVol * harga;
+                // Ambil harga JUAL sesuai wood_type terpilih
+                let hargaJual = 0;
+                if (
+                    hargaPerM3[selectedWoodType] &&
+                    hargaPerM3[selectedWoodType][grade] &&
+                    hargaPerM3[selectedWoodType][grade][p]
+                ) {
+                    hargaJual = parseFloat(hargaPerM3[selectedWoodType][grade][p]['jual']) || 0;
+                }
+                totalBayarJual = totalVol * hargaJual;
 
+                // Update ke tabel
                 let pcsCell = document.querySelector('.total-pcs[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
                 let volCell = document.querySelector('.total-volume[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
                 let bayarCell = document.querySelector('.total-bayar[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
                 if (pcsCell) pcsCell.textContent = totalPcs;
                 if (volCell) volCell.textContent = totalVol.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
-                if (bayarCell) bayarCell.textContent = 'Rp' + totalBayar.toLocaleString('id-ID');
+                if (bayarCell) bayarCell.textContent = 'Rp' + totalBayarJual.toLocaleString('id-ID');
 
                 grandVolume += totalVol;
-                grandBayar += totalBayar;
+                grandBayarJual += totalBayarJual;
             });
         });
 
         document.getElementById('grandTotalVolume').textContent = grandVolume.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
-        document.getElementById('grandTotalBayar').textContent = grandBayar.toLocaleString('id-ID');
+        document.getElementById('grandTotalBayar').textContent = grandBayarJual.toLocaleString('id-ID');
         document.getElementById('inputTotalVolume').value = grandVolume;
-        document.getElementById('inputTotalBayar').value = grandBayar;
+        document.getElementById('inputTotalBayar').value = grandBayarJual;
     }
 
+    // Jalankan saat input berubah
     document.querySelectorAll('.pcs-input').forEach(input => {
         input.addEventListener('input', updateSummary);
     });
 
+    // Jalankan saat halaman pertama kali dimuat
     document.addEventListener('DOMContentLoaded', updateSummary);
+
+    // Trigger updateSummary saat wood_type berubah
+    document.getElementById('wood_type').addEventListener('change', updateSummary);
 
     document.querySelector('#form-transaksi').addEventListener('submit', function(e) {
         e.preventDefault();
 
+        // Ambil data utama
         const atas_nama = document.querySelector('[name="atas_nama"]').value;
         const wood_type = document.querySelector('[name="wood_type"]').value;
-        const total_volume = document.getElementById('grandTotalVolume').textContent.replace(/\./g, '').replace(',', '.');
-        const total_pembayaran = document.getElementById('grandTotalBayar').textContent.replace(/\./g, '').replace(',', '.').replace(/^Rp/, '');
+        const total_volume = parseNumber(document.getElementById('grandTotalVolume').textContent);
+        const total_pembayaran = parseNumber(document.getElementById('grandTotalBayar').textContent);
 
+        // Kumpulkan detail
         let details = [];
         Object.keys(grades).forEach(function(grade) {
             let diameters = grades[grade];
@@ -302,23 +343,32 @@
                     let input = document.querySelector('input[name="pcs['+grade+']['+d+']['+p+']"]');
                     let pcs = input ? parseInt(input.value) || 0 : 0;
                     if (pcs > 0) {
+                        // Hitung volume dan total bayar per diameter
                         let volPerBatang = (volumes[d] && volumes[d][p]) ? parseFloat(volumes[d][p]) : 0;
                         let volume = pcs * volPerBatang;
-                        let harga = (hargaPerM3[grade] && hargaPerM3[grade][p]) ? hargaPerM3[grade][p] : 0;
-                        let totalHarga = volume * harga;
+                        let harga_per_m3 = 0;
+                        if (
+                            hargaPerM3[wood_type] &&
+                            hargaPerM3[wood_type][grade] &&
+                            hargaPerM3[wood_type][grade][p]
+                        ) {
+                            harga_per_m3 = parseFloat(hargaPerM3[wood_type][grade][p]['jual']) || 0;
+                        }
+                        let total_bayar_per_diameter = volume * harga_per_m3;
                         details.push({
                             grade: grade,
                             diameter: d,
                             panjang: p,
                             pcs: pcs,
                             volume: volume,
-                            harga: totalHarga
+                            harga: total_bayar_per_diameter
                         });
                     }
                 });
             });
         });
 
+        // Kirim via AJAX
         fetch("{{ route('wood_transactions.storeSell') }}", {
             method: 'POST',
             headers: {
@@ -340,8 +390,9 @@
             } catch (e) {
                 throw new Error('Gagal membaca respon server.');
             }
+            // Selalu tampilkan error dari backend jika validasi gagal
             if (res.ok && data.success) {
-                document.getElementById('successModalMsg').innerHTML = 'Transaksi penjualan berhasil disimpan!';
+                document.getElementById('successModalMsg').innerHTML = 'Transaksi berhasil disimpan!';
                 var successModal = new bootstrap.Modal(document.getElementById('successModal'), {
                     backdrop: 'static',
                     keyboard: false
@@ -370,7 +421,7 @@
                 errorModal.show();
             }
         })
-        .catch(function(error) {
+        .catch(error => {
             let msg = 'Gagal: ';
             if (error && error.message) {
                 msg += error.message;

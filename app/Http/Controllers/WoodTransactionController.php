@@ -7,12 +7,26 @@ use App\Models\WoodTransactionDetail;
 use App\Models\WoodStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Vinkla\Hashids\Facades\Hashids;
 
 class WoodTransactionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $transaksi = WoodTransaction::with('details')->get();
+        $query = \App\Models\WoodTransaction::query();
+
+        if ($request->filled('jenis_transaksi')) {
+            $query->where('jenis_transaksi', $request->jenis_transaksi);
+        }
+        if ($request->filled('q')) {
+            $query->where('atas_nama', 'like', '%' . $request->q . '%');
+        }
+        if ($request->filled('tanggal')) {
+            $query->whereDate('tanggal_transaksi', $request->tanggal);
+        }
+
+        $transaksi = $query->orderByDesc('tanggal_transaksi')->get();
+
         return view('wood_transactions.index', compact('transaksi'));
     }
 
@@ -55,35 +69,29 @@ class WoodTransactionController extends Controller
         }
 
         // Ambil volume unik per diameter & panjang (tanpa grade)
-       $stocks = DB::table('wood_stocks')->get();
-
-// Ambil volume unik per diameter & panjang (tanpa grade)
+        $stocks = DB::table('wood_stocks')->get();
         $volumes = [];
         foreach ($stocks as $row) {
-            // Jika kombinasi diameter-panjang belum pernah di-set, baru set
             if (!isset($volumes[$row->diameter][$row->panjang])) {
                 $volumes[$row->diameter][$row->panjang] = $row->volume ?? $row->volume_per_batang;
             }
         }
 
-        $jenisKayu = $request->wood_type ?? null;
+        $jenisKayu = request()->wood_type ?? null;
 
-        // Ambil harga per m3 dari tabel wood_prices
-        $woodPrices = DB::table('wood_prices')->whereIn('wood_type', $woodTypes)->get();
+        // Ambil semua harga dari wood_prices
+        $allPrices = DB::table('wood_prices')->get();
         $hargaPerM3 = [];
-        foreach ($woodPrices as $price) {
-            $hargaPerM3[$price->grade][$price->panjang] = $price->price_per_m3;
+        foreach ($allPrices as $row) {
+            $hargaPerM3[$row->wood_type][$row->grade][$row->panjang] = [
+                'beli' => $row->harga_beli_per_m3,
+                'jual' => $row->harga_jual_per_m3,
+            ];
         }
 
-        return view('wood_transactions.buy', [
-            'woodTypes' => $woodTypes,
-            'grades' => $grades,
-            'allowedLengths' => $allowedLengths, // sekarang per grade!
-            'hargaPerM3' => $hargaPerM3,
-            'jenisKayu' => $jenisKayu,
-            'volumes' => $volumes,
-            'gradeRanges' => $gradeRanges,
-        ]);
+        return view('wood_transactions.buy', compact(
+            'jenisKayu', 'woodTypes', 'grades', 'allowedLengths', 'volumes', 'hargaPerM3'
+        ));
     }
 
     // Simpan transaksi pembelian
@@ -164,8 +172,7 @@ class WoodTransactionController extends Controller
             DB::commit();
             return response()->json([
                 'success' => true,
-                'redirect_url' => route('transaksi.show', $transaksi->id),
-                'message' => 'Transaksi berhasil disimpan!'
+                'redirect_url' => route('transaksi.show', \Vinkla\Hashids\Facades\Hashids::encode($transaksi->id))
             ]);
         } catch (\Exception $e) {
           return response()->json([
@@ -221,13 +228,16 @@ class WoodTransactionController extends Controller
             }
         }
 
-        $jenisKayu = $request->wood_type ?? null;
+        $jenisKayu = request()->wood_type ?? null;
 
-        // Ambil harga per m3 dari tabel wood_prices
-        $woodPrices = DB::table('wood_prices')->whereIn('wood_type', $woodTypes)->get();
+        // Ambil semua harga dari wood_prices
+        $allPrices = DB::table('wood_prices')->get();
         $hargaPerM3 = [];
-        foreach ($woodPrices as $price) {
-            $hargaPerM3[$price->grade][$price->panjang] = $price->price_per_m3;
+        foreach ($allPrices as $row) {
+            $hargaPerM3[$row->wood_type][$row->grade][$row->panjang] = [
+                'beli' => $row->harga_beli_per_m3,
+                'jual' => $row->harga_jual_per_m3,
+            ];
         }
 
         return view('wood_transactions.sell', [
@@ -310,7 +320,7 @@ class WoodTransactionController extends Controller
             DB::commit();
             return response()->json([
                 'success' => true,
-                'redirect_url' => route('transaksi.show', $transaksi->id)
+                'redirect_url' => route('transaksi.show', \Vinkla\Hashids\Facades\Hashids::encode($transaksi->id))
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -322,9 +332,100 @@ class WoodTransactionController extends Controller
     }
 
     // Halaman detail transaksi
-    public function show($id)
+    public function show($hashid)
     {
-        $transaksi = WoodTransaction::with('details')->findOrFail($id);
+        $id = Hashids::decode($hashid)[0] ?? null;
+        $transaksi = \App\Models\WoodTransaction::findOrFail($id);
         return view('wood_transactions.show', compact('transaksi'));
+    }
+
+    public function laporanHarian()
+    {
+        $today = now()->toDateString();
+        $transaksi = \App\Models\WoodTransaction::whereDate('tanggal_transaksi', $today)->get();
+
+        $total_volume = 0;
+        $total_pembayaran = 0;
+        foreach ($transaksi as $item) {
+            $vol = (float)($item->total_volume ?? 0);
+            $pay = (float)($item->total_pembayaran ?? 0);
+            if (strtolower($item->jenis_transaksi ?? '') === 'penjualan') {
+                $total_volume -= $vol;         // Penjualan: volume dikurang
+                $total_pembayaran += $pay;     // Penjualan: pembayaran ditambah
+            } else {
+                $total_volume += $vol;         // Pembelian: volume ditambah
+                $total_pembayaran -= $pay;     // Pembelian: pembayaran dikurang
+            }
+        }
+
+        return view('wood_transactions.laporan', [
+            'judul' => 'Laporan Harian',
+            'periode' => \Carbon\Carbon::parse($today)->translatedFormat('d F Y'),
+            'transaksi' => $transaksi,
+            'total_volume' => $total_volume,
+            'total_pembayaran' => $total_pembayaran,
+        ]);
+    }
+
+    public function laporanBulanan(Request $request)
+    {
+        $bulan = $request->input('bulan', now()->format('m'));
+        $tahun = $request->input('tahun', now()->format('Y'));
+
+        $transaksi = \App\Models\WoodTransaction::whereYear('tanggal_transaksi', $tahun)
+            ->whereMonth('tanggal_transaksi', $bulan)
+            ->get();
+
+        $total_volume = 0;
+        $total_pembayaran = 0;
+        foreach ($transaksi as $item) {
+            $vol = (float)($item->total_volume ?? 0);
+            $pay = (float)($item->total_pembayaran ?? 0);
+             if (strtolower($item->jenis_transaksi ?? '') === 'penjualan') {
+                $total_volume -= $vol;         // Penjualan: volume dikurang
+                $total_pembayaran += $pay;     // Penjualan: pembayaran ditambah
+            } else {
+                $total_volume += $vol;         // Pembelian: volume ditambah
+                $total_pembayaran -= $pay;     // Pembelian: pembayaran dikurang
+            }
+        }
+
+        return view('wood_transactions.laporan', [
+            'judul' => 'Laporan Bulanan',
+            'periode' => \Carbon\Carbon::create($tahun, $bulan)->translatedFormat('F Y'),
+            'transaksi' => $transaksi,
+            'total_volume' => $total_volume,
+            'total_pembayaran' => $total_pembayaran,
+        ]);
+    }
+
+    public function laporanTahunan(Request $request)
+    {
+        $tahun = $request->input('tahun', now()->format('Y'));
+
+        $transaksi = \App\Models\WoodTransaction::whereYear('tanggal_transaksi', $tahun)
+            ->get();
+
+        $total_volume = 0;
+        $total_pembayaran = 0;
+        foreach ($transaksi as $item) {
+            $vol = (float)($item->total_volume ?? 0);
+            $pay = (float)($item->total_pembayaran ?? 0);
+            if (strtolower($item->jenis_transaksi ?? '') === 'penjualan') {
+                $total_volume -= $vol;         // Penjualan: volume dikurang
+                $total_pembayaran += $pay;     // Penjualan: pembayaran ditambah
+            } else {
+                $total_volume += $vol;         // Pembelian: volume ditambah
+                $total_pembayaran -= $pay;     // Pembelian: pembayaran dikurang
+            }
+        }
+
+        return view('wood_transactions.laporan', [
+            'judul' => 'Laporan Tahunan',
+            'periode' => $tahun,
+            'transaksi' => $transaksi,
+            'total_volume' => $total_volume,
+            'total_pembayaran' => $total_pembayaran,
+        ]);
     }
 }
