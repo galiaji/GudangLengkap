@@ -3,7 +3,7 @@
 @section('content')
 <div class="container">
 
-    <h2>Rangkuman Stok Palet Dalam Pengeringan</h2>
+    <h2>Rangkuman Stok Palet Dalam Penjemuran</h2>
     <table class="table table-striped table-bordered mb-5">
         <thead>
             <tr>
@@ -65,7 +65,7 @@
         </tbody>
     </table>
 
-    <h2 class="mt-4">Rekap Penjemuran</h2>
+    <h2 class="mt-4">Log Penjemuran Pallet</h2>
     <form method="GET" class="mb-3 d-flex flex-wrap gap-2 align-items-end">
         <div>
             <label for="tanggal_cari" class="form-label mb-0 me-2">Cari Tanggal:</label>
