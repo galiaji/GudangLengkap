@@ -278,7 +278,9 @@
                                                                                     </div>
                                                                                     <div class="mb-3">
                                                                                         <label for="harga_jual_per_m3_{{ $price->id }}" class="form-label">Harga Jual per m³</label>
-                                                                                        <input type="text" name="harga_jual_per_m3" id="harga_jual_per_m3_{{ $price->id }}"
+                                                                                        <input type="text" 
+                                                                                            name="harga_jual_per_m3" 
+                                                                                            id="harga_jual_per_m3_{{ $price->id }}"
                                                                                             value="Rp{{ number_format(old('harga_jual_per_m3', $price->harga_jual_per_m3), 0, ',', '.') }}"
                                                                                             class="form-control" required oninput="formatRupiah(this)">
                                                                                     </div>

@@ -360,6 +360,7 @@
                 <i class="bi bi-list"></i>
             </button>
             <div class="sidebar-content flex-grow-1">
+                <!-- Section Log/Wood -->
                 <a href="{{ route('dashboard') }}" class="btn btn-sidebar" title="Laporan Stock">
                     <i class="bi bi-clipboard-data"></i>
                     <span class="sidebar-label">Stock</span>
@@ -382,6 +383,21 @@
                         <span class="sidebar-label">Harga Kayu</span>
                     </a>
                 @endif
+
+                <!-- Section Palet -->
+                <div class="mt-3 mb-2 px-2 text-uppercase fw-bold small" style="color:#A5D6A7; letter-spacing:1px;">Palet</div>
+                <a href="{{ route('pallet-prices.index') }}" class="btn btn-sidebar" title="Harga Palet">
+                    <i class="bi bi-box-seam"></i>
+                    <span class="sidebar-label">Harga Palet</span>
+                </a>
+                <a href="{{ route('pallet_stocks.index') }}" class="btn btn-sidebar" title="Stok Palet Basah">
+                    <i class="bi bi-droplet-half"></i>
+                    <span class="sidebar-label">Stock Palet</span>
+                </a>
+                <a href="{{ route('pallet_stocks.drying.create') }}" class="btn btn-sidebar" title="Tambah Palet Penjemuran">
+                    <i class="bi bi-plus-square"></i>
+                    <span class="sidebar-label">Tambah Palet Jemur</span>
+                </a>
             </div>
             <div class="sidebar-bottom mt-auto p-2">
                 @if(auth()->user() && auth()->user()->role === 'admin')
