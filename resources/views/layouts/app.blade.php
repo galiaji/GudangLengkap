@@ -128,21 +128,34 @@
                 width: 24px !important;
             }
             #sidebar {
-                width: 90vw !important;
-                max-width: 98vw !important;
+                width: 75vw !important;
+                min-width: 0 !important;
+                max-width: 80vw !important;
+                left: -80vw;
+                border-right: 2px solid #A5D6A7;
+            }
+            #sidebar.show {
+                left: 0;
+            }
+            .btn-sidebar {
+                font-size: 0.93rem;
+                height: 38px;
+                padding: 0 4px;
+                border-radius: 6px;
+            }
+            #sidebar .sidebar-content, #sidebar .sidebar-bottom {
+                padding: 8px 2px 2px 2px !important;
+                gap: 2px;
             }
             .main-content {
-                padding: 6px 1px !important;
-            }
-            footer {
-                font-size: 0.85rem !important;
-                padding: 8px 2px !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
             }
         }
         /* --- Sidebar Desktop --- */
         #sidebar {
-            width: 180px;
-            min-width: 64px;
+            width: 160px;
+            min-width: 120px;
             max-width: 180px;
             background: #388E3C;
             color: #fff;
@@ -154,12 +167,59 @@
             display: flex;
             flex-direction: column;
             position: relative;
+            border-right: 2px solid #A5D6A7;
+        }
+        #sidebar .sidebar-content, #sidebar .sidebar-bottom {
+            padding: 14px 6px 6px 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            transition: padding 0.3s;
+            gap: 7px;
+        }
+        #sidebar .sidebar-bottom {
+            margin-top: auto;
+            padding-bottom: 12px;
         }
         /* --- Sidebar Collapsed Desktop --- */
         #sidebar.collapsed {
             width: 56px !important;
             min-width: 56px !important;
             max-width: 56px !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            align-items: center;
+        }
+        #sidebar.collapsed .sidebar-content,
+        #sidebar.collapsed .sidebar-bottom {
+            padding-left: 2px !important;
+            padding-right: 2px !important;
+            align-items: center;
+            gap: 4px;
+        }
+        #sidebar.collapsed .btn-sidebar {
+            justify-content: center;
+            padding: 0 !important;
+            min-width: 40px;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+        }
+        #sidebar.collapsed .sidebar-label {
+            display: none !important;
+        }
+        #sidebar.collapsed .mt-3.mb-2.px-2.text-uppercase {
+            display: none !important;
+        }
+        /* Main content margin adjustment */
+        @media (min-width: 992px) {
+            .main-content {
+                transition: margin-left 0.3s;
+                margin-left: 160px;
+            }
+            #sidebar.collapsed ~ .main-content {
+                margin-left: 56px !important;
+            }
         }
         /* --- Sidebar Tablet --- */
         @media (max-width: 991.98px) {
@@ -182,22 +242,28 @@
         /* --- Sidebar Mobile --- */
         @media (max-width: 575.98px) {
             #sidebar {
-                width: 82vw !important;
+                width: 75vw !important;
                 min-width: 0 !important;
-                max-width: 90vw !important;
-                left: -90vw;
+                max-width: 80vw !important;
+                left: -80vw;
+                border-right: 2px solid #A5D6A7;
             }
             #sidebar.show {
                 left: 0;
             }
             .btn-sidebar {
-                font-size: 1rem;
-                height: 42px;
-                padding: 0 8px;
+                font-size: 0.93rem;
+                height: 38px;
+                padding: 0 4px;
+                border-radius: 6px;
             }
-            .sidebar-content, .sidebar-bottom {
-                padding: 10px 4px 4px 4px !important;
+            #sidebar .sidebar-content, #sidebar .sidebar-bottom {
+                padding: 8px 2px 2px 2px !important;
                 gap: 2px;
+            }
+            .main-content {
+                padding-left: 0 !important;
+                padding-right: 0 !important;
             }
         }
         .btn-sidebar {
@@ -205,28 +271,29 @@
             color: #33691E;
             border: none;
             font-weight: 600;
-            border-radius: 6px;
-            margin-bottom: 6px;
+            border-radius: 8px;
+            margin-bottom: 0;
             width: 100%;
             min-width: 48px;
-            height: 48px;
-            padding: 0 12px;
+            height: 40px;
+            padding: 0 8px;
             display: flex;
             align-items: center;
-            font-size: 1.15rem;
+            font-size: 1rem;
             transition: background 0.2s, color 0.2s;
-            position: relative;
-            overflow: hidden;
-            gap: 10px;
+            gap: 8px;
         }
         .btn-sidebar .sidebar-label {
             display: inline;
-            font-size: 1rem;
+            font-size: 0.98rem;
             color: #33691E;
             font-weight: 600;
-            margin-left: 10px;
+            margin-left: 8px;
             line-height: 1;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
             transition: opacity 0.3s, width 0.3s;
             opacity: 1;
             width: auto;
@@ -248,39 +315,12 @@
         .btn-sidebar:focus .sidebar-label {
             color: #fff;
         }
-        #sidebar .sidebar-content, #sidebar .sidebar-bottom {
-            padding: 18px 6px 6px 6px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            transition: padding 0.3s;
-            gap: 4px;
-        }
-        #sidebar .sidebar-bottom {
-            margin-top: auto;
-            padding-bottom: 12px;
-        }
-        .sidebar-toggle-btn {
-            background: #33691E;
-            color: #fff;
-            border: none;
-            width: 100%;
-            height: 48px;
-            font-size: 1.3rem;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding: 0 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-            border-radius: 0;
-        }
-        #sidebar.collapsed .sidebar-toggle-btn {
-            justify-content: center;
-        }
-        .sidebar-toggle-btn:focus {
-            outline: none;
-            background: #689F38;
+        .mt-3.mb-2.px-2.text-uppercase {
+            margin-top: 18px !important;
+            margin-bottom: 10px !important;
+            padding-left: 8px !important;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
         }
         @media (max-width: 991.98px) {
             #sidebar {
@@ -288,21 +328,65 @@
                 min-width: 120px !important;
                 max-width: 90vw !important;
                 left: -90vw;
+                border-right: 2px solid #A5D6A7;
             }
-            #sidebar.show {
-                left: 0;
+            #sidebar .sidebar-content, #sidebar .sidebar-bottom {
+                padding: 12px 4px 4px 4px !important;
+                gap: 4px;
+            }
+            .btn-sidebar {
+                font-size: 0.98rem;
+                height: 40px;
+                padding: 0 7px;
+                border-radius: 7px;
+            }
+            .mt-3.mb-2.px-2.text-uppercase {
+                margin-top: 12px !important;
+                margin-bottom: 6px !important;
+                padding-left: 4px !important;
+                font-size: 0.8rem;
             }
         }
         @media (max-width: 575.98px) {
             #sidebar {
-                width: 80vw !important;
+                width: 75vw !important;
                 min-width: 0 !important;
-                max-width: 90vw !important;
-                left: -90vw;
+                max-width: 80vw !important;
+                left: -80vw;
+                border-right: 2px solid #A5D6A7;
             }
-            #sidebar.show {
-                left: 0;
+            #sidebar .sidebar-content, #sidebar .sidebar-bottom {
+                padding: 8px 2px 2px 2px !important;
+                gap: 2px;
             }
+            .btn-sidebar {
+                font-size: 0.93rem;
+                height: 38px;
+                padding: 0 4px;
+                border-radius: 6px;
+            }
+            .mt-3.mb-2.px-2.text-uppercase {
+                margin-top: 8px !important;
+                margin-bottom: 4px !important;
+                padding-left: 2px !important;
+                font-size: 0.75rem;
+            }
+        }
+        #sidebarOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(44, 62, 80, 0.35);
+            z-index: 1049;
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+        #sidebarOverlay.active {
+            display: block;
+            opacity: 1;
+        }
+        @media (min-width: 992px) {
+            #sidebarOverlay { display: none !important; }
         }
     </style>
 </head>
@@ -360,7 +444,8 @@
                 <i class="bi bi-list"></i>
             </button>
             <div class="sidebar-content flex-grow-1">
-                <!-- Section Log/Wood -->
+                <!-- Section Wood -->
+                <div class="mt-3 mb-2 px-2 text-uppercase fw-bold small" style="color:#A5D6A7; letter-spacing:1px;">Log Kayu</div>
                 <a href="{{ route('dashboard') }}" class="btn btn-sidebar" title="Laporan Stock">
                     <i class="bi bi-clipboard-data"></i>
                     <span class="sidebar-label">Stock</span>
@@ -384,19 +469,24 @@
                     </a>
                 @endif
 
+                <!-- Divider -->
+                <div class="sidebar-divider my-2"></div>
+               
                 <!-- Section Palet -->
                 <div class="mt-3 mb-2 px-2 text-uppercase fw-bold small" style="color:#A5D6A7; letter-spacing:1px;">Palet</div>
-                <a href="{{ route('pallet-prices.index') }}" class="btn btn-sidebar" title="Harga Palet">
-                    <i class="bi bi-box-seam"></i>
-                    <span class="sidebar-label">Harga Palet</span>
-                </a>
-                <a href="{{ route('pallet_stocks.index') }}" class="btn btn-sidebar" title="Stok Palet Basah">
-                    <i class="bi bi-droplet-half"></i>
+                 <a href="{{ route('pallet_stocks.index') }}" class="btn btn-sidebar" title="Stok Palet">
+                    <i class="bi bi-clipboard-data"></i>
                     <span class="sidebar-label">Stock Palet</span>
                 </a>
-                <a href="{{ route('pallet_stocks.drying.create') }}" class="btn btn-sidebar" title="Tambah Palet Penjemuran">
+                
+               
+                <a href="{{ route('pallet_stocks.create') }}" class="btn btn-sidebar" title="Tambah Stok Palet">
                     <i class="bi bi-plus-square"></i>
-                    <span class="sidebar-label">Tambah Palet Jemur</span>
+                    <span class="sidebar-label">Stok Palet</span>
+                </a>
+                <a href="{{ route('pallet-prices.index') }}" class="btn btn-sidebar" title="Harga Palet">
+                         <i class="bi bi-cash-coin"></i>
+                    <span class="sidebar-label">Harga Palet</span>
                 </a>
             </div>
             <div class="sidebar-bottom mt-auto p-2">
@@ -415,6 +505,8 @@
                 </form>
             </div>
         </div>
+        <!-- Overlay for mobile sidebar -->
+        <div id="sidebarOverlay"></div>
         <!-- Konten Utama -->
         <div class="main-content flex-grow-1 col p-0 ps-4">
             @yield('content')
@@ -429,15 +521,19 @@
             var sidebar = document.getElementById('sidebar');
             var toggleBtn = document.getElementById('sidebarToggle');
             var icon = toggleBtn ? toggleBtn.querySelector('i') : null;
+            var mainContent = document.querySelector('.main-content');
+
             if(toggleBtn) {
                 toggleBtn.addEventListener('click', function() {
                     sidebar.classList.toggle('collapsed');
                     if (sidebar.classList.contains('collapsed')) {
-                        icon.classList.remove('bi-chevron-double-left');
+                        icon.classList.remove('bi-list');
                         icon.classList.add('bi-chevron-double-right');
+                        if(mainContent) mainContent.style.marginLeft = '56px';
                     } else {
                         icon.classList.remove('bi-chevron-double-right');
-                        icon.classList.add('bi-chevron-double-left');
+                        icon.classList.add('bi-list');
+                        if(mainContent) mainContent.style.marginLeft = '160px';
                     }
                 });
             }

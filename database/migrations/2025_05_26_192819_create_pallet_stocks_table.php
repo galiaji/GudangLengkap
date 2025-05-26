@@ -11,14 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('drying_pallet_stocks', function (Blueprint $table) {
+        Schema::create('pallet_stocks', function (Blueprint $table) {
             $table->id();
-            $table->string('drying_code');
             $table->string('pallet_code');
             $table->string('ukuran');
             $table->integer('pcs');
             $table->decimal('volume', 10, 3);
-            $table->date('start_drying_date');
+            $table->enum('status', ['basah', 'penjemuran']);
+            $table->string('input_code')->nullable(); // gunakan lowercase agar konsisten
+            $table->date('tanggal_input');
             $table->timestamps();
 
             $table->foreign('pallet_code')->references('pallet_code')->on('pallet_prices')->onDelete('restrict');
@@ -30,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('drying_pallet_stocks');
+        Schema::dropIfExists('pallet_stocks');
     }
 };

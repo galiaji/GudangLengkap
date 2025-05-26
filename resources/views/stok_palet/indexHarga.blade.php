@@ -1,9 +1,53 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid">
+<style>
+    body {
+        background: #f4faef;
+    }
+    .card {
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: none;
+    }
+    .card-header {
+        background: #4e944f !important;
+        color: #fff !important;
+        border-radius: 16px 16px 0 0;
+    }
+    .table thead {
+        background: #e6f4e6;
+        color: #2d4d2d;
+    }
+    .table-bordered {
+        border-color: #b6e2b6 !important;
+    }
+    .btn-warning {
+        background: #4e944f;
+        border: none;
+        color: #fff;
+    }
+    .btn-warning:hover, .btn-warning:focus {
+        background: #3b6e3b;
+        color: #fff;
+    }
+    @media (max-width: 576px) {
+        .card-header h4 {
+            font-size: 1.1rem;
+        }
+        .table th, .table td {
+            font-size: 0.95rem;
+            padding: 0.5rem;
+        }
+        .modal-dialog {
+            max-width: 95vw;
+            margin: 1.75rem auto;
+        }
+    }
+</style>
+<div class="container-fluid px-1 px-md-4">
     <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header">
             <h4 class="mb-0">Daftar Harga Palet</h4>
         </div>
         <div class="card-body">
@@ -11,7 +55,7 @@
                 <table class="table table-bordered align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Kode Palet</th>
+                            <th style="display:none">Kode Palet</th>
                             <th>Ukuran</th>
                             <th>Harga Basah</th>
                             <th>Harga Kering</th>
@@ -21,7 +65,7 @@
                     <tbody>
                         @foreach($palletPrices as $palletPrice)
                         <tr>
-                            <td>{{ $palletPrice->pallet_code }}</td>
+                            <td style="display:none">{{ $palletPrice->pallet_code }}</td>
                             <td>{{ $palletPrice->ukuran }}</td>
                             <td>Rp {{ number_format($palletPrice->harga_basah, 0, ',', '.') }}</td>
                             <td>Rp {{ number_format($palletPrice->harga_kering, 0, ',', '.') }}</td>
@@ -60,7 +104,6 @@
                                                         id="harga_basah_{{ $palletPrice->id }}"
                                                         value="Rp{{ number_format(old('harga_basah', $palletPrice->harga_basah), 0, ',', '.') }}"
                                                         class="form-control" required oninput="formatRupiah(this)">
-
                                                 </div>
                                                 <div class="mb-3">
                                                     <label for="harga_kering_{{ $palletPrice->id }}" class="form-label">Harga Kering</label>
@@ -73,8 +116,8 @@
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                                             <button type="submit" class="btn btn-success">Simpan</button>
                                         </div>
-                                    </div>
-                                </form>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                         @endforeach
@@ -84,7 +127,6 @@
         </div>
     </div>
 </div>
-
 
 <script>
     function formatRupiah(input) {

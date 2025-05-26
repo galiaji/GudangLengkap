@@ -59,18 +59,14 @@ Route::middleware('auth')->group(function () {
     // Harga Palet
     Route::resource('pallet-prices', PalletPriceController::class)->only(['index', 'edit', 'update']);
 
-    Route::get('pallet-stocks/wet/create', [PalletStockController::class, 'createWet'])->name('pallet_stocks.wet.create');
-    Route::post('pallet-stocks/wet', [PalletStockController::class, 'storeWet'])->name('pallet_stocks.wet.store');
-    Route::get('pallet-stocks/wet/{id}/edit', [PalletStockController::class, 'editWet'])->name('pallet_stocks.wet.edit');
-    Route::put('pallet-stocks/wet/{id}', [PalletStockController::class, 'updateWet'])->name('pallet_stocks.wet.update');
-    Route::delete('pallet-stocks/wet/{id}', [PalletStockController::class, 'destroyWet'])->name('pallet_stocks.wet.destroy');
-
-    Route::get('pallet-stocks/drying/create', [PalletStockController::class, 'createDrying'])->name('pallet_stocks.drying.create');
-    Route::post('pallet-stocks/drying', [PalletStockController::class, 'storeDrying'])->name('pallet_stocks.drying.store');
-    Route::get('pallet-stocks/drying/{id}/edit', [PalletStockController::class, 'editDrying'])->name('pallet_stocks.drying.edit');
-    Route::put('pallet-stocks/drying/{id}', [PalletStockController::class, 'updateDrying'])->name('pallet_stocks.drying.update');
-    Route::delete('pallet-stocks/drying/{id}', [PalletStockController::class, 'destroyDrying'])->name('pallet_stocks.drying.destroy');
+    // Stok Palet (semua status: basah & penjemuran)
+    Route::get('pallet-stocks/create', [PalletStockController::class, 'create'])->name('pallet_stocks.create');
+    Route::post('pallet-stocks', [PalletStockController::class, 'store'])->name('pallet_stocks.store');
+    Route::get('pallet-stocks/{id}/edit', [PalletStockController::class, 'edit'])->name('pallet_stocks.edit');
+    Route::put('pallet-stocks/{id}', [PalletStockController::class, 'update'])->name('pallet_stocks.update');
+    Route::delete('pallet-stocks/{id}', [PalletStockController::class, 'destroy'])->name('pallet_stocks.destroy');
 
     // Halaman utama stok palet (semua stok)
     Route::get('pallet-stocks', [PalletStockController::class, 'indexStock'])->name('pallet_stocks.index');
+    Route::post('/stok-palet/move-to-drying/{input_code}', [PalletStockController::class, 'moveToDrying'])->name('stok_palet.moveToDrying');
 });

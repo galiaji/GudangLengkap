@@ -5,18 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class WetPalletStock extends Model
+class PalletStock extends Model
 {
     use HasFactory;
 
-    protected $table = 'wet_pallet_stocks';
+    protected $table = 'pallet_stocks';
 
     protected $fillable = [
         'pallet_code',
         'ukuran',
         'pcs',
         'volume',
-        'entry_date',
+        'status',
+        'input_code',
+        'tanggal_input',
     ];
 
     public function palletPrice()

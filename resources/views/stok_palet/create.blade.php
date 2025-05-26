@@ -3,13 +3,25 @@
 @section('content')
 <div class="container py-4">
     <div class="bg-light rounded-3 p-4 mb-4">
-        <h2 class="mb-3">Tambah Data Palet Penjemuran</h2>
-        <form action="{{ route('pallet_stocks.drying.store') }}" method="POST">
+        <h2 class="mb-3">Tambah Data Palet</h2>
+        <form action="{{ route('pallet_stocks.store') }}" method="POST">
             @csrf
             <div class="mb-4 row align-items-center">
-                <label for="start_drying_date" class="form-label fw-semibold col-sm-3 col-md-2 mb-2 mb-sm-0">Tanggal Mulai Jemur</label>
-                <div class="col-sm-5 col-md-3">
-                    <input type="date" name="start_drying_date" id="start_drying_date" class="form-control" required>
+                <label for="status" class="form-label fw-semibold col-12 col-sm-3 col-md-2 mb-2 mb-sm-0">Status</label>
+                <div class="col-12 col-sm-5 col-md-3">
+                    <select name="status" id="status" class="form-select" required>
+                        <option value="basah">Basah</option>
+                        <option value="penjemuran">Penjemuran</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-4 row align-items-center" id="tanggal-row">
+                <label for="tanggal_input" class="form-label fw-semibold col-12 col-sm-3 col-md-2 mb-2 mb-sm-0" id="tanggal-label">Tanggal Input</label>
+                <div class="col-12 col-sm-5 col-md-3">
+                    <input type="date" name="entry_date" id="tanggal_input" class="form-control" required>
+                    @error('entry_date')
+                        <div class="text-danger small">{{ $message }}</div>
+                    @enderror
                     @error('start_drying_date')
                         <div class="text-danger small">{{ $message }}</div>
                     @enderror
@@ -57,13 +69,27 @@
                     </tbody>
                 </table>
             </div>
-            <div class="d-flex gap-2 mt-3">
-                <button type="submit" class="btn btn-success">Simpan Semua</button>
-                <a href="{{ route('pallet_stocks.index') }}" class="btn btn-secondary">Kembali</a>
+            <div class="d-flex flex-column flex-sm-row gap-2 mt-3">
+                <button type="submit" class="btn btn-success w-100 w-sm-auto">Simpan Semua</button>
+                <a href="{{ route('pallet_stocks.index') }}" class="btn btn-secondary w-100 w-sm-auto">Kembali</a>
             </div>
         </form>
     </div>
 </div>
+<style>
+    @media (max-width: 576px) {
+        .table th, .table td {
+            font-size: 0.95rem;
+            padding: 0.5rem;
+        }
+        .bg-light {
+            padding: 1rem !important;
+        }
+        h2 {
+            font-size: 1.2rem;
+        }
+    }
+</style>
 <script>
     // Set default tanggal ke hari ini
     document.addEventListener('DOMContentLoaded', function() {
@@ -71,7 +97,21 @@
         const yyyy = today.getFullYear();
         const mm = String(today.getMonth() + 1).padStart(2, '0');
         const dd = String(today.getDate()).padStart(2, '0');
-        document.getElementById('start_drying_date').value = `${yyyy}-${mm}-${dd}`;
+        document.getElementById('tanggal_input').value = `${yyyy}-${mm}-${dd}`;
+    });
+
+    // Ganti label dan name tanggal sesuai status
+    document.getElementById('status').addEventListener('change', function() {
+        const status = this.value;
+        const tanggalLabel = document.getElementById('tanggal-label');
+        const tanggalInput = document.getElementById('tanggal_input');
+        if (status === 'penjemuran') {
+            tanggalLabel.textContent = 'Tanggal Mulai Jemur';
+            tanggalInput.name = 'start_drying_date';
+        } else {
+            tanggalLabel.textContent = 'Tanggal Input';
+            tanggalInput.name = 'entry_date';
+        }
     });
 
     // Mapping ukuran ke volume per batang (m3)
