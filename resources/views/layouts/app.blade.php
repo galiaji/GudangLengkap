@@ -154,8 +154,8 @@
         }
         /* --- Sidebar Desktop --- */
         #sidebar {
-            width: 160px;
-            min-width: 120px;
+            width: 180px;
+            min-width: 180px;
             max-width: 180px;
             background: #388E3C;
             color: #fff;
@@ -214,11 +214,12 @@
         /* Main content margin adjustment */
         @media (min-width: 992px) {
             .main-content {
-                transition: margin-left 0.3s;
-                margin-left: 160px;
+                transition: padding-left 0.3s;
+                padding-left: 16px !important; /* Tambahkan ini */
+                box-sizing: border-box;
             }
-            #sidebar.collapsed ~ .main-content {
-                margin-left: 56px !important;
+            body.sidebar-collapsed .main-content {
+                padding-left: 56px !important;
             }
         }
         /* --- Sidebar Tablet --- */
@@ -388,6 +389,44 @@
         @media (min-width: 992px) {
             #sidebarOverlay { display: none !important; }
         }
+        /* Tambahan untuk card transaksi */
+        .transaksi-card {
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #e0f2f1;
+            background: #f5fbe8;
+            width: 100%;
+            margin-top: 32px;
+            margin-bottom: 24px;
+            padding: 32px 24px 24px 24px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        .transaksi-card .card-header {
+            background: #33691E;
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #A5D6A7;
+            text-align: center;
+            padding: 22px 0 22px 0;
+            margin-bottom: 24px;
+            border-radius: 8px 8px 0 0;
+        }
+        .transaksi-card .card-body {
+            padding: 0;
+            background: inherit;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        @media (max-width: 991.98px) {
+            .transaksi-card { padding: 8px 2px 2px 2px; }
+        }
+        @media (max-width: 575.98px) {
+            .transaksi-card { padding: 4px 0 0 0; }
+        }
     </style>
 </head>
 <body>
@@ -512,7 +551,7 @@
         <!-- Overlay for mobile sidebar -->
         <div id="sidebarOverlay"></div>
         <!-- Konten Utama -->
-        <div class="main-content flex-grow-1 col p-0 ps-4">
+        <div class="main-content flex-grow-1 col p-0">
             @yield('content')
         </div>
       </div>
@@ -530,14 +569,13 @@
             if(toggleBtn) {
                 toggleBtn.addEventListener('click', function() {
                     sidebar.classList.toggle('collapsed');
+                    document.body.classList.toggle('sidebar-collapsed', sidebar.classList.contains('collapsed'));
                     if (sidebar.classList.contains('collapsed')) {
                         icon.classList.remove('bi-list');
                         icon.classList.add('bi-chevron-double-right');
-                        if(mainContent) mainContent.style.marginLeft = '56px';
                     } else {
                         icon.classList.remove('bi-chevron-double-right');
                         icon.classList.add('bi-list');
-                        if(mainContent) mainContent.style.marginLeft = '160px';
                     }
                 });
             }
