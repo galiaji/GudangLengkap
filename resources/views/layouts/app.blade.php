@@ -488,6 +488,10 @@
                          <i class="bi bi-cash-coin"></i>
                     <span class="sidebar-label">Harga Palet</span>
                 </a>
+                <a href="{{ route('pallet-sales.index') }}" class="btn btn-sidebar" title="Riwayat Penjualan Palet">
+                    <i class="bi bi-receipt"></i>
+                    <span class="sidebar-label">Penjualan Palet</span>
+                </a>
             </div>
             <div class="sidebar-bottom mt-auto p-2">
                 @if(auth()->user() && auth()->user()->role === 'admin')

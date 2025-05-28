@@ -69,4 +69,12 @@ Route::middleware('auth')->group(function () {
     // Halaman utama stok palet (semua stok)
     Route::get('pallet-stocks', [PalletStockController::class, 'indexStock'])->name('pallet_stocks.index');
     Route::post('/stok-palet/move-to-drying/{input_code}', [PalletStockController::class, 'moveToDrying'])->name('stok_palet.moveToDrying');
+
+    Route::get('pallet-sales', [\App\Http\Controllers\PalletSaleController::class, 'index'])->name('pallet-sales.index');
+    Route::get('pallet-sales/create', [\App\Http\Controllers\PalletSaleController::class, 'create'])->name('pallet-sales.create');
+    Route::post('pallet-sales', [\App\Http\Controllers\PalletSaleController::class, 'store'])->name('pallet-sales.store');
+    Route::get('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'show'])->name('pallet-sales.show');
+    Route::get('pallet-sales/{pallet_sale}/edit', [\App\Http\Controllers\PalletSaleController::class, 'edit'])->name('pallet-sales.edit');
+    Route::put('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'update'])->name('pallet-sales.update');
+    Route::delete('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'destroy'])->name('pallet-sales.destroy');
 });

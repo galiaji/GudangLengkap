@@ -18,13 +18,17 @@ class PalletPrice extends Model
         'harga_kering',
     ];
 
-    public function wetPalletStocks()
+    // Relasi ke semua stok palet (basah & kering)
+    public function palletStocks()
     {
-        return $this->hasMany(WetPalletStock::class, 'pallet_code', 'pallet_code');
+        return $this->hasMany(PalletStock::class, 'pallet_code', 'pallet_code');
     }
 
-    public function dryingPalletStocks()
+    // Relasi stok palet basah saja
+    public function basahStocks()
     {
-        return $this->hasMany(DryingPalletStock::class, 'pallet_code', 'pallet_code');
+        return $this->hasMany(PalletStock::class, 'pallet_code', 'pallet_code')
+            ->where('status', 'basah');
     }
+
 }
