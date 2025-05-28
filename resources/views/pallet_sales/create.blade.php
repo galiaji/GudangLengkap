@@ -1,105 +1,216 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <h4>Transaksi Penjualan Palet</h4>
-    <form action="{{ route('pallet-sales.store') }}" method="POST">
-        @csrf
-        <div class="mb-3">
-            <label>Tanggal</label>
-            <input type="date" name="tanggal" class="form-control" required
-    max="{{ date('Y-m-d') }}"
-    value="{{ old('tanggal', date('Y-m-d')) }}">
-        </div>
-        <div class="mb-3">
-            <label>Customer</label>
-            <input type="text" name="customer" class="form-control" value="{{ old('customer') }}">
-        </div>
-        <div class="mb-3">
-            <label>Keterangan</label>
-            <textarea name="keterangan" class="form-control">{{ old('keterangan') }}</textarea>
-        </div>
-        <hr>
-        <div class="row">
-            <div class="col-md-6">
-                <h5 class="text-center">Palet Basah</h5>
-                <table class="table table-bordered table-sm">
-                    <thead class="table-success">
-                        <tr>
-                            <th>Ukuran</th>
-                            <th>PCS</th>
-                            <th>Volume</th>
-                            <th>Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($ukuranList as $i => $ukuran)
-                        <tr>
-                            <td>
-                                <input type="hidden" name="basah[{{ $i }}][ukuran]" value="{{ $ukuran->ukuran }}">
-                                <input type="hidden" class="harga-basah" name="basah[{{ $i }}][harga_satuan]" value="{{ $ukuran->harga_basah }}">
-                                <input type="hidden" class="volume-basah" name="basah[{{ $i }}][volume]" value="{{ $ukuran->volume }}">
-                                {{ $ukuran->ukuran }}
-                            </td>
-                            <td>
-                                <input type="number" name="basah[{{ $i }}][pcs]" class="form-control pcs-basah" min="0"
-    value="{{ old('basah.'.$i.'.pcs', 0) }}" data-idx="{{ $i }}" data-ukuran="{{ $ukuran->ukuran }}">
-                            </td>
-                            <td>
-                                <input type="number" step="0.000001" name="basah[{{ $i }}][volume]" class="form-control volume-basah" value="0" readonly id="volume-basah-{{ $i }}">
-                            </td>
-                            <td>
-                                <input type="text" name="basah[{{ $i }}][subtotal]" class="form-control subtotal-basah"
-    value="{{ old('basah.'.$i.'.subtotal', 0) }}" readonly>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+<style>
+    body {
+        background: #f4faef;
+    }
+    .bg-light {
+        background: #f7fbf7 !important;
+    }
+    .rounded-3 {
+        border-radius: 18px !important;
+    }
+    h4, h5, .fw-bold {
+        color: #388E3C;
+    }
+    .form-label {
+        color: #388E3C;
+        font-weight: 600;
+    }
+    .form-control:focus {
+        border-color: #388E3C;
+        box-shadow: 0 0 0 0.1rem #388e3c33;
+    }
+    .btn-success {
+        background: #388E3C;
+        border-color: #388E3C;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .btn-success:hover, .btn-success:focus {
+        background: #256d27;
+        border-color: #256d27;
+    }
+    .table-success th {
+        background: #e6f4e6 !important;
+        color: #388E3C;
+    }
+    .table-info th {
+        background: #e6f0fa !important;
+        color: #256d27;
+    }
+    .table-bordered th, .table-bordered td {
+        border-color: #b7e0b7 !important;
+    }
+    .table th, .table td {
+        vertical-align: middle !important;
+    }
+    .table-sm th, .table-sm td {
+        padding: 0.4rem 0.5rem;
+    }
+    /* Responsif khusus */
+    @media (max-width: 991.98px) {
+        .col-md-6 {
+            margin-bottom: 2rem;
+        }
+    }
+    @media (max-width: 767.98px) {
+        .bg-light {
+            padding: 1rem !important;
+        }
+        h4 {
+            font-size: 1.2rem;
+        }
+        h5 {
+            font-size: 1rem;
+        }
+        .table th, .table td {
+            font-size: 0.95rem;
+            padding: 0.3rem;
+        }
+        .row.g-3.align-items-end > div {
+            margin-bottom: 1rem;
+        }
+    }
+    @media (max-width: 576px) {
+        .table-responsive {
+            font-size: 0.92rem;
+            margin-bottom: 1rem;
+        }
+        .table th, .table td {
+            font-size: 0.92rem;
+            padding: 0.18rem 0.18rem;
+            white-space: nowrap;
+        }
+        /* Pastikan input PCS cukup lebar */
+        .table input[type="number"] {
+            min-width: 60px;
+            padding-left: 4px;
+            padding-right: 4px;
+            font-size: 0.95rem;
+        }
+        .form-label {
+            font-size: 0.98rem;
+        }
+        .btn {
+            font-size: 0.98rem;
+        }
+    }
+</style>
+<div class="container py-4">
+    <div class="bg-light rounded-3 p-4 mb-4">
+        <h4 class="mb-4 fw-bold">Transaksi Penjualan Palet</h4>
+        <form action="{{ route('pallet-sales.store') }}" method="POST">
+            @csrf
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label fw-semibold">Tanggal</label>
+                    <input type="date" name="tanggal" class="form-control"
+                        max="{{ date('Y-m-d') }}"
+                        value="{{ old('tanggal', date('Y-m-d')) }}" required>
+                </div>
+                <div class="col-12 col-md-5">
+                    <label class="form-label fw-semibold">
+                        Customer <span class="text-danger" style="font-size:0.95em;">*</span>
+                    </label>
+                    <input type="text" name="customer" class="form-control" value="{{ old('customer') }}">
+                </div>
             </div>
-            <div class="col-md-6">
-                <h5 class="text-center">Palet Kering</h5>
-                <table class="table table-bordered table-sm">
-                    <thead class="table-info">
-                        <tr>
-                            <th>Ukuran</th>
-                            <th>PCS</th>
-                            <th>Volume</th>
-                            <th>Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($ukuranList as $i => $ukuran)
-                        <tr>
-                            <td>
-                                <input type="hidden" name="kering[{{ $i }}][ukuran]" value="{{ $ukuran->ukuran }}">
-                                <input type="hidden" class="harga-kering" name="kering[{{ $i }}][harga_satuan]" value="{{ $ukuran->harga_kering }}">
-                                <input type="hidden" class="volume-kering" name="kering[{{ $i }}][volume]" value="{{ $ukuran->volume }}">
-                                {{ $ukuran->ukuran }}
-                            </td>
-                            <td>
-                                <input type="number" name="kering[{{ $i }}][pcs]" class="form-control pcs-kering" min="0"
-            value="{{ old('kering.'.$i.'.pcs', 0) }}" data-idx="{{ $i }}" data-ukuran="{{ $ukuran->ukuran }}">
-                            </td>
-                            <td>
-                                <input type="number" step="0.000001" name="kering[{{ $i }}][volume]" class="form-control volume-kering"
-            value="{{ old('kering.'.$i.'.volume', 0) }}" readonly id="volume-kering-{{ $i }}">
-                            </td>
-                            <td>
-                                <input type="text" name="kering[{{ $i }}][subtotal]" class="form-control subtotal-kering"
-            value="{{ old('kering.'.$i.'.subtotal', 0) }}" readonly>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+            <div class="mb-3 mt-3">
+                <label class="form-label fw-semibold">Keterangan</label>
+                <textarea name="keterangan" class="form-control">{{ old('keterangan') }}</textarea>
             </div>
-        </div>
-        <div class="mt-3">
-            <button type="submit" class="btn btn-success">Simpan Transaksi</button>
-        </div>
-    </form>
+            <hr>
+            <div class="row">
+                <div class="col-md-6 mb-4 mb-md-0">
+                    <h5 class="text-center mb-3">Palet Basah</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>Ukuran</th>
+                                    <th>PCS</th>
+                                    <th>Volume</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($ukuranList as $i => $ukuran)
+                                <tr>
+                                    <td>
+                                        <input type="hidden" name="basah[{{ $i }}][ukuran]" value="{{ $ukuran->ukuran }}">
+                                        <input type="hidden" class="harga-basah" name="basah[{{ $i }}][harga_satuan]" value="{{ $ukuran->harga_basah }}">
+                                        <input type="hidden" class="volume-basah" name="basah[{{ $i }}][volume]" value="{{ $ukuran->volume }}">
+                                        {{ $ukuran->ukuran }}
+                                    </td>
+                                    <td>
+                                        <input type="number" name="basah[{{ $i }}][pcs]" class="form-control pcs-basah" min="0"
+                                            value="{{ old('basah.'.$i.'.pcs', 0) }}" data-idx="{{ $i }}" data-ukuran="{{ $ukuran->ukuran }}">
+                                    </td>
+                                    <td>
+                                        <input type="number" step="0.000001" name="basah[{{ $i }}][volume]" class="form-control volume-basah"
+                                            value="{{ old('basah.'.$i.'.volume', 0) }}" readonly id="volume-basah-{{ $i }}">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="basah[{{ $i }}][subtotal]" class="form-control subtotal-basah"
+                                            value="{{ old('basah.'.$i.'.subtotal', 0) }}" readonly>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="text-center mb-3">Palet Kering</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-info">
+                                <tr>
+                                    <th>Ukuran</th>
+                                    <th>PCS</th>
+                                    <th>Volume</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($ukuranList as $i => $ukuran)
+                                <tr>
+                                    <td>
+                                        <input type="hidden" name="kering[{{ $i }}][ukuran]" value="{{ $ukuran->ukuran }}">
+                                        <input type="hidden" class="harga-kering" name="kering[{{ $i }}][harga_satuan]" value="{{ $ukuran->harga_kering }}">
+                                        <input type="hidden" class="volume-kering" name="kering[{{ $i }}][volume]" value="{{ $ukuran->volume }}">
+                                        {{ $ukuran->ukuran }}
+                                    </td>
+                                    <td>
+                                        <input type="number" name="kering[{{ $i }}][pcs]" class="form-control pcs-kering" min="0"
+                                            value="{{ old('kering.'.$i.'.pcs', 0) }}" data-idx="{{ $i }}" data-ukuran="{{ $ukuran->ukuran }}">
+                                    </td>
+                                    <td>
+                                        <input type="number" step="0.000001" name="kering[{{ $i }}][volume]" class="form-control volume-kering"
+                                            value="{{ old('kering.'.$i.'.volume', 0) }}" readonly id="volume-kering-{{ $i }}">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="kering[{{ $i }}][subtotal]" class="form-control subtotal-kering"
+                                            value="{{ old('kering.'.$i.'.subtotal', 0) }}" readonly>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success px-4">Simpan Transaksi</button>
+            </div>
+        </form>
+    </div>
 </div>
+
+
+
 
 <!-- Modal Error -->
 <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
