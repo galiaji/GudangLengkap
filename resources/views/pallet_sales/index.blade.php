@@ -78,7 +78,7 @@
                                     @endforeach
                                 </span>
                                 <br>
-                                <button class="btn btn-link p-0" onclick="toggleDetail({{ $sale->id }})" id="btn-{{ $sale->id }}">Lihat Semua</button>
+                                <button class="btn btn-link p-0" onclick="toggleDetail('{{ $sale->id }}')" id="btn-{{ $sale->id }}">Lihat Semua</button>
                             @endif
                         </ul>
                     </td>
