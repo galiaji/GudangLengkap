@@ -3,6 +3,7 @@
 @section('title', 'Edit Akun')
 
 @section('content')
+@php use Vinkla\Hashids\Facades\Hashids; @endphp
 <style>
     .account-card {
         border-radius: 10px;
@@ -68,7 +69,7 @@
                 Edit Akun
             </div>
             <div class="card-body">
-                <form action="{{ route('account.update', $account) }}" method="POST">
+                <form action="{{ route('account.update', ['hashid' => Hashids::encode($account->id)]) }}" method="POST">
                     @csrf
                     @method('PUT')
                     <div class="mb-3">

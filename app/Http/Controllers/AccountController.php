@@ -66,7 +66,7 @@ class AccountController extends Controller
             'password' => 'nullable|string|min:6|confirmed',
         ]);
 
-        if ($validated['password']) {
+        if (!empty($validated['password'])) {
             $validated['password'] = bcrypt($validated['password']);
         } else {
             unset($validated['password']);

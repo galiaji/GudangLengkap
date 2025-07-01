@@ -26,9 +26,15 @@ Route::middleware('auth')->group(function () {
         Route::put('wood-prices/{wood_price}', [\App\Http\Controllers\WoodPriceController::class, 'update'])->name('wood_prices.update');
         Route::post('/wood_prices/{id}/update-beli', [\App\Http\Controllers\WoodPriceController::class, 'updateBeli'])->name('wood_prices.updateBeli');
         Route::post('/wood_prices/{id}/update-jual', [\App\Http\Controllers\WoodPriceController::class, 'updateJual'])->name('wood_prices.updateJual');
-        Route::resource('account', AccountController::class)->parameters([
-            'account' => 'hashid'
-        ]);
+            
+        // Akun (Account) - tanpa resource, satu per satu
+        Route::get('account', [AccountController::class, 'index'])->name('account.index');
+        Route::get('account/create', [AccountController::class, 'create'])->name('account.create');
+        Route::post('account', [AccountController::class, 'store'])->name('account.store');
+        Route::get('account/{hashid}', [AccountController::class, 'show'])->name('account.show');
+        Route::get('account/{hashid}/edit', [AccountController::class, 'edit'])->name('account.edit');
+        Route::put('account/{hashid}', [AccountController::class, 'update'])->name('account.update');
+        Route::delete('account/{hashid}', [AccountController::class, 'destroy'])->name('account.destroy');
         Route::resource('pallet-prices', \App\Http\Controllers\PalletPriceController::class)->only(['index', 'edit', 'update']);
     });
 
