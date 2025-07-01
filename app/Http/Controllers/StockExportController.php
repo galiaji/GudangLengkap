@@ -15,7 +15,7 @@ class StockExportController extends Controller
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.stock_pdf', compact(
             'woodTypes', 'stocks'
-        ))->setPaper('a4', 'landscape');
+        ))->setPaper('a4', 'potrait');
 
         return $pdf->download('laporan-stok-' . strtolower($woodType) . '.pdf');
     }

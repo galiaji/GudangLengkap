@@ -4,39 +4,50 @@
 <head>
     <style>
         @page {
-            margin: 8mm 8mm 2mm 8mm; /* atas kanan bawah kiri, atas & bawah minimal */
+            margin: 15mm 10mm 8mm 20mm;
         }
-        body { font-family: Arial, sans-serif; font-size: 12px; }
-        .judul { font-size: 17px; font-weight: bold; text-align: center; margin-bottom: 10px; }
-        .grade-title { font-size: 14px; font-weight: bold; margin-bottom: 2px; text-align: center; }
+        body { font-family: "Times New Roman", Times, serif; font-size: 12pt; }
+        .judul {
+            font-size: 16pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 14px;
+        }
+        .jenis-kayu {
+            font-size: 13pt;
+            font-weight: bold;
+            margin: 8px 0 4px 0;
+        }
+        .grade-title { font-size: 15pt; font-weight: bold; margin-bottom: 2px; text-align: center; }
         .sub-table {
             border-collapse: collapse;
-            width: 100%;
             margin-bottom: 0;
-            table-layout: fixed;
+            table-layout: auto;
         }
         .sub-table th, .sub-table td {
             border: 1px solid #888;
-            padding: 1px 2px;
+            padding: 3px 8px;
             text-align: center;
-            font-size: 13px;
-            word-break: break-word;
+            font-size: 12pt;
+            word-break: keep-all;
+            white-space: nowrap;
         }
         .sub-table th {
             background: #eaeaea;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13pt;
+            white-space: nowrap;
         }
         .total-row { font-weight: bold; background: #f5f5f5; }
     </style>
 </head>
 <body>
     <div class="judul">Laporan Stock LOG Kayu</div>
-    <div style="text-align:right; font-size:11px; margin-bottom:8px;">
-        Dicetak: {{ \Carbon\Carbon::now()->format('d-m-Y H:i') }}
+    <div style="position: fixed; right: 0; bottom: 0; font-size: 11px; text-align: right; width: 100%;">
+        Dicetak pada: {{ \Carbon\Carbon::now()->format('d-m-Y H:i') }}
     </div>
     @foreach($woodTypes as $woodType)
-        <div style="font-size:13px;font-weight:bold;margin:8px 0 4px 0;">{{ $woodType }}</div>
+        <div class="jenis-kayu"> Jenis Kayu : {{ $woodType }}</div>
         @php
             $grades = $stocks->where('wood_type', $woodType)->pluck('grade')->unique()->values();
             $gradeCount = count($grades);
