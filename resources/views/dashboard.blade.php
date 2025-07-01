@@ -167,9 +167,13 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="text-center mb-4 flex-grow-1">Statistik Stock</h1>
-    <button onclick="window.print()" class="btn btn-outline-success d-print-none ms-3">
-        <i class="bi bi-printer"></i> Print Laporan
-    </button>
+    <div>
+        @foreach($woodTypes as $type)
+            <a href="/export-stok-pdf/{{ $type }}" class="btn btn-danger d-print-none me-2 mb-1">
+                <i class="bi bi-file-earmark-pdf"></i> Laporan Stock {{ $type }} PDF 
+            </a>
+        @endforeach
+    </div>
 </div>
 
 <div class="d-none d-print-block mb-3 text-end" style="font-size:13px;">
@@ -218,6 +222,7 @@
         </div>
     </div>
 </div>
+
 @endsection
 
 @section('scripts')

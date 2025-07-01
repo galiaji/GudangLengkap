@@ -10,6 +10,7 @@ use App\Http\Controllers\PalletPriceController;
 use App\Http\Controllers\WetPalletStockController;
 use App\Http\Controllers\DryingPalletStockController;
 use App\Http\Controllers\PalletStockController;
+use App\Http\Controllers\StockExportController;
 
 // Display the login form.
 Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
@@ -77,4 +78,6 @@ Route::middleware('auth')->group(function () {
     Route::get('pallet-sales/{pallet_sale}/edit', [\App\Http\Controllers\PalletSaleController::class, 'edit'])->name('pallet-sales.edit');
     Route::put('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'update'])->name('pallet-sales.update');
     Route::delete('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'destroy'])->name('pallet-sales.destroy');
+
+    Route::get('/export-stok-pdf/{woodType}', [StockExportController::class, 'exportPdf'])->name('export.stok.pdf');
 });

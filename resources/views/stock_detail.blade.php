@@ -84,9 +84,9 @@
     <div class="d-print-none">
         <h2 class="stock-statistik-title mb-4">Statistik Stok {{ $woodType }}</h2>
         <div class="mb-3 text-end">
-            <button onclick="window.print()" class="btn btn-outline-success">
-                <i class="bi bi-printer"></i> Print Laporan
-            </button>
+            <a href="{{ route('export.stok.pdf', ['woodType' => $woodType]) }}" class="btn btn-danger me-2">
+                <i class="bi bi-file-earmark-pdf"></i> Export PDF
+            </a>
         </div>
     </div>
     <div class="d-none d-print-block mb-4">
