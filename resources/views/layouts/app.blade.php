@@ -461,7 +461,7 @@
                         <i class="bi bi-list"></i>
                     </button>
                     <span class="navbar-brand mb-0">
-                        <i class="bi bi-tree-fill me-2"></i> UD. Tiga PutraKarya Sentosa
+                        <i class="bi bi-tree-fill me-2"></i> UD. Tiga PutraKarya Sentos
                     </span>
                 </div>
                 <div class="d-flex align-items-center justify-content-end flex-shrink-0 ms-auto">
