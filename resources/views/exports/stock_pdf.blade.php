@@ -39,6 +39,11 @@
             white-space: nowrap;
         }
         .total-row { font-weight: bold; background: #f5f5f5; }
+        .grade-td {
+            padding-right: 12px;
+            vertical-align: top;
+            width: 33%;
+        }
     </style>
 </head>
 <body>
@@ -56,7 +61,7 @@
             <table style="width:100%; table-layout:fixed; margin-bottom: 6px;">
                 <tr>
                     @for($j = $i; $j < $i + 3 && $j < $gradeCount; $j++)
-                        <td style="vertical-align:top; width:33%;">
+                        <td class="grade-td">
                             <div class="grade-title">Grade: {{ $grades[$j] }}</div>
                             @php
                                 $panjangs = $stocks->where('wood_type', $woodType)
