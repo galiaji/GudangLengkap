@@ -47,56 +47,64 @@
                     @for($j = $i; $j < $i + 3 && $j < $gradeCount; $j++)
                         <td style="vertical-align:top; width:33%;">
                             <div class="grade-title">Grade: {{ $grades[$j] }}</div>
-                            <table class="sub-table">
+                            @php
+                                $panjangs = $stocks->where('wood_type', $woodType)
+                                    ->where('grade', $grades[$j])
+                                    ->pluck('panjang')->unique()->sort()->values();
+                                $diameters = $stocks->where('wood_type', $woodType)
+                                    ->where('grade', $grades[$j])
+                                    ->pluck('diameter')->unique()->sort()->values();
+                            @endphp
+                            <table class="sub-table" style="margin-bottom:8px;">
                                 <tr>
-                                    <th>Panjang</th>
-                                    <th>Diameter</th>
-                                    <th>Pcs</th>
-                                    <th>Volume (M³)</th>
+                                    <th rowspan="2" style="vertical-align: middle;">Diameter</th>
+                                    <th colspan="{{ count($panjangs) }}">Panjang</th>
                                 </tr>
-                                @php
-                                    $panjangs = $stocks->where('wood_type', $woodType)
-                                        ->where('grade', $grades[$j])
-                                        ->pluck('panjang')->unique()->sort();
-                                @endphp
-                                @foreach($panjangs as $panjang)
-                                    @php
-                                        $rows = $stocks->where('wood_type', $woodType)
-                                            ->where('grade', $grades[$j])
-                                            ->where('panjang', $panjang);
-                                        $totalPcsPanjang = $rows->sum('quantity');
-                                        $totalVolumePanjang = $rows->reduce(function($carry, $item) {
-                                            return $carry + (($item->quantity ?? 0) * ($item->volume ?? 0));
-                                        }, 0);
-                                    @endphp
-                                    @foreach($rows as $row)
-                                        <tr>
-                                            <td>{{ $row->panjang ?? '-' }}</td>
-                                            <td>{{ $row->diameter ?? '-' }}</td>
-                                            <td>{{ $row->quantity ?? 0 }}</td>
-                                            <td>{{ number_format(($row->quantity ?? 0) * ($row->volume ?? 0), 3) }}</td>
-                                        </tr>
+                                <tr>
+                                    @foreach($panjangs as $panjang)
+                                        <th>{{ $panjang }}</th>
                                     @endforeach
-                                    <tr class="total-row">
-                                        <td colspan="2">Total Panjang {{ $panjang }}</td>
-                                        <td>{{ $totalPcsPanjang }}</td>
-                                        <td>{{ number_format($totalVolumePanjang, 3) }}</td>
+                                </tr>
+                                @foreach($diameters as $diameter)
+                                    <tr>
+                                        <td>{{ $diameter }}</td>
+                                        @foreach($panjangs as $panjang)
+                                            @php
+                                                $pcs = $stocks->where('wood_type', $woodType)
+                                                    ->where('grade', $grades[$j])
+                                                    ->where('diameter', $diameter)
+                                                    ->where('panjang', $panjang)
+                                                    ->sum('quantity');
+                                            @endphp
+                                            <td>{{ $pcs }}</td>
+                                        @endforeach
                                     </tr>
                                 @endforeach
-                                @php
-                                    $totalPcs = $stocks->where('wood_type', $woodType)
-                                        ->where('grade', $grades[$j])
-                                        ->sum('quantity');
-                                    $totalVolume = $stocks->where('wood_type', $woodType)
-                                        ->where('grade', $grades[$j])
-                                        ->reduce(function($carry, $item) {
-                                            return $carry + (($item->quantity ?? 0) * ($item->volume ?? 0));
-                                        }, 0);
-                                @endphp
                                 <tr class="total-row">
-                                    <td colspan="2">Total Grade</td>
-                                    <td>{{ $totalPcs }}</td>
-                                    <td>{{ number_format($totalVolume, 3) }}</td>
+                                    <td>Total</td>
+                                    @foreach($panjangs as $panjang)
+                                        <td>
+                                            {{ $stocks->where('wood_type', $woodType)
+                                                ->where('grade', $grades[$j])
+                                                ->where('panjang', $panjang)
+                                                ->sum('quantity') }}
+                                        </td>
+                                    @endforeach
+                                </tr>
+                                <tr class="total-row">
+                                    <td>Total Volume</td>
+                                    @foreach($panjangs as $panjang)
+                                        <td>
+                                            {{ number_format(
+                                                $stocks->where('wood_type', $woodType)
+                                                    ->where('grade', $grades[$j])
+                                                    ->where('panjang', $panjang)
+                                                    ->reduce(function($carry, $item) {
+                                                        return $carry + (($item->quantity ?? 0) * ($item->volume ?? 0));
+                                                    }, 0)
+                                                , 3) }}
+                                        </td>
+                                    @endforeach
                                 </tr>
                             </table>
                         </td>
