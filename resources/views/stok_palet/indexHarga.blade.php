@@ -128,6 +128,19 @@
     </div>
 </div>
 
+<!-- Modal Notifikasi -->
+<div class="modal fade" id="notifModal" tabindex="-1" aria-labelledby="notifModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" id="notifModalHeader">
+        <h5 class="modal-title" id="notifModalLabel">Notifikasi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="notifModalMsg"></div>
+    </div>
+  </div>
+</div>
+
 <script>
     function formatRupiah(input) {
         let value = input.value.replace(/[^0-9]/g, ''); // hanya angka
@@ -147,10 +160,54 @@
         // Event submit pada form edit harga
         document.querySelectorAll('.edit-harga-form').forEach(function(form) {
             form.addEventListener('submit', function (e) {
+                e.preventDefault();
                 let basah = form.querySelector('[name="harga_basah"]');
                 let kering = form.querySelector('[name="harga_kering"]');
                 if(basah) basah.value = basah.value.replace(/\D/g, '');
                 if(kering) kering.value = kering.value.replace(/\D/g, '');
+
+                let formData = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {'X-Requested-With': 'XMLHttpRequest'},
+                    body: formData
+                })
+                .then(res => res.json().then(data => ({status: res.status, body: data})))
+                .then(({status, body}) => {
+                    // Tutup modal edit sebelum tampilkan notif
+                    let editModal = form.closest('.modal');
+                    let bsEditModal = bootstrap.Modal.getInstance(editModal);
+                    if (bsEditModal) bsEditModal.hide();
+
+                    setTimeout(function() { // beri jeda agar animasi modal edit selesai
+                        let modalHeader = document.getElementById('notifModalHeader');
+                        let modalMsg = document.getElementById('notifModalMsg');
+                        if (body.success) {
+                            modalHeader.className = "modal-header bg-success text-white";
+                            modalMsg.innerText = body.message || 'Harga berhasil diubah.';
+                            new bootstrap.Modal(document.getElementById('notifModal')).show();
+                            setTimeout(() => window.location.href = body.redirect_url, 1500);
+                        } else {
+                            modalHeader.className = "modal-header bg-danger text-white";
+                            modalMsg.innerText = body.message || 'Gagal mengubah harga.';
+                            new bootstrap.Modal(document.getElementById('notifModal')).show();
+                        }
+                    }, 400); // 400ms cukup untuk animasi modal edit
+                })
+                .catch(() => {
+                    let editModal = form.closest('.modal');
+                    let bsEditModal = bootstrap.Modal.getInstance(editModal);
+                    if (bsEditModal) bsEditModal.hide();
+
+                    setTimeout(function() {
+                        let modalHeader = document.getElementById('notifModalHeader');
+                        let modalMsg = document.getElementById('notifModalMsg');
+                        modalHeader.className = "modal-header bg-danger text-white";
+                        modalMsg.innerText = 'Terjadi kesalahan jaringan.';
+                        new bootstrap.Modal(document.getElementById('notifModal')).show();
+                    }, 400);
+                });
             });
         });
 

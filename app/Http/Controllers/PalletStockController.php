@@ -121,7 +121,7 @@ class PalletStockController extends Controller
 
         $tanggalField = $isBasah ? 'entry_date' : 'start_drying_date';
 
-        $request->validate([
+        $validated = $request->validate([
             $tanggalField => 'required|date',
             'pallets' => 'required|array',
             'pallets.*.pallet_code' => 'required|exists:pallet_prices,pallet_code',
@@ -161,9 +161,15 @@ class PalletStockController extends Controller
 
         if (!empty($data)) {
             \App\Models\PalletStock::insert($data);
-            return redirect()->route('pallet_stocks.index')->with('success', 'Data palet berhasil ditambahkan.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Data palet berhasil ditambahkan.'
+            ]);
         } else {
-            return redirect()->back()->with('error', 'Tidak ada data yang disimpan. Pastikan jumlah diisi.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada data yang disimpan. Pastikan jumlah diisi.'
+            ], 422);
         }
     }
 

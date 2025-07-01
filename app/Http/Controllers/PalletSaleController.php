@@ -167,12 +167,28 @@ class PalletSaleController extends Controller
                     }
                 }
             });
+
+            // Jika request AJAX, kirim response JSON sukses
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Transaksi penjualan palet berhasil disimpan!',
+                    'redirect_url' => route('pallet-sales.index')
+                ]);
+            }
+
+            // Jika bukan AJAX, redirect seperti biasa
+            return redirect()->route('pallet-sales.index')->with('success', 'Transaksi penjualan palet berhasil disimpan!');
         } catch (\Exception $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ], 422);
+            }
             return redirect()->back()
                 ->withInput()
                 ->with('error', $e->getMessage());
         }
-
-        return redirect()->route('pallet-sales.index')->with('success', 'Transaksi penjualan palet berhasil disimpan!');
     }
 }

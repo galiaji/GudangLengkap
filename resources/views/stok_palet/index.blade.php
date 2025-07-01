@@ -351,6 +351,30 @@
 </div>
 @endforeach
 
+<!-- Modal Notifikasi -->
+<div class="modal fade" id="notifModal" tabindex="-1" aria-labelledby="notifModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white" id="notifModalHeader">
+        <h5 class="modal-title" id="notifModalLabel">Notifikasi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="notifModalMsg"></div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+@if(session('success'))
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let modalHeader = document.getElementById('notifModalHeader');
+    let modalMsg = document.getElementById('notifModalMsg');
+    modalHeader.className = "modal-header bg-success text-white";
+    modalMsg.innerText = "{{ session('success') }}";
+    new bootstrap.Modal(document.getElementById('notifModal')).show();
+});
+</script>
+@endif
 @endsection
 

@@ -38,12 +38,29 @@ class PalletPriceController extends Controller
             'harga_kering' => 'required|numeric|min:0',
         ]);
 
-        $palletPrice = PalletPrice::findOrFail($id);
-        $palletPrice->update([
-            'harga_basah' => $harga_basah,
-            'harga_kering' => $harga_kering,
-        ]);
+        try {
+            $palletPrice = PalletPrice::findOrFail($id);
+            $palletPrice->update([
+                'harga_basah' => $harga_basah,
+                'harga_kering' => $harga_kering,
+            ]);
 
-        return redirect()->route('pallet-prices.index')->with('success', 'Harga palet berhasil diperbarui.');
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Harga palet berhasil diperbarui.',
+                    'redirect_url' => route('pallet-prices.index')
+                ]);
+            }
+            return redirect()->route('pallet-prices.index')->with('success', 'Harga palet berhasil diperbarui.');
+        } catch (\Exception $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memperbarui harga palet: ' . $e->getMessage()
+                ], 422);
+            }
+            return redirect()->back()->withInput()->with('error', 'Gagal memperbarui harga palet: ' . $e->getMessage());
+        }
     }
 }

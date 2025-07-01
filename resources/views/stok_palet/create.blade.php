@@ -4,7 +4,7 @@
 <div class="container py-4">
     <div class="bg-light rounded-3 p-4 mb-4">
         <h2 class="mb-3">Tambah Data Palet</h2>
-        <form action="{{ route('pallet_stocks.store') }}" method="POST">
+        <form action="{{ route('pallet_stocks.store') }}" method="POST" id="form-stok-palet">
             @csrf
             <div class="mb-4 row align-items-center">
                 <label for="status" class="form-label fw-semibold col-12 col-sm-3 col-md-2 mb-2 mb-sm-0">Status</label>
@@ -76,6 +76,26 @@
         </form>
     </div>
 </div>
+<!-- Modal Sukses -->
+<div class="modal fade" id="successModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header bg-success text-white">
+      <h5 class="modal-title">Berhasil</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body" id="successModalMsg"></div>
+  </div></div>
+</div>
+<!-- Modal Gagal -->
+<div class="modal fade" id="errorModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header bg-danger text-white">
+      <h5 class="modal-title">Gagal</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body" id="errorModalMsg"></div>
+  </div></div>
+</div>
 <style>
     @media (max-width: 576px) {
         .table th, .table td {
@@ -136,6 +156,33 @@
             let totalVolume = (pcs * volPerBatang) / 1000;
             let volumeInput = document.getElementById('volume-' + index);
             volumeInput.value = totalVolume.toFixed(3);
+        });
+    });
+
+    document.querySelector('#form-stok-palet').addEventListener('submit', function(e) {
+        e.preventDefault();
+        let form = this;
+        let formData = new FormData(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(res => res.json().then(data => ({status: res.status, body: data})))
+        .then(({status, body}) => {
+            if (body.success) {
+                document.getElementById('successModalMsg').innerText = body.message;
+                new bootstrap.Modal(document.getElementById('successModal')).show();
+                // Optional: reload/redirect setelah sukses
+            } else {
+                document.getElementById('errorModalMsg').innerText = body.message || 'Terjadi kesalahan.';
+                new bootstrap.Modal(document.getElementById('errorModal')).show();
+            }
+        })
+        .catch(() => {
+            document.getElementById('errorModalMsg').innerText = 'Terjadi kesalahan jaringan.';
+            new bootstrap.Modal(document.getElementById('errorModal')).show();
         });
     });
 </script>
