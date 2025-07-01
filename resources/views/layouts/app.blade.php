@@ -128,28 +128,35 @@
                 width: 24px !important;
             }
             #sidebar {
-                width: 75vw !important;
+                width: 54vw !important;
                 min-width: 0 !important;
-                max-width: 80vw !important;
-                left: -80vw;
-                border-right: 2px solid #A5D6A7;
+                max-width: 60vw !important;
+                left: -60vw;
+                padding-left: 10px !important;
+                padding-right: 10px !important;
             }
-            #sidebar.show {
-                left: 0;
+            #sidebar .sidebar-content,
+            #sidebar .sidebar-bottom {
+                padding: 10px 6px 6px 6px !important;
+                gap: 10px;
             }
             .btn-sidebar {
-                font-size: 0.93rem;
-                height: 38px;
-                padding: 0 4px;
-                border-radius: 6px;
+                font-size: 0.75rem !important;
+                height: 28px !important;
+                padding: 0 6px !important;
+                border-radius: 4px !important;
+                min-width: 28px !important;
             }
-            #sidebar .sidebar-content, #sidebar .sidebar-bottom {
-                padding: 8px 2px 2px 2px !important;
-                gap: 2px;
+            .btn-sidebar .sidebar-label {
+                font-size: 0.70rem !important;
+                margin-left: 2px !important;
             }
-            .main-content {
-                padding-left: 0 !important;
-                padding-right: 0 !important;
+            .mt-3.mb-2.px-2.text-uppercase {
+                font-size: 0.62rem !important;
+                margin-top: 4px !important;
+                margin-bottom: 1px !important;
+                padding-left: 1px !important;
+                letter-spacing: 0.3px !important;
             }
         }
         /* --- Sidebar Desktop --- */
@@ -243,28 +250,35 @@
         /* --- Sidebar Mobile --- */
         @media (max-width: 575.98px) {
             #sidebar {
-                width: 75vw !important;
+                width: 54vw !important;
                 min-width: 0 !important;
-                max-width: 80vw !important;
-                left: -80vw;
-                border-right: 2px solid #A5D6A7;
+                max-width: 60vw !important;
+                left: -60vw;
+                padding-left: 10px !important;
+                padding-right: 10px !important;
             }
-            #sidebar.show {
-                left: 0;
+            #sidebar .sidebar-content,
+            #sidebar .sidebar-bottom {
+                padding: 10px 6px 6px 6px !important;
+                gap: 10px;
             }
             .btn-sidebar {
-                font-size: 0.93rem;
-                height: 38px;
-                padding: 0 4px;
-                border-radius: 6px;
+                font-size: 0.75rem !important;
+                height: 28px !important;
+                padding: 0 6px !important;
+                border-radius: 4px !important;
+                min-width: 28px !important;
             }
-            #sidebar .sidebar-content, #sidebar .sidebar-bottom {
-                padding: 8px 2px 2px 2px !important;
-                gap: 2px;
+            .btn-sidebar .sidebar-label {
+                font-size: 0.70rem !important;
+                margin-left: 2px !important;
             }
-            .main-content {
-                padding-left: 0 !important;
-                padding-right: 0 !important;
+            .mt-3.mb-2.px-2.text-uppercase {
+                font-size: 0.62rem !important;
+                margin-top: 4px !important;
+                margin-bottom: 1px !important;
+                padding-left: 1px !important;
+                letter-spacing: 0.3px !important;
             }
         }
         .btn-sidebar {
@@ -350,27 +364,35 @@
         }
         @media (max-width: 575.98px) {
             #sidebar {
-                width: 75vw !important;
+                width: 54vw !important;
                 min-width: 0 !important;
-                max-width: 80vw !important;
-                left: -80vw;
-                border-right: 2px solid #A5D6A7;
+                max-width: 60vw !important;
+                left: -60vw;
+                padding-left: 10px !important;
+                padding-right: 10px !important;
             }
-            #sidebar .sidebar-content, #sidebar .sidebar-bottom {
-                padding: 8px 2px 2px 2px !important;
-                gap: 2px;
+            #sidebar .sidebar-content,
+            #sidebar .sidebar-bottom {
+                padding: 10px 6px 6px 6px !important;
+                gap: 10px;
             }
             .btn-sidebar {
-                font-size: 0.93rem;
-                height: 38px;
-                padding: 0 4px;
-                border-radius: 6px;
+                font-size: 0.75rem !important;
+                height: 28px !important;
+                padding: 0 6px !important;
+                border-radius: 4px !important;
+                min-width: 28px !important;
+            }
+            .btn-sidebar .sidebar-label {
+                font-size: 0.70rem !important;
+                margin-left: 2px !important;
             }
             .mt-3.mb-2.px-2.text-uppercase {
-                margin-top: 8px !important;
-                margin-bottom: 4px !important;
-                padding-left: 2px !important;
-                font-size: 0.75rem;
+                font-size: 0.62rem !important;
+                margin-top: 4px !important;
+                margin-bottom: 1px !important;
+                padding-left: 1px !important;
+                letter-spacing: 0.3px !important;
             }
         }
         #sidebarOverlay {

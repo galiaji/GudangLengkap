@@ -151,7 +151,7 @@
                                                 <td>{{ $d }}</td>
                                                 @foreach ($allowed as $p)
                                                     <td>
-                                                        <input type="text" inputmode="numeric" pattern="[0-9]*"
+                                                        <input type="number" inputmode="numeric" pattern="[0-9]*"
                                                             class="form-control form-control-sm pcs-input"
                                                             name="pcs[{{ $grade }}][{{ $d }}][{{ $p }}]"
                                                             value=""
@@ -404,6 +404,14 @@
                 }, 2000);
             } else {
                 let msg = data.message || 'Terjadi kesalahan.';
+                // Tampilkan semua pesan jika ada array messages
+                if (Array.isArray(data.messages)) {
+                    msg = '<ul style="margin:8px 0 0 16px;padding:0;">';
+                    data.messages.forEach(function(err) {
+                        msg += '<li>' + err + '</li>';
+                    });
+                    msg += '</ul>';
+                }
                 if (data.errors) {
                     msg += '<ul style="margin:8px 0 0 16px;padding:0;">';
                     Object.values(data.errors).forEach(function(errArr) {

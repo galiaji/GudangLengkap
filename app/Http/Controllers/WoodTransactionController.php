@@ -291,6 +291,32 @@ class WoodTransactionController extends Controller
                 'tanggal_transaksi' => now(),
             ]);
 
+            $errors = [];
+            foreach ($request->details as $detail) {
+                $stock = \App\Models\WoodStock::where([
+                    'wood_type' => $request->wood_type,
+                    'grade' => $detail['grade'],
+                    'diameter' => $detail['diameter'],
+                    'panjang' => $detail['panjang'],
+                ])->first();
+
+                if ($stock) {
+                    if ($stock->quantity < $detail['pcs']) {
+                        $errors[] = 'Stok kayu tidak mencukupi untuk grade ' . $detail['grade'] . ', diameter ' . $detail['diameter'] . ', panjang ' . $detail['panjang'] . '.';
+                    }
+                } else {
+                    $errors[] = 'Stok kayu tidak ditemukan untuk grade ' . $detail['grade'] . ', diameter ' . $detail['diameter'] . ', panjang ' . $detail['panjang'] . '.';
+                }
+            }
+
+            if (count($errors) > 0) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'messages' => $errors
+                ], 422);
+            }
+
             // Simpan detail & update stok
             foreach ($request->details as $detail) {
                 \App\Models\WoodTransactionDetail::create([
@@ -304,13 +330,14 @@ class WoodTransactionController extends Controller
                     'harga' => $detail['harga'],
                 ]);
 
-                // Kurangi stok
+                // Kurangi stok dengan pengecekan
                 $stock = \App\Models\WoodStock::where([
                     'wood_type' => $request->wood_type,
                     'grade' => $detail['grade'],
                     'diameter' => $detail['diameter'],
                     'panjang' => $detail['panjang'],
                 ])->first();
+
                 if ($stock) {
                     $stock->decrement('quantity', $detail['pcs']);
                     $stock->decrement('total_volume', $detail['volume']);

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\PalletPrice;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -21,6 +22,7 @@ class DatabaseSeeder extends Seeder
             DiameterSeeder::class,
             WoodStockSeeder::class,
             WoodPriceSeeder::class,
+            PalletPriceSeeder::class,
         ]);
     }
 }

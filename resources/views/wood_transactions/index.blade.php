@@ -163,15 +163,7 @@
                     <label for="tanggal" class="form-label mb-1">Tanggal</label>
                     <input type="date" name="tanggal" id="tanggal" value="{{ request('tanggal') }}" class="form-control">
                 </div>
-                <div class="col-md-3">
-                    <label for="periode" class="form-label mb-1">Periode</label>
-                    <select name="periode" id="periode" class="form-control">
-                        <option value="harian" {{ request('periode') == 'harian' ? 'selected' : '' }}>Harian</option>
-                        <option value="mingguan" {{ request('periode') == 'mingguan' ? 'selected' : '' }}>Mingguan</option>
-                        <option value="bulanan" {{ request('periode') == 'bulanan' ? 'selected' : '' }}>Bulanan</option>
-                        <option value="tahunan" {{ request('periode') == 'tahunan' ? 'selected' : '' }}>Tahunan</option>
-                    </select>
-                </div>
+               
                 <div class="col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-success flex-fill">Cari</button>
                     <a href="{{ route('transaksi.index') }}" class="btn btn-secondary flex-fill">Reset</a>
