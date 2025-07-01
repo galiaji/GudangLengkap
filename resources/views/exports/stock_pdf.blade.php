@@ -3,14 +3,30 @@
 <html>
 <head>
     <style>
-        body { font-family: Arial, sans-serif; font-size: 11px; }
-        .judul { font-size: 15px; font-weight: bold; text-align: center; margin-bottom: 12px; }
-        .main-table { border-collapse: collapse; width: 100%; }
-        .main-table th, .main-table td { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
-        .grade-title { font-size: 12px; font-weight: bold; margin-bottom: 2px; text-align: center; }
-        .sub-table { border-collapse: collapse; width: 100%; margin-bottom: 0; }
-        .sub-table th, .sub-table td { border: 1px solid #888; padding: 1px 3px; text-align: center; font-size: 10px; }
-        .sub-table th { background: #eaeaea; font-weight: bold; }
+        @page {
+            margin: 8mm 8mm 2mm 8mm; /* atas kanan bawah kiri, atas & bawah minimal */
+        }
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        .judul { font-size: 17px; font-weight: bold; text-align: center; margin-bottom: 10px; }
+        .grade-title { font-size: 14px; font-weight: bold; margin-bottom: 2px; text-align: center; }
+        .sub-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 0;
+            table-layout: fixed;
+        }
+        .sub-table th, .sub-table td {
+            border: 1px solid #888;
+            padding: 1px 2px;
+            text-align: center;
+            font-size: 13px;
+            word-break: break-word;
+        }
+        .sub-table th {
+            background: #eaeaea;
+            font-weight: bold;
+            font-size: 14px;
+        }
         .total-row { font-weight: bold; background: #f5f5f5; }
     </style>
 </head>
@@ -22,75 +38,75 @@
     @foreach($woodTypes as $woodType)
         <div style="font-size:13px;font-weight:bold;margin:8px 0 4px 0;">{{ $woodType }}</div>
         @php
-            $grades = $stocks->where('wood_type', $woodType)->pluck('grade')->unique();
+            $grades = $stocks->where('wood_type', $woodType)->pluck('grade')->unique()->values();
+            $gradeCount = count($grades);
         @endphp
-        <table class="main-table">
-            <tr>
-                @foreach($grades as $grade)
-                    <th>
-                        <div class="grade-title">Grade: {{ $grade }}</div>
-                    </th>
-                @endforeach
-            </tr>
-            <tr>
-                @foreach($grades as $grade)
-                    <td>
-                        <table class="sub-table">
-                            <tr>
-                                <th>Panjang</th>
-                                <th>Diameter</th>
-                                <th>Pcs</th>
-                                <th>Volume (M³)</th>
-                            </tr>
-                            @php
-                                $panjangs = $stocks->where('wood_type', $woodType)
-                                    ->where('grade', $grade)
-                                    ->pluck('panjang')->unique()->sort();
-                            @endphp
-                            @foreach($panjangs as $panjang)
+        @for($i = 0; $i < $gradeCount; $i += 3)
+            <table style="width:100%; table-layout:fixed; margin-bottom: 6px;">
+                <tr>
+                    @for($j = $i; $j < $i + 3 && $j < $gradeCount; $j++)
+                        <td style="vertical-align:top; width:33%;">
+                            <div class="grade-title">Grade: {{ $grades[$j] }}</div>
+                            <table class="sub-table">
+                                <tr>
+                                    <th>Panjang</th>
+                                    <th>Diameter</th>
+                                    <th>Pcs</th>
+                                    <th>Volume (M³)</th>
+                                </tr>
                                 @php
-                                    $rows = $stocks->where('wood_type', $woodType)
-                                        ->where('grade', $grade)
-                                        ->where('panjang', $panjang);
-                                    $totalPcsPanjang = $rows->sum('quantity');
-                                    $totalVolumePanjang = $rows->reduce(function($carry, $item) {
-                                        return $carry + (($item->quantity ?? 0) * ($item->volume ?? 0));
-                                    }, 0);
+                                    $panjangs = $stocks->where('wood_type', $woodType)
+                                        ->where('grade', $grades[$j])
+                                        ->pluck('panjang')->unique()->sort();
                                 @endphp
-                                @foreach($rows as $row)
-                                    <tr>
-                                        <td>{{ $row->panjang ?? '-' }}</td>
-                                        <td>{{ $row->diameter ?? '-' }}</td>
-                                        <td>{{ $row->quantity ?? 0 }}</td>
-                                        <td>{{ number_format(($row->quantity ?? 0) * ($row->volume ?? 0), 3) }}</td>
+                                @foreach($panjangs as $panjang)
+                                    @php
+                                        $rows = $stocks->where('wood_type', $woodType)
+                                            ->where('grade', $grades[$j])
+                                            ->where('panjang', $panjang);
+                                        $totalPcsPanjang = $rows->sum('quantity');
+                                        $totalVolumePanjang = $rows->reduce(function($carry, $item) {
+                                            return $carry + (($item->quantity ?? 0) * ($item->volume ?? 0));
+                                        }, 0);
+                                    @endphp
+                                    @foreach($rows as $row)
+                                        <tr>
+                                            <td>{{ $row->panjang ?? '-' }}</td>
+                                            <td>{{ $row->diameter ?? '-' }}</td>
+                                            <td>{{ $row->quantity ?? 0 }}</td>
+                                            <td>{{ number_format(($row->quantity ?? 0) * ($row->volume ?? 0), 3) }}</td>
+                                        </tr>
+                                    @endforeach
+                                    <tr class="total-row">
+                                        <td colspan="2">Total Panjang {{ $panjang }}</td>
+                                        <td>{{ $totalPcsPanjang }}</td>
+                                        <td>{{ number_format($totalVolumePanjang, 3) }}</td>
                                     </tr>
                                 @endforeach
+                                @php
+                                    $totalPcs = $stocks->where('wood_type', $woodType)
+                                        ->where('grade', $grades[$j])
+                                        ->sum('quantity');
+                                    $totalVolume = $stocks->where('wood_type', $woodType)
+                                        ->where('grade', $grades[$j])
+                                        ->reduce(function($carry, $item) {
+                                            return $carry + (($item->quantity ?? 0) * ($item->volume ?? 0));
+                                        }, 0);
+                                @endphp
                                 <tr class="total-row">
-                                    <td colspan="2">Total Panjang {{ $panjang }}</td>
-                                    <td>{{ $totalPcsPanjang }}</td>
-                                    <td>{{ number_format($totalVolumePanjang, 3) }}</td>
+                                    <td colspan="2">Total Grade</td>
+                                    <td>{{ $totalPcs }}</td>
+                                    <td>{{ number_format($totalVolume, 3) }}</td>
                                 </tr>
-                            @endforeach
-                            @php
-                                $totalPcs = $stocks->where('wood_type', $woodType)
-                                    ->where('grade', $grade)
-                                    ->sum('quantity');
-                                $totalVolume = $stocks->where('wood_type', $woodType)
-                                    ->where('grade', $grade)
-                                    ->reduce(function($carry, $item) {
-                                        return $carry + (($item->quantity ?? 0) * ($item->volume ?? 0));
-                                    }, 0);
-                            @endphp
-                            <tr class="total-row">
-                                <td colspan="2">Total Grade</td>
-                                <td>{{ $totalPcs }}</td>
-                                <td>{{ number_format($totalVolume, 3) }}</td>
-                            </tr>
-                        </table>
-                    </td>
-                @endforeach
-            </tr>
-        </table>
+                            </table>
+                        </td>
+                    @endfor
+                    @for($k = $j; $k < $i + 3; $k++)
+                        <td></td>
+                    @endfor
+                </tr>
+            </table>
+        @endfor
     @endforeach
 </body>
 </html>
