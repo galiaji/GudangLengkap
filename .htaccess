@@ -1,0 +1,52 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    Options +FollowSymLinks
+    RewriteEngine On
+
+    # Define base paths
+    RewriteBase /
+    SetEnv PUBLIC_PATH /public
+    SetEnv UPLOADS_PATH /uploads/posts
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Ensure requests to the CSS and JS files are served correctly
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^resources/css/(.*)$ /resources/css/$1 [L]
+    RewriteRule ^resources/js/(.*)$ /resources/js/$1 [L]
+
+    # Ensure requests to the Tailwind CSS are served correctly
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^public/css/(.*)$ %{ENV:PUBLIC_PATH}/css/$1 [L]
+
+    # Prevent direct access to the build directory
+    RewriteCond %{REQUEST_URI} ^%{ENV:PUBLIC_PATH}/build/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ - [F]
+
+    # Ensure requests to the img directory are served correctly
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^%{ENV:PUBLIC_PATH}/images/(.*)$ %{ENV:PUBLIC_PATH}/images/$1 [L]
+
+    # Ensure requests to the uploads/posts directory are served correctly
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^%{ENV:UPLOADS_PATH}/(.*)$ %{ENV:PUBLIC_PATH}/uploads/posts/$1 [L]
+
+    # Send requests to the front controller
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ %{ENV:PUBLIC_PATH}/login [L]
+
+    # Route root requests to the public/login
+    RewriteRule ^(/)?$ %{ENV:PUBLIC_PATH}/login [L]
+</IfModule>
