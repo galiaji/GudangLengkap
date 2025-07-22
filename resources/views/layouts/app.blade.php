@@ -515,6 +515,10 @@
                     <i class="bi bi-cart-plus"></i>
                     <span class="sidebar-label">Beli</span>
                 </a>
+                <a href="{{ route('stock.potongGergaji.form', ['woodType' => 'kayu keras']) }}" class="btn btn-sidebar" title="Potong/Gergaji Stok">
+                    <i class="bi bi-scissors"></i>
+                    <span class="sidebar-label">Potong/Gergaji</span>
+                </a>
                 <a href="{{ route('wood_transactions.sell') }}" class="btn btn-sidebar" title="Penjualan">
                     <i class="bi bi-cart-check"></i>
                     <span class="sidebar-label">Jual</span>

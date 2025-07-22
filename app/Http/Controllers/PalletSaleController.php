@@ -8,6 +8,7 @@ use App\Models\PalletPrice;
 use App\Models\PalletStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf; // Tambahkan di bagian atas jika belum ada
 
 class PalletSaleController extends Controller
 {
@@ -191,4 +192,75 @@ class PalletSaleController extends Controller
                 ->with('error', $e->getMessage());
         }
     }
+
+    public function exportNota($id)
+    {
+        $sale = \App\Models\PalletSale::with('items')->findOrFail($id);
+
+        // Ambil semua ukuran dari tabel harga
+        $allUkuran = \App\Models\PalletPrice::pluck('ukuran')->unique();
+
+        // Siapkan data basah dan penjemuran, pastikan semua ukuran ada
+        $basah = collect();
+        $penjemuran = collect();
+
+        foreach ($allUkuran as $ukuran) {
+            // Cari item basah & penjemuran untuk ukuran ini
+            $itemBasah = $sale->items->where('status', 'basah')->where('ukuran', $ukuran)->first();
+            $itemKering = $sale->items->where('status', 'penjemuran')->where('ukuran', $ukuran)->first();
+
+            $basah->push((object)[
+                'ukuran'   => $ukuran,
+                'pcs'      => $itemBasah ? $itemBasah->pcs : 0,
+                'volume'   => $itemBasah ? $itemBasah->volume : 0,
+                'subtotal' => $itemBasah ? $itemBasah->subtotal : 0,
+            ]);
+            $penjemuran->push((object)[
+                'ukuran'   => $ukuran,
+                'pcs'      => $itemKering ? $itemKering->pcs : 0,
+                'volume'   => $itemKering ? $itemKering->volume : 0,
+                'subtotal' => $itemKering ? $itemKering->subtotal : 0,
+            ]);
+        }
+
+        $total_volume = $sale->items->sum('volume');
+        $grand_total = $sale->items->sum('subtotal');
+
+        $total_volume_basah = $basah->sum('volume');
+        $grand_total_basah = $basah->sum('subtotal');
+
+        $total_volume_penjemuran = $penjemuran->sum('volume');
+        $grand_total_penjemuran = $penjemuran->sum('subtotal');
+
+        $pdf = Pdf::loadView('exports.nota_pallet', compact(
+            'sale',
+            'total_volume',
+            'grand_total',
+            'basah',
+            'penjemuran',
+            'total_volume_basah',
+            'grand_total_basah',
+            'total_volume_penjemuran',
+            'grand_total_penjemuran'
+        ))->setPaper('a5', 'landscape');
+
+        return $pdf->download('nota-pallet-'.$sale->kode_transaksi.'.pdf');
+    }
+
+    public function laporanMingguan(Request $request)
+    {
+        $start = now()->startOfWeek();
+        $end = now()->endOfWeek();
+
+        $sales = \App\Models\PalletSale::with('items')
+            ->whereBetween('tanggal', [$start, $end])
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.laporan_mingguan_pallet', compact('sales', 'start', 'end'))
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->download('laporan-penjualan-pallet-mingguan.pdf');
+    }
+
 }

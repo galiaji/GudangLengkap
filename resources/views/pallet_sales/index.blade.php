@@ -56,6 +56,9 @@
         <a href="{{ route('pallet-sales.create') }}" class="btn btn-success mb-2">
             <i class="bi bi-plus-circle me-1"></i> Transaksi Baru
         </a>
+        <a href="{{ route('pallet-sales.laporan-mingguan') }}" class="btn btn-warning mb-2" target="_blank">
+            <i class="bi bi-calendar-week"></i> Laporan Penjualan Mingguan
+        </a>
         <form method="GET" class="row g-2 mb-2">
             <div class="col-auto">
                 <input type="text" name="customer" class="form-control" placeholder="Cari Customer" value="{{ request('customer') }}">
@@ -94,6 +97,7 @@
                     <th>Keterangan</th>
                     <th>Detail Item</th>
                     <th>Grand Total</th>
+                    <th>Aksi</th> <!-- Tambahkan ini -->
                 </tr>
             </thead>
             <tbody>
@@ -130,10 +134,15 @@
                         <div><span class="fw-bold">Total Volume:</span> {{ number_format($total_volume, 3, ',', '.') }}</div>
                         <div><span class="fw-bold">Nilai Barang:</span> Rp{{ number_format($grand_total,0,',','.') }}</div>
                     </td>
+                    <td>
+                        <a href="{{ route('pallet-sales.nota', $sale->id) }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                            <i class="bi bi-download"></i> Nota
+                        </a>
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="text-center text-muted">Belum ada transaksi penjualan palet.</td>
+                    <td colspan="7" class="text-center text-muted">Belum ada transaksi penjualan palet.</td>
                 </tr>
                 @endforelse
             </tbody>

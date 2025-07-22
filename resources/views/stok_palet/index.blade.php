@@ -53,6 +53,11 @@
 </style>
 <div class="container main-container">
     <div class="row mb-section">
+        <div class="col-12 d-flex justify-content-end mb-3">
+            <a href="{{ route('export.pallet.pdf') }}" target="_blank" class="btn btn-success">
+                <i class="bi bi-file-earmark-arrow-down"></i> Export Laporan Stok Pallet
+            </a>
+        </div>
         <div class="col-12 col-lg-6 mb-4 mb-lg-0">
             <div class="section-title">Rangkuman Stok Palet Dalam Penjemuran</div>
             <div class="table-responsive">

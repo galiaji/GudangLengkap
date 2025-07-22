@@ -153,6 +153,7 @@
                         <option value="">Semua Jenis</option>
                         <option value="pembelian" {{ request('jenis_transaksi') == 'pembelian' ? 'selected' : '' }}>Pembelian</option>
                         <option value="penjualan" {{ request('jenis_transaksi') == 'penjualan' ? 'selected' : '' }}>Penjualan</option>
+                        <option value="gergajian" {{ request('jenis_transaksi') == 'gergajian' ? 'selected' : '' }}>Gergajian</option>
                     </select>
                 </div>
                 <div class="col-md-3">

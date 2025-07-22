@@ -80,10 +80,16 @@ Route::middleware('auth')->group(function () {
     Route::get('pallet-sales', [\App\Http\Controllers\PalletSaleController::class, 'index'])->name('pallet-sales.index');
     Route::get('pallet-sales/create', [\App\Http\Controllers\PalletSaleController::class, 'create'])->name('pallet-sales.create');
     Route::post('pallet-sales', [\App\Http\Controllers\PalletSaleController::class, 'store'])->name('pallet-sales.store');
-    Route::get('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'show'])->name('pallet-sales.show');
+    // Route::get('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'show'])->name('pallet-sales.show');
     Route::get('pallet-sales/{pallet_sale}/edit', [\App\Http\Controllers\PalletSaleController::class, 'edit'])->name('pallet-sales.edit');
     Route::put('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'update'])->name('pallet-sales.update');
     Route::delete('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'destroy'])->name('pallet-sales.destroy');
+    Route::get('pallet-sales/{id}/nota', [\App\Http\Controllers\PalletSaleController::class, 'exportNota'])->name('pallet-sales.nota');
+    Route::get('/pallet-sales/laporan-mingguan', [\App\Http\Controllers\PalletSaleController::class, 'laporanMingguan'])->name('pallet-sales.laporan-mingguan');
 
     Route::get('/export-stok-pdf/{woodType}', [StockExportController::class, 'exportPdf'])->name('export.stok.pdf');
+    Route::get('/stock/potong-gergaji/{woodType}', [\App\Http\Controllers\StockController::class, 'showPotongGergajiForm'])->name('stock.potongGergaji.form');
+    Route::post('/stock/potong-gergaji', [\App\Http\Controllers\StockController::class, 'potongGergaji'])->name('stock.potongGergaji');
+    Route::post('/wood-transactions/store-saw', [\App\Http\Controllers\StockController::class, 'storeSaw'])->name('wood_transactions.storeSaw');
+    Route::get('/export/pallet-stock', [\App\Http\Controllers\StockExportController::class, 'exportPalletPdf'])->name('export.pallet.pdf');
 });
