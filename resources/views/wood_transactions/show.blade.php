@@ -177,8 +177,8 @@
     <table class="transaksi-table">
         <thead>
             <tr>
+                <th rowspan="2">Grade</th>    
                 <th rowspan="2">Jenis Kayu</th>
-                <th rowspan="2">Grade</th>
                 <th rowspan="2">Diameter</th>
                 @foreach($panjangs as $p)
                     <th colspan="3">{{ $p }}</th>

@@ -12,6 +12,7 @@
                     <select name="status" id="status" class="form-select" required>
                         <option value="basah">Basah</option>
                         <option value="penjemuran">Penjemuran</option>
+                        <option value="kering">Kering</option>
                     </select>
                 </div>
             </div>

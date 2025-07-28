@@ -140,6 +140,7 @@
                                 <tr>
                                     <td>
                                         <input type="hidden" name="basah[{{ $i }}][ukuran]" value="{{ $ukuran->ukuran }}">
+                                        {{-- Tabel Palet Basah --}}
                                         <input type="hidden" class="harga-basah" name="basah[{{ $i }}][harga_satuan]" value="{{ $ukuran->harga_basah }}">
                                         <input type="hidden" class="volume-basah" name="basah[{{ $i }}][volume]" value="{{ $ukuran->volume }}">
                                         {{ $ukuran->ukuran }}
@@ -179,6 +180,7 @@
                                 <tr>
                                     <td>
                                         <input type="hidden" name="kering[{{ $i }}][ukuran]" value="{{ $ukuran->ukuran }}">
+                                        {{-- Tabel Palet Kering --}}
                                         <input type="hidden" class="harga-kering" name="kering[{{ $i }}][harga_satuan]" value="{{ $ukuran->harga_kering }}">
                                         <input type="hidden" class="volume-kering" name="kering[{{ $i }}][volume]" value="{{ $ukuran->volume }}">
                                         {{ $ukuran->ukuran }}

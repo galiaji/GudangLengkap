@@ -74,7 +74,7 @@ class PalletSaleController extends Controller
                             'status' => 'basah',
                             'pcs' => $pcsNeeded,
                             'volume' => $totalVolume,
-                            'harga_satuan' => $harga,
+                            'harga_satuan' => $harga, // harga basah
                             'subtotal' => $subtotal,
                         ]);
 
@@ -127,17 +127,17 @@ class PalletSaleController extends Controller
                             'pallet_sale_id' => $sale->id,
                             'pallet_code' => $pallet_code,
                             'ukuran' => $item['ukuran'],
-                            'status' => 'penjemuran',
+                            'status' => 'kering',
                             'pcs' => $pcsNeeded,
                             'volume' => $totalVolume,
-                            'harga_satuan' => $harga,
+                            'harga_satuan' => $harga, // harga kering
                             'subtotal' => $subtotal,
                         ]);
 
                         // FIFO pengurangan stok hanya berdasarkan PCS
                         $stocks = PalletStock::where('pallet_code', $pallet_code)
                             ->where('ukuran', $item['ukuran'])
-                            ->where('status', 'penjemuran')
+                            ->where('status', 'kering') // <-- Ubah dari 'penjemuran' ke 'kering'
                             ->where('pcs', '>', 0)
                             ->orderBy('tanggal_input')
                             ->get();
@@ -145,7 +145,7 @@ class PalletSaleController extends Controller
                         $totalPcsAvailable = $stocks->sum('pcs');
 
                         if ($totalPcsAvailable < $pcsNeeded) {
-                            throw new \Exception('Stok tidak cukup untuk ukuran ' . $item['ukuran'] . ' (penjemuran)');
+                            throw new \Exception('Stok tidak cukup untuk ukuran ' . $item['ukuran'] . ' (kering)');
                         }
 
                         $pcsToReduce = $pcsNeeded;
@@ -202,12 +202,12 @@ class PalletSaleController extends Controller
 
         // Siapkan data basah dan penjemuran, pastikan semua ukuran ada
         $basah = collect();
-        $penjemuran = collect();
+        $kering = collect();
 
         foreach ($allUkuran as $ukuran) {
             // Cari item basah & penjemuran untuk ukuran ini
             $itemBasah = $sale->items->where('status', 'basah')->where('ukuran', $ukuran)->first();
-            $itemKering = $sale->items->where('status', 'penjemuran')->where('ukuran', $ukuran)->first();
+            $itemKering = $sale->items->where('status', 'kering')->where('ukuran', $ukuran)->first();
 
             $basah->push((object)[
                 'ukuran'   => $ukuran,
@@ -215,7 +215,7 @@ class PalletSaleController extends Controller
                 'volume'   => $itemBasah ? $itemBasah->volume : 0,
                 'subtotal' => $itemBasah ? $itemBasah->subtotal : 0,
             ]);
-            $penjemuran->push((object)[
+            $kering->push((object)[
                 'ukuran'   => $ukuran,
                 'pcs'      => $itemKering ? $itemKering->pcs : 0,
                 'volume'   => $itemKering ? $itemKering->volume : 0,
@@ -229,19 +229,19 @@ class PalletSaleController extends Controller
         $total_volume_basah = $basah->sum('volume');
         $grand_total_basah = $basah->sum('subtotal');
 
-        $total_volume_penjemuran = $penjemuran->sum('volume');
-        $grand_total_penjemuran = $penjemuran->sum('subtotal');
+        $total_volume_kering = $kering->sum('volume');
+        $grand_total_kering = $kering->sum('subtotal');
 
         $pdf = Pdf::loadView('exports.nota_pallet', compact(
             'sale',
             'total_volume',
             'grand_total',
             'basah',
-            'penjemuran',
+            'kering',
             'total_volume_basah',
             'grand_total_basah',
-            'total_volume_penjemuran',
-            'grand_total_penjemuran'
+            'total_volume_kering',
+            'grand_total_kering'
         ))->setPaper('a5', 'landscape');
 
         return $pdf->download('nota-pallet-'.$sale->kode_transaksi.'.pdf');

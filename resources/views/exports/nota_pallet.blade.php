@@ -77,9 +77,9 @@
                 </table>
                 @endif
             </td>
-            {{-- Pallet Penjemuran --}}
+            {{-- Pallet Kering --}}
             <td valign="top" style="width:50%;">
-                @if($penjemuran->count())
+                @if($kering->count())
                 <div class="subjudul">Pallet Kering</div>
                 <table class="tabel-pallet" style="width:100%;">
                     <thead>
@@ -91,7 +91,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($penjemuran as $item)
+                        @foreach($kering as $item)
                         <tr>
                             <td>{{ $item->ukuran ?? '-' }}</td>
                             <td>{{ $item->pcs ?? 0 }}</td>
@@ -101,8 +101,8 @@
                         @endforeach
                         <tr class="total">
                             <td colspan="2" class="right">TOTAL Kering</td>
-                            <td><b>{{ number_format($total_volume_penjemuran, 3, ',', '.') }}</b></td>
-                            <td class="right"><b>Rp{{ number_format($grand_total_penjemuran, 0, ',', '.') }}</b></td>
+                            <td><b>{{ number_format($total_volume_kering, 3, ',', '.') }}</b></td>
+                            <td class="right"><b>Rp{{ number_format($grand_total_kering, 0, ',', '.') }}</b></td>
                         </tr>
                     </tbody>
                 </table>

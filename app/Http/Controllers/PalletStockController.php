@@ -12,37 +12,88 @@ class PalletStockController extends Controller
     // Menampilkan rangkuman, stok basah, dan stok penjemuran
     public function indexStock(Request $request)
     {
-        // Ambil stok basah
+        // --- Stok Basah ---
         $wetPallets = PalletStock::with('palletPrice')
             ->where('status', 'basah')
             ->get();
 
-        // Ambil stok penjemuran
+        // --- Stok Penjemuran ---
         $dryingPallets = PalletStock::with('palletPrice')
             ->where('status', 'penjemuran')
             ->get();
 
-        // Rekap per kode jemur (input_code)
+        // --- Stok Kering ---
+        $dryPallets = PalletStock::with('palletPrice')
+            ->where('status', 'kering')
+            ->get();
+
+        // --- Rekap per input_code & tanggal untuk BASAH ---
+        $groupedWetQuery = PalletStock::select(
+                'input_code',
+                'tanggal_input',
+                DB::raw('SUM(pcs) as total_pcs'),
+                DB::raw('SUM(volume) as total_volume')
+            )
+            ->where('status', 'basah');
+        if ($request->filled('tanggal_masuk')) {
+            $groupedWetQuery->where('tanggal_input', $request->tanggal_masuk);
+        }
+        $sortWet = $request->input('sort_wet', 'desc');
+        $groupedWetQuery->orderBy('tanggal_input', $sortWet);
+        $groupedWet = $groupedWetQuery->groupBy('input_code', 'tanggal_input')->get();
+
+        // --- Rekap per input_code & tanggal untuk PENJEMURAN ---
         $groupedDryingQuery = PalletStock::select(
                 'input_code',
                 'tanggal_input',
                 DB::raw('SUM(pcs) as total_pcs'),
                 DB::raw('SUM(volume) as total_volume')
             )
-            ->where('status', 'penjemuran')
-            ->groupBy('input_code', 'tanggal_input');
-
-        // Filter & sort hanya untuk groupedDrying
+            ->where('status', 'penjemuran');
         if ($request->filled('tanggal_cari')) {
             $groupedDryingQuery->where('tanggal_input', $request->tanggal_cari);
         }
-        $sort = $request->input('sort', 'desc');
-        $groupedDryingQuery->orderBy('tanggal_input', $sort)
-            ->orderBy('input_code', $sort);
+        $sortDrying = $request->input('sort', 'desc');
+        $groupedDryingQuery->orderBy('tanggal_input', $sortDrying)
+            ->orderBy('input_code', $sortDrying);
+        $groupedDrying = $groupedDryingQuery->groupBy('input_code', 'tanggal_input')->get();
 
-        $groupedDrying = $groupedDryingQuery->get();
+        // --- Rekap per input_code & tanggal untuk KERING ---
+        $groupedDryQuery = PalletStock::select(
+                'input_code',
+                'tanggal_input',
+                DB::raw('SUM(pcs) as total_pcs'),
+                DB::raw('SUM(volume) as total_volume')
+            )
+            ->where('status', 'kering');
+        if ($request->filled('tanggal_kering')) {
+            $groupedDryQuery->where('tanggal_input', $request->tanggal_kering);
+        }
+        $sortDry = $request->input('sort_dry', 'desc');
+        $groupedDryQuery->orderBy('tanggal_input', $sortDry)
+            ->orderBy('input_code', $sortDry);
+        $groupedDry = $groupedDryQuery->groupBy('input_code', 'tanggal_input')->get();
 
-        // Rekap per pallet_code & ukuran untuk penjemuran
+        // --- Detail per input_code ---
+        $allWetDetails = PalletStock::where('status', 'basah')->get()->groupBy('input_code');
+        $allDryingDetails = PalletStock::where('status', 'penjemuran')->get()->groupBy('input_code');
+        $allDryDetails = PalletStock::where('status', 'kering')->get()->groupBy('input_code');
+
+        // --- Summary per pallet_code & ukuran ---
+        $wetSummary = PalletStock::select(
+                'pallet_code',
+                'ukuran',
+                DB::raw('SUM(pcs) as pcs'),
+                DB::raw('SUM(volume) as volume')
+            )
+            ->where('status', 'basah')
+            ->groupBy('pallet_code', 'ukuran')
+            ->get()
+            ->map(function($item) {
+                $item->harga_basah = PalletPrice::where('pallet_code', $item->pallet_code)->value('harga_basah') ?? 0;
+                return $item;
+            });
+
         $dryingSummary = PalletStock::select(
                 'pallet_code',
                 'ukuran',
@@ -53,56 +104,38 @@ class PalletStockController extends Controller
             ->groupBy('pallet_code', 'ukuran')
             ->get()
             ->map(function($item) {
-                $item->harga_satuan = \App\Models\PalletPrice::where('pallet_code', $item->pallet_code)->value('harga_kering') ?? 0;
+                $item->harga_satuan = PalletPrice::where('pallet_code', $item->pallet_code)->value('harga_kering') ?? 0;
                 return $item;
             });
 
-        // Ambil semua detail penjemuran, group by input_code
-        $allDetails = PalletStock::where('status', 'penjemuran')->get()->groupBy('input_code');
-
-        $query = \App\Models\PalletStock::select(
-                'input_code',
-                'tanggal_input',
-                DB::raw('SUM(pcs) as total_pcs'),
-                DB::raw('SUM(volume) as total_volume')
-            )
-            ->where('status', 'basah');
-
-        if ($request->filled('tanggal_masuk')) {
-            $query->where('tanggal_input', $request->tanggal_masuk);
-        }
-
-        $sortWet = $request->input('sort_wet', 'desc');
-        $query->orderBy('tanggal_input', $sortWet);
-
-        $groupedWet = $query->groupBy('input_code', 'tanggal_input')->get();
-
-        $allWetDetails = \App\Models\PalletStock::where('status', 'basah')->get()->groupBy('input_code');
-
-        // Group dan summary stok basah
-        $wetSummary = \App\Models\PalletStock::select(
+        $drySummary = PalletStock::select(
                 'pallet_code',
                 'ukuran',
                 DB::raw('SUM(pcs) as pcs'),
                 DB::raw('SUM(volume) as volume')
             )
-            ->where('status', 'basah')
+            ->where('status', 'kering')
             ->groupBy('pallet_code', 'ukuran')
             ->get()
             ->map(function($item) {
-                $item->harga_basah = \App\Models\PalletPrice::where('pallet_code', $item->pallet_code)->value('harga_basah') ?? 0;
+                $item->harga_satuan = PalletPrice::where('pallet_code', $item->pallet_code)->value('harga_kering') ?? 0;
                 return $item;
             });
 
+        // --- Kirim ke view ---
         return view('stok_palet.index', compact(
             'wetPallets',
             'dryingPallets',
-            'dryingSummary',
-            'groupedDrying',
-            'allDetails',
+            'dryPallets',
             'groupedWet',
+            'groupedDrying',
+            'groupedDry',
             'allWetDetails',
-            'wetSummary'
+            'allDryingDetails',
+            'allDryDetails',
+            'wetSummary',
+            'dryingSummary',
+            'drySummary'
         ));
     }
 
@@ -116,11 +149,25 @@ class PalletStockController extends Controller
     // Simpan stok palet (basah/penjemuran)
     public function store(Request $request)
     {
+        // Status: basah, penjemuran, atau kering
         $status = $request->input('status', 'basah');
         $isBasah = $status === 'basah';
+        $isDrying = $status === 'penjemuran';
+        $isKering = $status === 'kering';
 
-        $tanggalField = $isBasah ? 'entry_date' : 'start_drying_date';
+        // Field tanggal sesuai status
+        if ($isBasah) {
+            $tanggalField = 'entry_date';
+            $prefix = 'BSH';
+        } elseif ($isDrying) {
+            $tanggalField = 'start_drying_date';
+            $prefix = 'JMR';
+        } else { // kering
+            $tanggalField = 'dry_date';
+            $prefix = 'KRG';
+        }
 
+        // Validasi
         $validated = $request->validate([
             $tanggalField => 'required|date',
             'pallets' => 'required|array',
@@ -131,8 +178,7 @@ class PalletStockController extends Controller
         ]);
 
         $date = date('Ymd', strtotime($request->$tanggalField));
-        $prefix = $isBasah ? 'BSH' : 'JMR';
-        $last = \App\Models\PalletStock::where('status', $status)
+        $last = PalletStock::where('status', $status)
             ->where('tanggal_input', $request->$tanggalField)
             ->orderByDesc('input_code')
             ->first();
@@ -160,7 +206,7 @@ class PalletStockController extends Controller
         }
 
         if (!empty($data)) {
-            \App\Models\PalletStock::insert($data);
+            PalletStock::insert($data);
             return response()->json([
                 'success' => true,
                 'message' => 'Data palet berhasil ditambahkan.'
@@ -173,22 +219,31 @@ class PalletStockController extends Controller
         }
     }
 
-    public function moveToDrying($input_code)
+    public function moveToNextStatus($input_code)
     {
-        // Ambil semua palet basah dengan input_code terkait
-        $palets = \App\Models\PalletStock::where('input_code', $input_code)
-            ->where('status', 'basah')
-            ->get();
+        
+        $palets = PalletStock::where('input_code', $input_code)->get();
 
         if ($palets->isEmpty()) {
             return back()->with('error', 'Data tidak ditemukan.');
         }
 
-        // Generate kode input baru untuk penjemuran (JMR + tanggal hari ini + urut)
+       
+        $currentStatus = $palets->first()->status;
+        if ($currentStatus === 'basah') {
+            $nextStatus = 'penjemuran';
+            $prefix = 'JMR';
+        } elseif ($currentStatus === 'penjemuran') {
+            $nextStatus = 'kering';
+            $prefix = 'KRG';
+        } else {
+            return back()->with('error', 'Status tidak valid untuk dipindahkan.');
+        }
+
+        // Generate kode input baru untuk status berikutnya
         $today = now()->toDateString();
         $date = now()->format('Ymd');
-        $prefix = 'JMR';
-        $last = \App\Models\PalletStock::where('status', 'penjemuran')
+        $last = PalletStock::where('status', $nextStatus)
             ->where('tanggal_input', $today)
             ->orderByDesc('input_code')
             ->first();
@@ -200,12 +255,12 @@ class PalletStockController extends Controller
 
         // Update status, input_code, dan tanggal_input ke hari ini
         foreach ($palets as $palet) {
-            $palet->status = 'penjemuran';
+            $palet->status = $nextStatus;
             $palet->input_code = $newInputCode;
             $palet->tanggal_input = $today;
             $palet->save();
         }
 
-        return back()->with('success', 'Palet berhasil dipindahkan ke penjemuran.');
+        return back()->with('success', 'Palet berhasil dipindahkan ke status ' . $nextStatus . '.');
     }
 }
