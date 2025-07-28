@@ -10,20 +10,16 @@ class WoodStock extends Model
     use HasFactory;
 
     /**
-     * Tabel yang digunakan oleh model ini.
-     *
      * @var string
      */
     protected $table = 'wood_stocks';
 
     /**
-     * Kolom yang dapat diisi secara massal.
-     *
      * @var array
      */
     protected $fillable = [
-        'wood_type',   // ubah dari wood_type_id
-        'grade',       // ubah dari grade_id
+        'wood_type',   
+        'grade',       
         'diameter',
         'panjang',
         'quantity',

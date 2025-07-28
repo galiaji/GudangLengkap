@@ -10,7 +10,7 @@ class WoodTransactionDetail extends Model
     use HasFactory;
 
     protected $fillable = [
-        'wood_transaction_id', // foreign key ke tabel wood_transactions
+        'wood_transaction_id', 
         'wood_type',
         'grade',
         'diameter',

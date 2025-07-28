@@ -24,11 +24,11 @@ class PalletPrice extends Model
         return $this->hasMany(PalletStock::class, 'pallet_code', 'pallet_code');
     }
 
-    // Relasi stok palet basah saja
-    public function basahStocks()
-    {
-        return $this->hasMany(PalletStock::class, 'pallet_code', 'pallet_code')
-            ->where('status', 'basah');
-    }
+    // // Relasi stok palet basah saja
+    // public function basahStocks()
+    // {
+    //     return $this->hasMany(PalletStock::class, 'pallet_code', 'pallet_code')
+    //         ->where('status', 'basah');
+    // }
 
 }

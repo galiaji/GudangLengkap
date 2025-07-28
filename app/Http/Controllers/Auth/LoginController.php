@@ -34,7 +34,7 @@ class LoginController extends Controller
 
         // If authentication fails, return back with error messages.
         return back()->withErrors([
-            'username' => 'The provided credentials do not match our records.',
+            'username' => 'Password atau Username salah !!!!!',
         ])->withInput();
     }
 }
