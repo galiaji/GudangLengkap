@@ -41,11 +41,28 @@ class PalletSaleController extends Controller
 
     public function store(Request $request)
     {
+        // Validasi input
         $request->validate([
             'tanggal' => 'required|date',
-            'customer' => 'required|string',
-            'keterangan' => 'nullable|string',
+            'customer' => 'required|string|max:255',
+            // Validasi minimal 1 item palet diisi
+            'basah' => 'array',
+            'kering' => 'array',
         ]);
+
+        $basahFilled = collect($request->basah)->filter(function($item) {
+            return intval($item['pcs'] ?? 0) > 0;
+        })->count();
+
+        $keringFilled = collect($request->kering)->filter(function($item) {
+            return intval($item['pcs'] ?? 0) > 0;
+        })->count();
+
+        if (($basahFilled + $keringFilled) < 1) {
+            return redirect()->back()
+                ->withInput()
+                ->with('Gagal', 'Minimal 1 item palet harus diisi jumlah PCS-nya!');
+        }
 
         try {
             DB::transaction(function () use ($request) {

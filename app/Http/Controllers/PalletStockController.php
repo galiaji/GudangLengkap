@@ -206,17 +206,27 @@ class PalletStockController extends Controller
         }
 
         if (!empty($data)) {
-            PalletStock::insert($data);
+        PalletStock::insert($data);
+
+        // Jika request AJAX
+        if ($request->ajax()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Data palet berhasil ditambahkan.'
             ]);
-        } else {
+        }
+
+        // Jika request biasa, redirect ke halaman stok pallet
+        return redirect()->route('pallet_stocks.index')->with('success', 'Data palet berhasil ditambahkan.');
+    } else {
+        if ($request->ajax()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak ada data yang disimpan. Pastikan jumlah diisi.'
             ], 422);
         }
+        return redirect()->back()->with('error', 'Tidak ada data yang disimpan. Pastikan jumlah diisi.');
+    }
     }
 
     public function moveToNextStatus($input_code)

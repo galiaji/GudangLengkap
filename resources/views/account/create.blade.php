@@ -81,22 +81,22 @@
                     @csrf
                     <div class="mb-3">
                         <label>Nama</label>
-                        <input type="text" name="name" class="form-control" placeholder="Nama" required>
+                        <input type="text" name="name" class="form-control" placeholder="Nama" value="{{ old('name') }}" required>
                     </div>
                     <div class="mb-3">
                         <label>Username</label>
-                        <input type="text" name="username" class="form-control" placeholder="Username" required>
+                        <input type="text" name="username" class="form-control" placeholder="Username" value="{{ old('username') }}" required>
                     </div>
                     <div class="mb-3">
                         <label>Email</label>
-                        <input type="email" name="email" class="form-control" placeholder="Email" required>
+                        <input type="email" name="email" class="form-control" placeholder="Email" value="{{ old('email') }}" required>
                     </div>
                     <div class="mb-3">
                         <label>Role</label>
                         <select name="role" class="form-control" required>
                             <option value="" disabled selected>Pilih Role</option>
-                            <option value="admin">Admin</option>
-                            <option value="staff">Staff</option>
+                            <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                            <option value="staff" {{ old('role') == 'staff' ? 'selected' : '' }}>Staff</option>
                         </select>
                     </div>
                     <div class="mb-3">

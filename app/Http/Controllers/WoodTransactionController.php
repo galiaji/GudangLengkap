@@ -13,7 +13,7 @@ class WoodTransactionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = \App\Models\WoodTransaction::query();
+        $query = WoodTransaction::query();
 
         if ($request->filled('jenis_transaksi')) {
             $query->where('jenis_transaksi', $request->jenis_transaksi);
@@ -35,7 +35,7 @@ class WoodTransactionController extends Controller
     {
         $woodTypes = ['Mahoni', 'Keras', 'Sengon'];
 
-        $stocks = \App\Models\WoodStock::whereIn('wood_type', $woodTypes)->get();
+        $stocks = WoodStock::whereIn('wood_type', $woodTypes)->get();
 
         // Mapping grade ke rentang
         $gradeRanges = [
@@ -125,7 +125,7 @@ class WoodTransactionController extends Controller
         DB::beginTransaction();
         try {
             // Simpan transaksi utama
-            $transaksi = \App\Models\WoodTransaction::create([
+            $transaksi = WoodTransaction::create([
                 'jenis_transaksi' => 'Pembelian',
                 'atas_nama' => $request->atas_nama,
                 'wood_type' => $request->wood_type,
@@ -136,7 +136,7 @@ class WoodTransactionController extends Controller
 
             // Simpan detail
             foreach ($request->details as $detail) {
-                \App\Models\WoodTransactionDetail::create([
+                WoodTransactionDetail::create([
                     'wood_transaction_id' => $transaksi->id,
                     'wood_type' => $request->wood_type,
                     'grade' => $detail['grade'],
@@ -148,7 +148,7 @@ class WoodTransactionController extends Controller
                 ]);
 
                 // Update stok (jika perlu)
-                $stock = \App\Models\WoodStock::where([
+                $stock = WoodStock::where([
                     'wood_type' => $request->wood_type,
                     'grade' => $detail['grade'],
                     'diameter' => $detail['diameter'],
@@ -158,7 +158,7 @@ class WoodTransactionController extends Controller
                     $stock->increment('quantity', $detail['pcs']);
                     $stock->increment('total_volume', $detail['volume']);
                 } else {
-                    \App\Models\WoodStock::create([
+                    WoodStock::create([
                         'wood_type' => $request->wood_type,
                         'grade' => $detail['grade'],
                         'diameter' => $detail['diameter'],
@@ -187,7 +187,7 @@ class WoodTransactionController extends Controller
     {
         $woodTypes = ['Mahoni', 'Keras', 'Sengon'];
 
-        $stocks = \App\Models\WoodStock::whereIn('wood_type', $woodTypes)->get();
+        $stocks = WoodStock::whereIn('wood_type', $woodTypes)->get();
 
         // Mapping grade ke rentang
         $gradeRanges = [
@@ -282,7 +282,7 @@ class WoodTransactionController extends Controller
         DB::beginTransaction();
         try {
             // Simpan transaksi utama
-            $transaksi = \App\Models\WoodTransaction::create([
+            $transaksi = WoodTransaction::create([
                 'jenis_transaksi' => 'Penjualan',
                 'atas_nama' => $request->atas_nama,
                 'wood_type' => $request->wood_type,
@@ -293,7 +293,7 @@ class WoodTransactionController extends Controller
 
             $errors = [];
             foreach ($request->details as $detail) {
-                $stock = \App\Models\WoodStock::where([
+                $stock = WoodStock::where([
                     'wood_type' => $request->wood_type,
                     'grade' => $detail['grade'],
                     'diameter' => $detail['diameter'],
@@ -319,7 +319,7 @@ class WoodTransactionController extends Controller
 
             // Simpan detail & update stok
             foreach ($request->details as $detail) {
-                \App\Models\WoodTransactionDetail::create([
+                WoodTransactionDetail::create([
                     'wood_transaction_id' => $transaksi->id,
                     'wood_type' => $request->wood_type,
                     'grade' => $detail['grade'],
@@ -331,7 +331,7 @@ class WoodTransactionController extends Controller
                 ]);
 
                 // Kurangi stok dengan pengecekan
-                $stock = \App\Models\WoodStock::where([
+                $stock = WoodStock::where([
                     'wood_type' => $request->wood_type,
                     'grade' => $detail['grade'],
                     'diameter' => $detail['diameter'],
@@ -362,14 +362,14 @@ class WoodTransactionController extends Controller
     public function show($hashid)
     {
         $id = Hashids::decode($hashid)[0] ?? null;
-        $transaksi = \App\Models\WoodTransaction::findOrFail($id);
+        $transaksi = WoodTransaction::findOrFail($id);
         return view('wood_transactions.show', compact('transaksi'));
     }
 
     public function laporanHarian()
     {
         $today = now()->toDateString();
-        $transaksi = \App\Models\WoodTransaction::whereDate('tanggal_transaksi', $today)->get();
+        $transaksi = WoodTransaction::whereDate('tanggal_transaksi', $today)->get();
 
         $total_volume = 0;
         $total_pembayaran = 0;
@@ -399,7 +399,7 @@ class WoodTransactionController extends Controller
         $bulan = $request->input('bulan', now()->format('m'));
         $tahun = $request->input('tahun', now()->format('Y'));
 
-        $transaksi = \App\Models\WoodTransaction::whereYear('tanggal_transaksi', $tahun)
+        $transaksi = WoodTransaction::whereYear('tanggal_transaksi', $tahun)
             ->whereMonth('tanggal_transaksi', $bulan)
             ->get();
 
@@ -430,7 +430,7 @@ class WoodTransactionController extends Controller
     {
         $tahun = $request->input('tahun', now()->format('Y'));
 
-        $transaksi = \App\Models\WoodTransaction::whereYear('tanggal_transaksi', $tahun)
+        $transaksi = WoodTransaction::whereYear('tanggal_transaksi', $tahun)
             ->get();
 
         $total_volume = 0;

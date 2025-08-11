@@ -22,19 +22,27 @@ class AccountController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users',
-            'email' => 'required|email|max:255|unique:users',
-            'role' => 'required|in:admin,staff,user',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'username' => 'required|string|max:255|unique:users',
+                'email' => 'required|email|max:255|unique:users',
+                'role' => 'required|in:admin,staff,user',
+                'password' => 'required|string|min:6|confirmed',
+            ], [
+                'password.required' => 'Password wajib diisi.',
+                'password.min' => 'Password minimal 6 karakter.',
+                'password.confirmed' => 'Konfirmasi password tidak sesuai.',
+            ]);
 
-        $validated['password'] = bcrypt($validated['password']);
+            $validated['password'] = bcrypt($validated['password']);
 
-        User::create($validated);
+            User::create($validated);
 
-        return redirect()->route('account.index')->with('success', 'Akun berhasil ditambahkan!');
+            return redirect()->route('account.index')->with('success', 'Akun berhasil ditambahkan!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()->withErrors($e->validator)->withInput();
+        }
     }
 
     public function show($hashid)

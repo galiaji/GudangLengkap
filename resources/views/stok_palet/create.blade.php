@@ -175,7 +175,9 @@
             if (body.success) {
                 document.getElementById('successModalMsg').innerText = body.message;
                 new bootstrap.Modal(document.getElementById('successModal')).show();
-                // Optional: reload/redirect setelah sukses
+                setTimeout(function() {
+                    window.location.href = "{{ route('pallet_stocks.index') }}";
+                }, 1000);
             } else {
                 document.getElementById('errorModalMsg').innerText = body.message || 'Terjadi kesalahan.';
                 new bootstrap.Modal(document.getElementById('errorModal')).show();

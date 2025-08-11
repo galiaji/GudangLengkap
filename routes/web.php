@@ -63,9 +63,7 @@ Route::middleware('auth')->group(function () {
         })->name('account.profile');
     });
 
-    // Harga Palet
-    Route::resource('pallet-prices', PalletPriceController::class)->only(['index', 'edit', 'update']);
-
+  
     // Stok Palet (semua status: basah & penjemuran)
     Route::get('pallet-stocks/create', [PalletStockController::class, 'create'])->name('pallet_stocks.create');
     Route::post('pallet-stocks', [PalletStockController::class, 'store'])->name('pallet_stocks.store');

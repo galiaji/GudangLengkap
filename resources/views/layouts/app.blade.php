@@ -549,10 +549,13 @@
                     <i class="bi bi-plus-square"></i>
                     <span class="sidebar-label">Stok Palet</span>
                 </a>
-                <a href="{{ route('pallet-prices.index') }}" class="btn btn-sidebar" title="Harga Palet">
-                         <i class="bi bi-cash-coin"></i>
-                    <span class="sidebar-label">Harga Palet</span>
-                </a>
+                {{-- Harga Palet hanya untuk admin --}}
+                @if(auth()->user() && auth()->user()->role === 'admin')
+                    <a href="{{ route('pallet-prices.index') }}" class="btn btn-sidebar" title="Harga Palet">
+                        <i class="bi bi-cash-coin"></i>
+                        <span class="sidebar-label">Harga Palet</span>
+                    </a>
+                @endif
                 <a href="{{ route('pallet-sales.index') }}" class="btn btn-sidebar" title="Riwayat Penjualan Palet">
                     <i class="bi bi-receipt"></i>
                     <span class="sidebar-label">Penjualan Palet</span>
@@ -562,7 +565,7 @@
                 @if(auth()->user() && auth()->user()->role === 'admin')
                     <a href="{{ route('account.index') }}" class="btn btn-sidebar" title="Manage Akun">
                         <i class="bi bi-person-circle"></i>
-                        <span class="sidebar-label">Akun</span>
+                        <span class="sidebar-label"> Manage Account</span>
                     </a>
                 @endif
                 <form action="{{ route('logout') }}" method="POST" class="w-100 mt-2">

@@ -167,13 +167,6 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="text-center mb-4 flex-grow-1">Statistik Stock</h1>
-    <div>
-        @foreach($woodTypes as $type)
-            <a href="/export-stok-pdf/{{ $type }}" class="btn btn-danger d-print-none me-2 mb-1">
-                <i class="bi bi-file-earmark-pdf"></i> Laporan Stock {{ $type }} PDF 
-            </a>
-        @endforeach
-    </div>
 </div>
 
 <div class="d-none d-print-block mb-3 text-end" style="font-size:13px;">
