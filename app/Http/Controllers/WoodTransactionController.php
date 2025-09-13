@@ -199,7 +199,6 @@ class WoodTransactionController extends Controller
             'Super 2' => 'Super 25 Up',
         ];
 
-        // Buat array asosiatif: $grades[grade] = [diameter1, diameter2, ...]
         $grades = [];
         foreach ($stocks as $stock) {
             $grades[$stock->grade][] = $stock->diameter;
