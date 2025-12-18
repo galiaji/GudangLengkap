@@ -13,6 +13,7 @@ class WoodPrice extends Model
         'wood_type',      // ubah dari wood_type_id
         'grade',          // ubah dari grade_id
         'panjang',
-        'price_per_m3',
+        'harga_beli_per_m3',
+        'harga_jual_per_m3'
     ];
 }
