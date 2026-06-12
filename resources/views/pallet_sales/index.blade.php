@@ -77,7 +77,7 @@
         <table class="table table-bordered table-striped align-middle">
             <thead>
                 <tr>
-                    <th>Kode Transaksi</th>
+                   <!-- <th>Kode Transaksi</th> -->
                     <th>
                         @php
                             $nextDirection = (request('direction', 'desc') === 'asc') ? 'desc' : 'asc';
@@ -103,7 +103,7 @@
             <tbody>
                 @forelse($sales as $sale)
                 <tr>
-                    <td>{{ substr($sale->kode_transaksi, -5) }}</td>
+                    <!-- <td>{{ substr($sale->kode_transaksi, -5) }}</td> -->
                     <td>{{ date('d/m/Y', strtotime($sale->tanggal)) }}</td>
                     <td>{{ $sale->customer }}</td>
                     <td>{{ $sale->keterangan }}</td>

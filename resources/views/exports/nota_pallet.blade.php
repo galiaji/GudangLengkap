@@ -33,7 +33,7 @@
     <table class="info-table" style="width:100%; margin-bottom:10px;">
         <tr>
             <td class="info-kiri" style="width:60%; vertical-align:top;">
-                <strong>No. Transaksi:</strong> {{ $sale->kode_transaksi ?? '-' }}<br>
+                <!-- <strong>No. Transaksi:</strong> {{ $sale->kode_transaksi ?? '-' }}<br> -->
                 <strong>Tanggal:</strong> {{ \Carbon\Carbon::parse($sale->tanggal)->format('d-m-Y') ?? '-' }}<br>
                 <strong>Pelanggan:</strong> {{ $sale->customer ?? '-' }}
             </td>

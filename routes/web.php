@@ -23,7 +23,7 @@ Route::middleware('auth')->group(function () {
     // Hanya admin yang boleh akses harga kayu & akun
     Route::middleware('role:admin')->group(function () {
         Route::get('/wood_prices', [\App\Http\Controllers\WoodPriceController::class, 'index'])->name('wood_prices.index');
-        Route::put('wood-prices/{wood_price}', [\App\Http\Controllers\WoodPriceController::class, 'update'])->name('wood_prices.update');
+        // Route::put('wood-prices/{wood_price}', [\App\Http\Controllers\WoodPriceController::class, 'update'])->name('wood_prices.update');
         Route::post('/wood_prices/{id}/update-beli', [\App\Http\Controllers\WoodPriceController::class, 'updateBeli'])->name('wood_prices.updateBeli');
         Route::post('/wood_prices/{id}/update-jual', [\App\Http\Controllers\WoodPriceController::class, 'updateJual'])->name('wood_prices.updateJual');
             

@@ -14,7 +14,7 @@ return new class extends Migration
         // Tabel transaksi penjualan palet (header)
         Schema::create('pallet_sales', function (Blueprint $table) {
             $table->id();
-            $table->string('kode_transaksi')->unique();
+            // $table->string('kode_transaksi')->unique();
             $table->date('tanggal');
             $table->string('customer')->nullable();
             $table->text('keterangan')->nullable();
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->enum('status', ['basah', 'penjemuran']);
             $table->integer('pcs');
             $table->decimal('volume', 10, 3);
-            $table->decimal('harga_satuan', 12, 2);
+            // $table->decimal('harga_satuan', 12, 2);
             $table->decimal('subtotal', 14, 2);
             $table->timestamps();
 

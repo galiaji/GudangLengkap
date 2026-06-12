@@ -67,7 +67,7 @@ class PalletSaleController extends Controller
         try {
             DB::transaction(function () use ($request) {
                 $sale = PalletSale::create([
-                    'kode_transaksi' => 'PJ-PLT-' . date('YmdHis'),
+                    // 'kode_transaksi' => 'PJ-PLT-' . date('YmdHis'),
                     'tanggal' => $request->tanggal,
                     'customer' => $request->customer,
                     'keterangan' => $request->keterangan,
@@ -91,7 +91,7 @@ class PalletSaleController extends Controller
                             'status' => 'basah',
                             'pcs' => $pcsNeeded,
                             'volume' => $totalVolume,
-                            'harga_satuan' => $harga, // harga basah
+                            // 'harga_satuan' => $harga, // harga basah
                             'subtotal' => $subtotal,
                         ]);
 
@@ -147,7 +147,7 @@ class PalletSaleController extends Controller
                             'status' => 'kering',
                             'pcs' => $pcsNeeded,
                             'volume' => $totalVolume,
-                            'harga_satuan' => $harga, // harga kering
+                            // 'harga_satuan' => $harga, // harga kering
                             'subtotal' => $subtotal,
                         ]);
 
@@ -261,7 +261,7 @@ class PalletSaleController extends Controller
             'grand_total_kering'
         ))->setPaper('a5', 'landscape');
 
-        return $pdf->download('nota-pallet-'.$sale->kode_transaksi.'.pdf');
+        return $pdf->download("nota-pallet-{$sale->customer}-{$sale->tanggal}.pdf");
     }
 
     public function laporanMingguan(Request $request)

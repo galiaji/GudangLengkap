@@ -14,13 +14,6 @@ class PalletPriceController extends Controller
         return view('stok_palet.indexHarga', compact('palletPrices'));
     }
 
-    // Tampilkan form edit harga palet
-    public function edit($id)
-    {
-        $palletPrice = PalletPrice::findOrFail($id);
-        return view('stok_palet.edit', compact('palletPrice'));
-    }
-
     // Update harga palet
     public function update(Request $request, $id)
     {
