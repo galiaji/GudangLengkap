@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('ukuran');
             $table->integer('pcs');
             $table->decimal('volume', 10, 3);
-            $table->enum('status', ['basah', 'penjemuran']);
+            $table->enum('status', ['basah', 'penjemuran', 'kering']);
             $table->string('input_code')->nullable(); // gunakan lowercase agar konsisten
             $table->date('tanggal_input');
             $table->timestamps();

@@ -27,7 +27,7 @@ return new class extends Migration
             $table->foreignId('pallet_sale_id')->constrained('pallet_sales')->onDelete('cascade');
             $table->string('pallet_code');
             $table->string('ukuran');
-            $table->enum('status', ['basah', 'penjemuran']);
+            $table->enum('status', ['basah', 'penjemuran', 'kering']);
             $table->integer('pcs');
             $table->decimal('volume', 10, 3);
             // $table->decimal('harga_satuan', 12, 2);
