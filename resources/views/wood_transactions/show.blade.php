@@ -233,7 +233,7 @@
     <a href="#" class="print-btn no-capture" onclick="window.print()">Print / PDF</a>
     <a href="#" class="print-btn no-capture" id="download-img-btn">Download Gambar</a>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="{{ asset('js/html2canvas.min.js') }}"></script>
 <script>
 document.getElementById('download-img-btn').addEventListener('click', function(e) {
     e.preventDefault();

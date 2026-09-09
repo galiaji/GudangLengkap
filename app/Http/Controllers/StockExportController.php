@@ -18,5 +18,4 @@ class StockExportController extends Controller
 
         return $pdf->download('laporan-stok-' . strtolower($woodType) . '.pdf');
     }
-    
 }

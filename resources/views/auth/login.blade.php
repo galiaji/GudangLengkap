@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Gudang Kayu</title>
     <!-- Tailwind CSS -->
+     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         input[type="text"], input[type="password"] {
@@ -53,10 +54,33 @@
 
                 <!-- Password Field -->
                 <div class="mb-6">
-                    <label for="password" class="block text-green-900 mb-1 font-semibold">Password :</label>
-                    <input type="password" name="password" id="password" required
-                        class="w-full px-3 py-2 rounded bg-green-50 focus:ring-2 focus:ring-green-300 transition" autocomplete="current-password">
+                      <label for="password" class="block text-green-900 mb-1 font-semibold">Password :</label>
+                        <div class="relative">
+                            <input type="password" name="password" id="password" required
+                            class="w-full px-3 py-2 rounded bg-green-50 focus:ring-2 focus:ring-green-300 transition"
+                            autocomplete="current-password">
+                            <button type="button" onclick="togglePassword()" 
+                            class="absolute right-3 top-2 text-green-700">
+                            <i id="toggleIcon" class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <script>
+                        function togglePassword() {
+                        const input = document.getElementById("password");
+                        const icon = document.getElementById("toggleIcon");
+                        if (input.type === "password") {
+                            input.type = "text";
+                            icon.classList.remove("bi-eye");
+                            icon.classList.add("bi-eye-slash");
+                        } else {
+                            input.type = "password";
+                            icon.classList.remove("bi-eye-slash");
+                            icon.classList.add("bi-eye");
+                        }
+                        }
+                        </script>
                 </div>
+                
 
                 <!-- Login Button -->
                 <div>
