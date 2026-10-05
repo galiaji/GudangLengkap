@@ -10,8 +10,8 @@ class WoodPrice extends Model
     use HasFactory;
 
     protected $fillable = [
-        'wood_type',      // ubah dari wood_type_id
-        'grade',          // ubah dari grade_id
+        'wood_type',      
+        'grade',          
         'panjang',
         'harga_beli_per_m3',
         'harga_jual_per_m3'

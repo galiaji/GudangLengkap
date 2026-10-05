@@ -79,15 +79,7 @@ class WoodTransactionController extends Controller
 
         $jenisKayu = request()->wood_type ?? null;
 
-        // Ambil semua harga dari wood_prices
-        $allPrices = DB::table('wood_prices')->get();
-        $hargaPerM3 = [];
-        foreach ($allPrices as $row) {
-            $hargaPerM3[$row->wood_type][$row->grade][$row->panjang] = [
-                'beli' => $row->harga_beli_per_m3,
-                'jual' => $row->harga_jual_per_m3,
-            ];
-        }
+        $hargaPerM3 = (new WoodPriceController)->getHargaPerM3();
 
         return view('wood_transactions.buy', compact(
             'jenisKayu', 'woodTypes', 'grades', 'allowedLengths', 'volumes', 'hargaPerM3'
@@ -230,14 +222,7 @@ class WoodTransactionController extends Controller
         $jenisKayu = request()->wood_type ?? null;
 
         // Ambil semua harga dari wood_prices
-        $allPrices = DB::table('wood_prices')->get();
-        $hargaPerM3 = [];
-        foreach ($allPrices as $row) {
-            $hargaPerM3[$row->wood_type][$row->grade][$row->panjang] = [
-                'beli' => $row->harga_beli_per_m3,
-                'jual' => $row->harga_jual_per_m3,
-            ];
-        }
+        $hargaPerM3 = (new WoodPriceController)->getHargaPerM3();
 
         return view('wood_transactions.sell', [
             'woodTypes' => $woodTypes,

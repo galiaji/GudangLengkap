@@ -74,4 +74,18 @@ class WoodPriceController extends Controller
 
         return redirect()->route('wood_prices.index')->with('success', 'Harga jual berhasil diperbarui.');
     }
+    public function getHargaPerM3()
+    {
+        $allPrices = WoodPrice::all();
+        $hargaPerM3 = [];
+
+        foreach ($allPrices as $row) {
+            $hargaPerM3[$row->wood_type][$row->grade][$row->panjang] = [
+                'beli' => $row->harga_beli_per_m3,
+                'jual' => $row->harga_jual_per_m3,
+            ];
+        }
+
+        return $hargaPerM3;
+    }
 }

@@ -26,4 +26,5 @@ class WoodStock extends Model
         'total_volume',
         'volume',
     ];
+    
 }
