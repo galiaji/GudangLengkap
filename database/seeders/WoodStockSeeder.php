@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\WoodPrice;
 
 class WoodStockSeeder extends Seeder
 {
@@ -15,16 +16,16 @@ class WoodStockSeeder extends Seeder
         $gradesArr = [
             'Storty 1' => [13, 14, 15],
             'Storty 2' => [16, 17, 18],
-            'Super 1' => [19, 20, 21, 22, 23, 24,25],
-            'Super 2' => [26, 27, 28, 29, 30],
-            'Rijek 1' => [10, 11, 12,13, 14, 15],
-            'Rijek 2' => [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+            'Super 1'  => [19, 20, 21, 22, 23, 24, 25],
+            'Super 2'  => [26, 27, 28, 29, 30],
+            'Rijek 1'  => [10, 11, 12, 13, 14, 15],
+            'Rijek 2'  => [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
         ];
 
         $allowedLengths = [
-            'Rijek' => [100, 130],
+            'Rijek'  => [100, 130],
             'Storty' => [130],
-            'Super' => [130, 200],
+            'Super'  => [130, 200],
         ];
 
         // Volume per batang (diameter x panjang)
@@ -54,35 +55,44 @@ class WoodStockSeeder extends Seeder
 
         foreach (['Mahoni', 'Keras', 'Sengon'] as $woodType) {
             foreach ($gradesArr as $gradeName => $diameters) {
-                $prefix = explode(' ', $gradeName)[0];
+                $prefix  = explode(' ', $gradeName)[0];
                 $allowed = $allowedLengths[$prefix] ?? [];
 
                 foreach ($diameters as $diameter) {
                     foreach ($allowed as $length) {
-                        // Ambil volume dari array $volumes
-                        $volume = isset($volumes[$diameter][$length]) ? $volumes[$diameter][$length] : null;
+                        $volume = $volumes[$diameter][$length] ?? null;
 
                         if ($volume !== null) {
-                            $exists = DB::table('wood_stocks')
-                                ->where('wood_type', $woodType)
-                                ->where('grade', $gradeName)
-                                ->where('diameter', $diameter)
-                                ->where('panjang', $length)
-                                ->exists();
-
-                            if (!$exists) {
-                                DB::table('wood_stocks')->insert([
+                            // Pastikan harga ada dulu
+                            $price = WoodPrice::firstOrCreate(
+                                [
                                     'wood_type' => $woodType,
-                                    'grade' => $gradeName,
-                                    'diameter' => $diameter,
-                                    'panjang' => $length,
-                                    'quantity' => 0,
-                                    'total_volume' => 0,
-                                    'volume' => $volume / 1000,
-                                    'created_at' => now(),
-                                    'updated_at' => now(),
-                                ]);
-                            }
+                                    'grade'     => $gradeName,
+                                    'panjang'   => $length,
+                                ],
+                                [
+                                    'harga_beli_per_m3' => 0,
+                                    'harga_jual_per_m3' => 0,
+                                ]
+                            );
+
+                            // Insert stok jika belum ada
+                            DB::table('wood_stocks')->updateOrInsert(
+                                [
+                                    'wood_type' => $woodType,
+                                    'grade'     => $gradeName,
+                                    'diameter'  => $diameter,
+                                    'panjang'   => $length,
+                                ],
+                                [
+                                    'quantity'      => 0,
+                                    'total_volume'  => 0,
+                                    'volume'        => $volume / 1000,
+                                    'wood_price_id' => $price->id,
+                                    'created_at'    => now(),
+                                    'updated_at'    => now(),
+                                ]
+                            );
                         }
                     }
                 }

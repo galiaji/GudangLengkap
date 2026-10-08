@@ -16,4 +16,9 @@ class WoodPrice extends Model
         'harga_beli_per_m3',
         'harga_jual_per_m3'
     ];
+
+    public function stocks()
+    {
+        return $this->hasMany(WoodStock::class, 'wood_price_id');
+    }
 }

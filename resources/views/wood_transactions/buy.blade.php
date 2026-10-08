@@ -120,11 +120,12 @@
                 <form id="form-transaksi" autocomplete="off">
                     <div class="mb-3 d-flex align-items-center" style="max-width:320px;">
                         <label class="mb-0 me-2" style="min-width:90px;">Atas Nama :</label>
-                        <input type="text" name="atas_nama" class="form-control" style="width:180px;" placeholder="(wajib diisi)">
+                        <input type="text" name="atas_nama" class="form-control" 
+                            style="width:180px;" placeholder="(wajib diisi)">
                     </div>
                     <div class="mb-3 d-flex align-items-center" style="max-width:320px;">
                         <label for="wood_type" class="mb-0 me-2" style="min-width:90px;">Jenis Kayu :</label>
-                        <select name="wood_type" id="wood_type" class="form-control" style="width:180px;" required>
+                        <select name="wood_type" id="wood_type" class="form-control" style="width:180px;">
                             <option value="" disabled selected>Pilih jenis kayu</option>
                             @foreach ($woodTypes as $type)
                                 <option value="{{ $type }}">{{ $type }}</option>
@@ -222,6 +223,19 @@
             </div>
         </div>
     </div>
+</div>
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="errorModalLabel">Gagal</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body" id="errorModalMsg">
+        Terjadi kesalahan saat menyimpan transaksi.
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Modal Sukses -->
@@ -330,12 +344,21 @@
     // Jalankan saat halaman pertama kali dimuat
     document.addEventListener('DOMContentLoaded', updateSummary);
 
-    document.querySelector('#form-transaksi').addEventListener('submit', function(e) {
+    document.addEventListener('DOMContentLoaded', function() {
+    function showErrorModal(message) {
+        document.getElementById('errorModalMsg').innerHTML = message;
+        var errorModal = new bootstrap.Modal(document.getElementById('errorModal'), {
+            backdrop: 'static',
+            keyboard: false
+        });
+        errorModal.show();
+    }
+
+    document.getElementById('form-transaksi').addEventListener('submit', function(e) {
         e.preventDefault();
 
-        // Ambil data utama
-        const atas_nama = document.querySelector('[name="atas_nama"]').value;
-        const wood_type = document.querySelector('[name="wood_type"]').value;
+        const atas_nama = document.querySelector('[name="atas_nama"]').value.trim();
+        const wood_type = document.querySelector('[name="wood_type"]').value.trim();
         const total_volume = parseNumber(document.getElementById('grandTotalVolume').textContent);
         const total_pembayaran = parseNumber(document.getElementById('grandTotalBayar').textContent);
 
@@ -349,7 +372,6 @@
                     let input = document.querySelector('input[name="pcs['+grade+']['+d+']['+p+']"]');
                     let pcs = input ? parseInt(input.value) || 0 : 0;
                     if (pcs > 0) {
-                        // Hitung volume dan total bayar per diameter
                         let volPerBatang = (volumes[d] && volumes[d][p]) ? parseFloat(volumes[d][p]) : 0;
                         let volume = pcs * volPerBatang;
                         let harga_per_m3 = 0;
@@ -360,21 +382,31 @@
                         ) {
                             harga_per_m3 = parseFloat(hargaPerM3[wood_type][grade][p]['beli']) || 0;
                         }
-                        let total_bayar_per_diameter = volume * harga_per_m3;
                         details.push({
                             grade: grade,
                             diameter: d,
                             panjang: p,
                             pcs: pcs,
                             volume: volume,
-                            harga: total_bayar_per_diameter
+                            harga: volume * harga_per_m3
                         });
                     }
                 });
             });
         });
 
-        // Kirim via AJAX
+        // Validasi input wajib + minimal 1 log kayu
+        let errors = [];
+        if (!atas_nama) errors.push('Kolom Atas Nama wajib diisi.');
+        if (!wood_type) errors.push('Jenis Kayu wajib dipilih.');
+        if (details.length === 0) errors.push('Minimal 1 log kayu harus dimasukkan.');
+
+        if (errors.length > 0) {
+            showErrorModal(errors.join('<br>'));
+            return; // hentikan, jangan kirim AJAX
+        }
+
+        // Kirim via AJAX hanya kalau valid
         fetch("{{ route('wood_transactions.storeBuy') }}", {
             method: 'POST',
             headers: {
@@ -382,21 +414,21 @@
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             body: JSON.stringify({
-                atas_nama: atas_nama,
-                wood_type: wood_type,
-                total_volume: total_volume,
-                total_pembayaran: total_pembayaran,
-                details: details
+                atas_nama,
+                wood_type,
+                total_volume,
+                total_pembayaran,
+                details,
+                jenis_transaksi: 'Pembelian'
             })
         })
         .then(async res => {
-            let data;
-            try {
-                data = await res.json();
-            } catch (e) {
-                throw new Error('Gagal membaca respon server.');
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Server tidak mengembalikan JSON.");
             }
-            // Selalu tampilkan error dari backend jika validasi gagal
+            let data = await res.json();
+
             if (res.ok && data.success) {
                 document.getElementById('successModalMsg').innerHTML = 'Transaksi berhasil disimpan!';
                 var successModal = new bootstrap.Modal(document.getElementById('successModal'), {
@@ -404,46 +436,25 @@
                     keyboard: false
                 });
                 successModal.show();
-
-                setTimeout(function() {
-                    window.location.href = data.redirect_url;
-                }, 2000);
+                setTimeout(() => window.location.href = data.redirect_url, 2000);
             } else {
                 let msg = data.message || 'Terjadi kesalahan.';
                 if (data.errors) {
                     msg += '<ul style="margin:8px 0 0 16px;padding:0;">';
-                    Object.values(data.errors).forEach(function(errArr) {
-                        errArr.forEach(function(err) {
-                            msg += '<li>' + err + '</li>';
-                        });
+                    Object.values(data.errors).forEach(errArr => {
+                        errArr.forEach(err => { msg += '<li>' + err + '</li>'; });
                     });
                     msg += '</ul>';
                 }
-                document.getElementById('errorModalMsg').innerHTML = msg;
-                var errorModal = new bootstrap.Modal(document.getElementById('errorModal'), {
-                    backdrop: 'static',
-                    keyboard: false
-                });
-                errorModal.show();
+                showErrorModal(msg);
             }
         })
         .catch(error => {
-            let msg = 'Gagal: ';
-            if (error && error.message) {
-                msg += error.message;
-            } else if (typeof error === 'string') {
-                msg += error;
-            } else {
-                msg += 'Terjadi kesalahan tidak diketahui.';
-            }
-            document.getElementById('errorModalMsg').innerHTML = msg;
-            var errorModal = new bootstrap.Modal(document.getElementById('errorModal'), {
-                backdrop: 'static',
-                keyboard: false
-            });
-            errorModal.show();
+            showErrorModal('Gagal: ' + (error.message || 'Terjadi kesalahan tidak diketahui.'));
         });
     });
+});
+
 
     // Trigger updateSummary saat wood_type berubah
     document.getElementById('wood_type').addEventListener('change', updateSummary);

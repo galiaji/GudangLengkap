@@ -124,7 +124,7 @@
                     </div>
                     <div class="mb-3 d-flex align-items-center" style="max-width:320px;">
                         <label for="wood_type" class="mb-0 me-2" style="min-width:90px;">Jenis Kayu :</label>
-                        <select name="wood_type" id="wood_type" class="form-control" style="width:180px;" required>
+                        <select name="wood_type" id="wood_type" class="form-control" style="width:180px;">
                             <option value="" disabled selected>Pilih jenis kayu</option>
                             @foreach ($woodTypes as $type)
                                 <option value="{{ $type }}">{{ $type }}</option>
@@ -253,17 +253,17 @@
   </div>
 </div>
 <script>
-    const volumes = @json($volumes);
+ const volumes = @json($volumes);
     const hargaPerM3 = @json($hargaPerM3);
     const grades = @json($grades);
     const allowedLengths = @json($allowedLengths);
+    const stockData = @json($stockData);
 
     function gradeSafe(str) {
         return str.replace(/[\s\/\\\.,]/g, '_');
     }
 
     function parseNumber(str) {
-        // Hilangkan semua karakter selain angka dan titik/koma
         if (typeof str === 'string') {
             str = str.replace(/[^0-9.,-]/g, '').replace(/\./g, '').replace(',', '.');
         }
@@ -272,7 +272,7 @@
 
     function updateSummary() {
         let grandVolume = 0;
-        let grandBayarBeli = 0;
+        let grandBayarJual = 0;
         const selectedWoodType = document.getElementById('wood_type').value;
 
         Object.keys(grades).forEach(function(grade) {
@@ -281,10 +281,10 @@
             let allowed = allowedLengths[grade] || [];
 
             allowed.forEach(function(p) {
-                let totalPcs = 0, totalVol = 0, totalBayarBeli = 0;
+                let totalPcs = 0, totalVol = 0, totalBayarPerPanjang = 0;
 
                 diameters.forEach(function(d) {
-                    let input = document.querySelector('input[name="pcs['+grade+']['+d+']['+p+']"]');
+                    let input = document.querySelector(`input[name="pcs[${grade}][${d}][${p}]"]`);
                     let pcs = input ? parseInt(input.value) || 0 : 0;
                     totalPcs += pcs;
 
@@ -292,161 +292,150 @@
                     totalVol += pcs * volPerBatang;
                 });
 
-                // Ambil harga sesuai wood_type terpilih
-                let hargaBeli = 0;
+                let hargaJual = 0;
                 if (
                     hargaPerM3[selectedWoodType] &&
                     hargaPerM3[selectedWoodType][grade] &&
                     hargaPerM3[selectedWoodType][grade][p]
                 ) {
-                    hargaBeli = parseFloat(hargaPerM3[selectedWoodType][grade][p]['beli']) || 0;
+                    hargaJual = parseFloat(hargaPerM3[selectedWoodType][grade][p]['jual']) || 0;
                 }
-                totalBayarBeli = totalVol * hargaBeli;
-
-                // Update ke tabel
-                let pcsCell = document.querySelector('.total-pcs[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
-                let volCell = document.querySelector('.total-volume[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
-                let bayarCell = document.querySelector('.total-bayar[data-grade="'+gradeSafeStr+'"][data-panjang="'+p+'"]');
+                totalBayarPerPanjang = totalVol * hargaJual;
+                let pcsCell = document.querySelector(`.total-pcs[data-grade="${gradeSafeStr}"][data-panjang="${p}"]`);
+                let volCell = document.querySelector(`.total-volume[data-grade="${gradeSafeStr}"][data-panjang="${p}"]`);
+                let bayarCell = document.querySelector(`.total-bayar[data-grade="${gradeSafeStr}"][data-panjang="${p}"]`);
                 if (pcsCell) pcsCell.textContent = totalPcs;
                 if (volCell) volCell.textContent = totalVol.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
-                if (bayarCell) bayarCell.textContent = 'Rp' + totalBayarBeli.toLocaleString('id-ID');
+                if (bayarCell) bayarCell.textContent = 'Rp' + totalBayarPerPanjang.toLocaleString('id-ID');
 
                 grandVolume += totalVol;
-                grandBayarBeli += totalBayarBeli;
+                grandBayarJual += totalBayarPerPanjang;
             });
         });
-
         document.getElementById('grandTotalVolume').textContent = grandVolume.toLocaleString('id-ID', {minimumFractionDigits:3, maximumFractionDigits:3});
-        document.getElementById('grandTotalBayar').textContent = grandBayarBeli.toLocaleString('id-ID');
+        document.getElementById('grandTotalBayar').textContent = grandBayarJual.toLocaleString('id-ID');
         document.getElementById('inputTotalVolume').value = grandVolume;
-        document.getElementById('inputTotalBayar').value = grandBayarBeli;
+        document.getElementById('inputTotalBayar').value = grandBayarJual;
     }
 
-    // Jalankan saat input berubah
-    document.querySelectorAll('.pcs-input').forEach(input => {
-        input.addEventListener('input', updateSummary);
-    });
-
-    // Jalankan saat halaman pertama kali dimuat
-    document.addEventListener('DOMContentLoaded', updateSummary);
-
-    document.querySelector('#form-transaksi').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        // Ambil data utama
-        const atas_nama = document.querySelector('[name="atas_nama"]').value;
-        const wood_type = document.querySelector('[name="wood_type"]').value;
-        const total_volume = parseNumber(document.getElementById('grandTotalVolume').textContent);
-        const total_pembayaran = parseNumber(document.getElementById('grandTotalBayar').textContent);
-
-        // Kumpulkan detail
-        let details = [];
-        Object.keys(grades).forEach(function(grade) {
-            let diameters = grades[grade];
-            let allowed = allowedLengths[grade] || [];
-            allowed.forEach(function(p) {
-                diameters.forEach(function(d) {
-                    let input = document.querySelector('input[name="pcs['+grade+']['+d+']['+p+']"]');
-                    let pcs = input ? parseInt(input.value) || 0 : 0;
-                    if (pcs > 0) {
-                        // Hitung volume dan total bayar per diameter
-                        let volPerBatang = (volumes[d] && volumes[d][p]) ? parseFloat(volumes[d][p]) : 0;
-                        let volume = pcs * volPerBatang;
-                        let harga_per_m3 = 0;
-                        if (
-                            hargaPerM3[wood_type] &&
-                            hargaPerM3[wood_type][grade] &&
-                            hargaPerM3[wood_type][grade][p]
-                        ) {
-                            harga_per_m3 = parseFloat(hargaPerM3[wood_type][grade][p]['beli']) || 0;
-                        }
-                        let total_bayar_per_diameter = volume * harga_per_m3;
-                        details.push({
-                            grade: grade,
-                            diameter: d,
-                            panjang: p,
-                            pcs: pcs,
-                            volume: volume,
-                            harga: total_bayar_per_diameter
-                        });
-                    }
-                });
-            });
+    document.addEventListener('DOMContentLoaded', function() {
+        // Pasang listener setelah DOM siap
+        document.querySelectorAll('.pcs-input').forEach(input => {
+            input.addEventListener('input', updateSummary);
         });
+        document.getElementById('wood_type').addEventListener('change', updateSummary);
 
-        // Kirim via AJAX
-        fetch("{{ route('wood_transactions.storeSaw') }}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                atas_nama: atas_nama,
-                wood_type: wood_type,
-                total_volume: total_volume,
-                total_pembayaran: total_pembayaran,
-                details: details,
-                jenis_transaksi: 'gergajian' // <--- Tambahkan ini
-            })
-        })
-        .then(async res => {
-            let data;
-            try {
-                data = await res.json();
-            } catch (e) {
-                throw new Error('Gagal membaca respon server.');
-            }
-            // Selalu tampilkan error dari backend jika validasi gagal
-            if (res.ok && data.success) {
-                document.getElementById('successModalMsg').innerHTML = 'Transaksi berhasil disimpan!';
-                var successModal = new bootstrap.Modal(document.getElementById('successModal'), {
-                    backdrop: 'static',
-                    keyboard: false
-                });
-                successModal.show();
-
-                setTimeout(function() {
-                    window.location.href = data.redirect_url;
-                }, 2000);
-            } else {
-                let msg = data.message || 'Terjadi kesalahan.';
-                if (data.errors) {
-                    msg += '<ul style="margin:8px 0 0 16px;padding:0;">';
-                    Object.values(data.errors).forEach(function(errArr) {
-                        errArr.forEach(function(err) {
-                            msg += '<li>' + err + '</li>';
-                        });
-                    });
-                    msg += '</ul>';
-                }
-                document.getElementById('errorModalMsg').innerHTML = msg;
-                var errorModal = new bootstrap.Modal(document.getElementById('errorModal'), {
-                    backdrop: 'static',
-                    keyboard: false
-                });
-                errorModal.show();
-            }
-        })
-        .catch(error => {
-            let msg = 'Gagal: ';
-            if (error && error.message) {
-                msg += error.message;
-            } else if (typeof error === 'string') {
-                msg += error;
-            } else {
-                msg += 'Terjadi kesalahan tidak diketahui.';
-            }
-            document.getElementById('errorModalMsg').innerHTML = msg;
+        // Jalankan pertama kali
+        updateSummary();
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+        function showErrorModal(message) {
+            document.getElementById('errorModalMsg').innerHTML = message;
             var errorModal = new bootstrap.Modal(document.getElementById('errorModal'), {
                 backdrop: 'static',
                 keyboard: false
             });
             errorModal.show();
-        });
-    });
+        }
 
-    // Trigger updateSummary saat wood_type berubah
-    document.getElementById('wood_type').addEventListener('change', updateSummary);
+        document.querySelectorAll('.pcs-input').forEach(input => {
+            input.addEventListener('input', updateSummary);
+        });
+
+        updateSummary();
+        document.getElementById('wood_type').addEventListener('change', updateSummary);
+
+        document.getElementById('form-transaksi').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const atas_nama = document.querySelector('[name="atas_nama"]').value.trim();
+            const wood_type = document.querySelector('[name="wood_type"]').value.trim();
+            const total_volume = parseNumber(document.getElementById('grandTotalVolume').textContent);
+            const total_pembayaran = parseNumber(document.getElementById('grandTotalBayar').textContent);
+
+            let details = [];
+            let errors = [];
+            Object.keys(grades).forEach(function(grade) {
+                let diameters = grades[grade];
+                let allowed = allowedLengths[grade] || [];
+                allowed.forEach(function(p) {
+                    diameters.forEach(function(d) {
+                        let input = document.querySelector(`input[name="pcs[${grade}][${d}][${p}]"]`);
+                        let pcs = input ? parseInt(input.value) || 0 : 0;
+                        if (pcs > 0) {
+                            let volPerBatang = (volumes[d] && volumes[d][p]) ? parseFloat(volumes[d][p]) : 0;
+                            let volume = pcs * volPerBatang;
+                            let harga_per_m3 = 0;
+                            if (
+                                hargaPerM3[wood_type] &&
+                                hargaPerM3[wood_type][grade] &&
+                                hargaPerM3[wood_type][grade][p]
+                            ) {
+                                harga_per_m3 = parseFloat(hargaPerM3[wood_type][grade][p]['beli']) || 0;
+                            }
+                            details.push({ grade, diameter: d, panjang: p, pcs, volume, harga: volume * harga_per_m3 });
+                        }
+                    });
+                });
+            });
+
+            // Validasi input wajib
+            if (!atas_nama) errors.push('Kolom Atas Nama wajib diisi.');
+            if (!wood_type) errors.push('Jenis Kayu wajib dipilih.');
+            if (details.length === 0) errors.push('Minimal 1 log kayu harus dimasukkan.');
+
+            if (errors.length > 0) {
+                showErrorModal(errors.join('<br>'));
+                return;
+            }
+            fetch("{{ route('wood_transactions.storeSaw') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    atas_nama,
+                    wood_type,
+                    total_volume,
+                    total_pembayaran,
+                    details,
+                    jenis_transaksi: 'gergajian'
+                })
+            })
+            .then(async res => {
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Server tidak mengembalikan JSON.");
+                }
+                let data = await res.json();
+
+                if (res.ok && data.success) {
+                    document.getElementById('successModalMsg').innerHTML = 'Transaksi berhasil disimpan!';
+                    var successModal = new bootstrap.Modal(document.getElementById('successModal'), {
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                    successModal.show();
+                    setTimeout(() => window.location.href = data.redirect_url, 2000);
+                } else {
+                    let msg = '';
+                    if (data.messages) {
+                        msg = data.messages.join('<br>');
+                    } else if (data.message) {
+                        msg = data.message;
+                    } else {
+                        msg = 'Terjadi kesalahan.';
+                    }
+                    showErrorModal(msg);
+                }
+            })
+            .catch(error => {
+                showErrorModal('Gagal: ' + (error.message || 'Terjadi kesalahan tidak diketahui.'));
+            });
+        });
+});
+
 </script>
+
 @endsection

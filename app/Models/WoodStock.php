@@ -26,5 +26,12 @@ class WoodStock extends Model
         'total_volume',
         'volume',
     ];
-    
+
+    public function price()
+    {
+        return $this->belongsTo(WoodPrice::class, 'wood_price_id');
+    }
+     public function transactionDetails() {
+        return $this->hasMany(WoodTransactionDetail::class, 'wood_stock_id');
+    }
 }

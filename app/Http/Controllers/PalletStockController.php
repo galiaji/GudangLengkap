@@ -147,68 +147,64 @@ class PalletStockController extends Controller
     }
 
     // Simpan stok palet (basah/penjemuran)
-    public function store(Request $request)
-    {
-        // Status: basah, penjemuran, atau kering
-        $status = $request->input('status', 'basah');
-        $isBasah = $status === 'basah';
-        $isDrying = $status === 'penjemuran';
-        $isKering = $status === 'kering';
+  public function store(Request $request)
+{
+    // Status: basah, penjemuran, atau kering
+    $status = $request->input('status', 'basah');
 
-        // Field tanggal sesuai status
-        if ($isBasah) {
-            $tanggalField = 'entry_date';
-            $prefix = 'BSH';
-        } elseif ($isDrying) {
-            $tanggalField = 'start_drying_date';
-            $prefix = 'JMR';
-        } else { // kering
-            $tanggalField = 'dry_date';
-            $prefix = 'KRG';
+    // Tentukan prefix sesuai status
+    $prefix = match($status) {
+        'basah'      => 'BSH',
+        'penjemuran' => 'JMR',
+        'kering'     => 'KRG',
+        default      => 'BSH',
+    };
+
+    $validated = $request->validate([
+        'tanggal_input' => 'required|date',
+        'pallets' => 'required|array',
+        'pallets.*.pallet_code' => 'required|exists:pallet_prices,pallet_code',
+        'pallets.*.ukuran' => 'required',
+        'pallets.*.pcs' => 'nullable|integer|min:0',
+        'pallets.*.volume' => 'nullable|numeric|min:0',
+    ]);
+
+    // Buat kode input unik
+    $date = date('Ymd', strtotime($request->tanggal_input));
+    $last = PalletStock::where('status', $status)
+        ->where('tanggal_input', $request->tanggal_input)
+        ->orderByDesc('input_code')
+        ->first();
+
+    $urut = 1;
+    if ($last && preg_match('/-(\d+)$/', $last->input_code, $m)) {
+        $urut = intval($m[1]) + 1;
+    }
+
+    $input_code = $prefix . $date . '-' . str_pad($urut, 3, '0', STR_PAD_LEFT);
+
+    // Siapkan data insert
+    $data = [];
+    foreach ($request->pallets as $pallet) {
+        if (!empty($pallet['pcs']) && $pallet['pcs'] > 0) {
+            $data[] = [
+                'pallet_code'   => $pallet['pallet_code'],
+                'ukuran'        => $pallet['ukuran'],
+                'pcs'           => $pallet['pcs'],
+                'volume'        => $pallet['volume'],
+                'status'        => $status,
+                'input_code'    => $input_code,
+                'tanggal_input' => $request->tanggal_input, // ✅ satu field tanggal
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ];
         }
+    }
 
-        // Validasi
-        $validated = $request->validate([
-            $tanggalField => 'required|date',
-            'pallets' => 'required|array',
-            'pallets.*.pallet_code' => 'required|exists:pallet_prices,pallet_code',
-            'pallets.*.ukuran' => 'required',
-            'pallets.*.pcs' => 'nullable|integer|min:0',
-            'pallets.*.volume' => 'nullable|numeric|min:0',
-        ]);
-
-        $date = date('Ymd', strtotime($request->$tanggalField));
-        $last = PalletStock::where('status', $status)
-            ->where('tanggal_input', $request->$tanggalField)
-            ->orderByDesc('input_code')
-            ->first();
-        $urut = 1;
-        if ($last && preg_match('/-(\d+)$/', $last->input_code, $m)) {
-            $urut = intval($m[1]) + 1;
-        }
-        $input_code = $prefix . $date . '-' . str_pad($urut, 3, '0', STR_PAD_LEFT);
-
-        $data = [];
-        foreach ($request->pallets as $pallet) {
-            if (!empty($pallet['pcs']) && $pallet['pcs'] > 0) {
-                $data[] = [
-                    'pallet_code'   => $pallet['pallet_code'],
-                    'ukuran'        => $pallet['ukuran'],
-                    'pcs'           => $pallet['pcs'],
-                    'volume'        => $pallet['volume'],
-                    'status'        => $status,
-                    'input_code'    => $input_code,
-                    'tanggal_input' => $request->$tanggalField,
-                    'created_at'    => now(),
-                    'updated_at'    => now(),
-                ];
-            }
-        }
-
-        if (!empty($data)) {
+    // Simpan data
+    if (!empty($data)) {
         PalletStock::insert($data);
 
-        // Jika request AJAX
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
@@ -216,7 +212,6 @@ class PalletStockController extends Controller
             ]);
         }
 
-        // Jika request biasa, redirect ke halaman stok pallet
         return redirect()->route('pallet_stocks.index')->with('success', 'Data palet berhasil ditambahkan.');
     } else {
         if ($request->ajax()) {
@@ -227,7 +222,8 @@ class PalletStockController extends Controller
         }
         return redirect()->back()->with('error', 'Tidak ada data yang disimpan. Pastikan jumlah diisi.');
     }
-    }
+}
+
 
     public function moveToNextStatus($input_code)
     {

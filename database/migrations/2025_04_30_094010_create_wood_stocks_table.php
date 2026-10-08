@@ -22,7 +22,7 @@ return new class extends Migration
             $table->decimal('total_volume', 8, 3)->default(0);
             $table->unique(['wood_type', 'grade', 'diameter', 'panjang']);
             $table->timestamps();
-
+            $table->foreignId('wood_price_id')->nullable()->constrained('wood_prices')->onDelete('cascade');
             $table->index('diameter');
             $table->index('grade');
         });

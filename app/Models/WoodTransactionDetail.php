@@ -17,11 +17,15 @@ class WoodTransactionDetail extends Model
         'panjang',
         'pcs',
         'volume',
-        'harga'
+        'harga',
+        'wood_stock_id'
     ];
 
     public function transaction()
     {
         return $this->belongsTo(WoodTransaction::class, 'wood_transaction_id');
+    }
+    public function stock() {
+        return $this->belongsTo(WoodStock::class, 'wood_stock_id');
     }
 }

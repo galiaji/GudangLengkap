@@ -19,11 +19,8 @@
             <div class="mb-4 row align-items-center" id="tanggal-row">
                 <label for="tanggal_input" class="form-label fw-semibold col-12 col-sm-3 col-md-2 mb-2 mb-sm-0" id="tanggal-label">Tanggal Input</label>
                 <div class="col-12 col-sm-5 col-md-3">
-                    <input type="date" name="entry_date" id="tanggal_input" class="form-control" required>
-                    @error('entry_date')
-                        <div class="text-danger small">{{ $message }}</div>
-                    @enderror
-                    @error('start_drying_date')
+                    <input type="date" name="tanggal_input" id="tanggal_input" class="form-control" required>
+                    @error('tanggal_input')
                         <div class="text-danger small">{{ $message }}</div>
                     @enderror
                 </div>
@@ -121,19 +118,19 @@
         document.getElementById('tanggal_input').value = `${yyyy}-${mm}-${dd}`;
     });
 
-    // Ganti label dan name tanggal sesuai status
-    document.getElementById('status').addEventListener('change', function() {
-        const status = this.value;
-        const tanggalLabel = document.getElementById('tanggal-label');
-        const tanggalInput = document.getElementById('tanggal_input');
-        if (status === 'penjemuran') {
-            tanggalLabel.textContent = 'Tanggal Mulai Jemur';
-            tanggalInput.name = 'start_drying_date';
-        } else {
-            tanggalLabel.textContent = 'Tanggal Input';
-            tanggalInput.name = 'entry_date';
-        }
-    });
+    // // Ganti label dan name tanggal sesuai status
+    // document.getElementById('status').addEventListener('change', function() {
+    //     const status = this.value;
+    //     const tanggalLabel = document.getElementById('tanggal-label');
+    //     const tanggalInput = document.getElementById('tanggal_input');
+    //     if (status === 'penjemuran') {
+    //         tanggalLabel.textContent = 'Tanggal Mulai Jemur';
+    //         tanggalInput.name = 'start_drying_date';
+    //     } else {
+    //         tanggalLabel.textContent = 'Tanggal Input';
+    //         tanggalInput.name = 'entry_date';
+    //     }
+    // });
 
     // Mapping ukuran ke volume per batang (m3)
     const volumePerBatang = {
