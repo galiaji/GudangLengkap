@@ -16,13 +16,13 @@ class DatabaseSeeder extends Seeder
     {
 
         $this->call([
-            UserSeeder::class,
-            WoodTypeSeeder::class,
-            GradeSeeder::class,
-            DiameterSeeder::class,
-            WoodStockSeeder::class,
+            // UserSeeder::class,
+            // WoodTypeSeeder::class,
+            // GradeSeeder::class,
+            // DiameterSeeder::class,
+            // WoodStockSeeder::class,
             WoodPriceSeeder::class,
-            PalletPriceSeeder::class,
+            // PalletPriceSeeder::class,
         ]);
     }
 }

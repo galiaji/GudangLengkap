@@ -17,4 +17,8 @@ class PalletSaleItem extends Model
     {
         return $this->belongsTo(PalletSale::class, 'pallet_sale_id');
     }
+    public function palletPrice()
+    {
+        return $this->belongsTo(PalletPrice::class, 'pallet_code', 'pallet_code');
+    }
 }

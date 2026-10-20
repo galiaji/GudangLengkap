@@ -147,82 +147,82 @@ class PalletStockController extends Controller
     }
 
     // Simpan stok palet (basah/penjemuran)
-  public function store(Request $request)
-{
-    // Status: basah, penjemuran, atau kering
-    $status = $request->input('status', 'basah');
+    public function store(Request $request)
+    {
+        // Status: basah, penjemuran, atau kering
+        $status = $request->input('status', 'basah');
 
-    // Tentukan prefix sesuai status
-    $prefix = match($status) {
-        'basah'      => 'BSH',
-        'penjemuran' => 'JMR',
-        'kering'     => 'KRG',
-        default      => 'BSH',
-    };
+        // Tentukan prefix sesuai status
+        $prefix = match($status) {
+            'basah'      => 'BSH',
+            'penjemuran' => 'JMR',
+            'kering'     => 'KRG',
+            default      => 'BSH',
+        };
 
-    $validated = $request->validate([
-        'tanggal_input' => 'required|date',
-        'pallets' => 'required|array',
-        'pallets.*.pallet_code' => 'required|exists:pallet_prices,pallet_code',
-        'pallets.*.ukuran' => 'required',
-        'pallets.*.pcs' => 'nullable|integer|min:0',
-        'pallets.*.volume' => 'nullable|numeric|min:0',
-    ]);
+        $validated = $request->validate([
+            'tanggal_input' => 'required|date',
+            'pallets' => 'required|array',
+            'pallets.*.pallet_code' => 'required|exists:pallet_prices,pallet_code',
+            'pallets.*.ukuran' => 'required',
+            'pallets.*.pcs' => 'nullable|integer|min:0',
+            'pallets.*.volume' => 'nullable|numeric|min:0',
+        ]);
 
-    // Buat kode input unik
-    $date = date('Ymd', strtotime($request->tanggal_input));
-    $last = PalletStock::where('status', $status)
-        ->where('tanggal_input', $request->tanggal_input)
-        ->orderByDesc('input_code')
-        ->first();
+        // Buat kode input unik
+        $date = date('Ymd', strtotime($request->tanggal_input));
+        $last = PalletStock::where('status', $status)
+            ->where('tanggal_input', $request->tanggal_input)
+            ->orderByDesc('input_code')
+            ->first();
 
-    $urut = 1;
-    if ($last && preg_match('/-(\d+)$/', $last->input_code, $m)) {
-        $urut = intval($m[1]) + 1;
-    }
-
-    $input_code = $prefix . $date . '-' . str_pad($urut, 3, '0', STR_PAD_LEFT);
-
-    // Siapkan data insert
-    $data = [];
-    foreach ($request->pallets as $pallet) {
-        if (!empty($pallet['pcs']) && $pallet['pcs'] > 0) {
-            $data[] = [
-                'pallet_code'   => $pallet['pallet_code'],
-                'ukuran'        => $pallet['ukuran'],
-                'pcs'           => $pallet['pcs'],
-                'volume'        => $pallet['volume'],
-                'status'        => $status,
-                'input_code'    => $input_code,
-                'tanggal_input' => $request->tanggal_input, // ✅ satu field tanggal
-                'created_at'    => now(),
-                'updated_at'    => now(),
-            ];
-        }
-    }
-
-    // Simpan data
-    if (!empty($data)) {
-        PalletStock::insert($data);
-
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Data palet berhasil ditambahkan.'
-            ]);
+        $urut = 1;
+        if ($last && preg_match('/-(\d+)$/', $last->input_code, $m)) {
+            $urut = intval($m[1]) + 1;
         }
 
-        return redirect()->route('pallet_stocks.index')->with('success', 'Data palet berhasil ditambahkan.');
-    } else {
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tidak ada data yang disimpan. Pastikan jumlah diisi.'
-            ], 422);
+        $input_code = $prefix . $date . '-' . str_pad($urut, 3, '0', STR_PAD_LEFT);
+
+        // Siapkan data insert
+        $data = [];
+        foreach ($request->pallets as $pallet) {
+            if (!empty($pallet['pcs']) && $pallet['pcs'] > 0) {
+                $data[] = [
+                    'pallet_code'   => $pallet['pallet_code'],
+                    'ukuran'        => $pallet['ukuran'],
+                    'pcs'           => $pallet['pcs'],
+                    'volume'        => $pallet['volume'],
+                    'status'        => $status,
+                    'input_code'    => $input_code,
+                    'tanggal_input' => $request->tanggal_input, 
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ];
+            }
         }
-        return redirect()->back()->with('error', 'Tidak ada data yang disimpan. Pastikan jumlah diisi.');
+
+        // Simpan data
+        if (!empty($data)) {
+            PalletStock::insert($data);
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data palet berhasil ditambahkan.'
+                ]);
+            }
+
+            return redirect()->route('pallet_stocks.index')->with('success', 'Data palet berhasil ditambahkan.');
+        } else {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada data yang disimpan. Pastikan jumlah diisi.'
+                ], 422);
+            }
+            return redirect()->back()->with('error', 'Tidak ada data yang disimpan. Pastikan jumlah diisi.');
+        }
     }
-}
 
 
     public function moveToNextStatus($input_code)

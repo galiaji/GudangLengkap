@@ -1,155 +1,253 @@
 @extends('layouts.app')
 
 @section('content')
+
 <style>
-    body, html { background: #F1F8E9 !important; }
+    @page {
+        size: A4 landscape;
+        margin: 8mm;
+    }
+
+    body,
+    html {
+        background: #F1F8E9 !important;
+        font-family: Arial, sans-serif;
+    }
+
+    #transaksi-area {
+        background: #fff;
+        width: 1123px;
+        min-height: 794px;
+        margin: 20px auto;
+        padding: 15px;
+        border: 1px solid #222;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px #ddd;
+    }
+
     .kop-usaha {
-        font-size: 1.15rem;
+        font-size: 19px;
         font-weight: bold;
         text-align: center;
-        color: #111 !important;
-        margin-bottom: 0.2rem;
+        color: #111;
+        margin-bottom: 8px;
         letter-spacing: 1px;
     }
+
     .meta-table {
-        font-size: 0.95rem;
-        margin-bottom: 0.5rem;
-        margin-left: 0.2rem;
-        color: #111 !important;
-    }
-    .meta-table td {
-        padding: 1px 4px 1px 0;
-        vertical-align: top;
-        color: #111 !important;
-    }
-    .meta-table .label {
-        color: #111 !important;
-        font-weight: 600;
-        min-width: 90px;
-        display: inline-block;
-    }
-    .transaksi-table {
-        border-collapse: collapse;
         width: 100%;
-        font-size: 0.85rem;
-        margin: 0.5rem 0 0.7rem 0;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .meta-table td {
+        padding: 2px 4px 2px 0;
+        vertical-align: top;
+    }
+
+    .meta-table .label {
+        width: 145px;
+    min-width: 145px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding-right: 5px;
+    }
+
+    .tabel-scroll {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .transaksi-table {
+        width: 100%;
+        table-layout: auto;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: #fff;
+        font-size: 14px;
+    }
+
+    .transaksi-table th,
+        
+    /* ===== TABEL TRANSAKSI ===== */
+    .transaksi-table {
+        width: 100%;
+        border-collapse: collapse;
         table-layout: fixed;
         background: #fff;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px #e0f2f1;
+        font-size: 12px;
     }
-    .transaksi-table th, .transaksi-table td {
-        border: 1px solid #222 !important;
-        padding: 4px 6px;
-        text-align: center;
-        min-width: 36px;
-        max-width: 80px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        color: #111 !important;
-    }
+
+    /* ===== HEADER ===== */
     .transaksi-table th {
-        background: #e0e0e0 !important;
-        color: #111 !important;
+        background: #E8F5E9;
         font-weight: 700;
-        font-size: 0.90rem;
+        font-size: 14px;
+        text-align: center;
+        vertical-align: middle;
+        border: 1px solid #222;
+        padding: 4px 5px;
+        white-space: normal;
+        overflow-wrap: break-word;
     }
+
+    /* ===== CELL UMUM ===== */
     .transaksi-table td {
-        font-size: 0.85rem;
-        color: #111 !important;
+        border: 1px solid #222;
+        padding: 4px 5px;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+        overflow: visible;
+        text-overflow: clip;
+        font-variant-numeric: tabular-nums;
+        position: relative;
     }
-    .transaksi-summary {
-        font-size: 1rem;
-        margin: 0.5rem 0 0.2rem 0.2rem;
+
+    /* ===== WARNA BARIS SELANG-SELING ===== */
+    .transaksi-table tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    /* ===== KOLOM GRADE ===== */
+    .transaksi-table th:first-child,
+    .transaksi-table td:first-child {
+        width: 90px;
+    }
+
+    .transaksi-table .grade-cell {
+        width: 90px;
+        min-width: 90px;
+        background: #f0f0f0 !important;
+        font-weight: bold;
+        text-align: center !important;
+        vertical-align: middle !important;
+        white-space: normal !important;
+        overflow-wrap: break-word;
+        padding: 8px 6px !important;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* ===== CELL DENGAN ROWSPAN ===== */
+    .transaksi-table td[rowspan] {
+        background: #f0f0f0 !important;
+        vertical-align: middle !important;
+        position: relative;
+        z-index: 2;
+    }
+
+    /* ===== KOLOM DIAMETER ===== */
+    .transaksi-table th:nth-child(2),
+    .transaksi-table td:nth-child(2) {
+        width: 55px;
+        text-align: center;
+    }
+
+    /* ===== HEADER KELOMPOK ===== */
+    .transaksi-table th[colspan="3"] {
+        text-align: center;
+    }
+
+    /* ===== KOLOM JUMLAH ===== */
+    .transaksi-table .col-jml {
+        width: 45px;
+        text-align: center;
+    }
+
+    /* ===== KOLOM VOLUME ===== */
+    .transaksi-table .col-vol {
+        width: 70px;
+        text-align: center;
+    }
+
+    /* ===== KOLOM RUPIAH ===== */
+    .transaksi-table .col-rp {
+        width: 95px;
         text-align: left;
-        color: #111 !important;
+    }
+
+    /* ===== FORMAT NILAI UANG ===== */
+    .transaksi-table td.money,
+    .transaksi-table td.money * {
+        text-align: left !important;
+    }
+
+    .transaksi-table .money {
+        padding-left: 8px !important;
+        white-space: nowrap;
+    }
+
+    /* ===== RINGKASAN TOTAL ===== */
+    .transaksi-summary {
+        margin-top: 12px;
+        font-size: 16px;
         font-weight: 600;
-    }
-    .print-btn {
-        display: inline-block;
-        margin: 0.2rem 0 0.5rem 0.2rem;
-        color: #222 !important;
-        text-decoration: underline;
-        cursor: pointer;
-        font-size: 0.95rem;
-        font-weight: 600;
-    }
-    #transaksi-area {
-        background: #fff !important;
-        overflow: visible !important;
-        width: 700px;
-        max-width: 98vw;
-        margin: 24px auto 0 auto;
-        box-shadow: 0 2px 8px #e0f2f1;
-        border-radius: 8px;
-        padding: 20px 22px 22px 22px;
-        border: 1px solid #222 !important;
-        color: #111 !important;
-    }
-    .tabel-scroll {
-        overflow-x: auto;
-        background: #fff;
-        border-radius: 8px;
-        width: 100%;
-    }
-    @media (max-width: 991.98px) {
-        #transaksi-area {
-            width: 100%;
-            max-width: 100vw;
-            padding: 10px 2px 12px 2px;
-        }
-        .transaksi-table th, .transaksi-table td {
-            font-size: 0.78rem;
-            padding: 3px 3px;
-        }
-        .meta-table, .transaksi-summary {
-            font-size: 0.85rem;
-        }
-        .kop-usaha {
-            font-size: 1rem;
-        }
-    }
-    @media (max-width: 575.98px) {
-        #transaksi-area {
-            padding: 4px 0 8px 0;
-        }
-        .transaksi-table th, .transaksi-table td {
-            font-size: 0.70rem;
-            padding: 2px 2px;
-        }
-        .meta-table, .transaksi-summary {
-            font-size: 0.75rem;
-        }
-        .kop-usaha {
-            font-size: 0.95rem;
-        }
+        color: #111;
     }
     @media print {
-        body, html { background: #fff !important; }
-        .print-btn, nav, .navbar, .sidebar, .menu, #sidebar, .btn, .alert { display: none !important; }
-        .kop-usaha { font-size: 1rem; }
-        .meta-table, .transaksi-summary { font-size: 0.80rem; }
-        .transaksi-table th, .transaksi-table td { font-size: 0.75rem; padding: 1px 3px; }
-        .container, .container-fluid { width: 100% !important; margin: 0; padding: 0; }
-        #transaksi-area { box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; border: none !important; }
+
+        html,
+        body {
+            width: 297mm;
+            height: 210mm;
+            background: #fff !important;
+        }
+
+        .print-btn,
+        nav,
+        .navbar,
+        .sidebar,
+        .menu,
+        #sidebar,
+        .btn,
+        .alert,
+        .no-capture {
+            display: none !important;
+        }
+
+        #transaksi-area {
+            width: 100%;
+            min-height: auto;
+            margin: 0;
+            padding: 0;
+            border: none;
+            box-shadow: none;
+        }
+
+        .transaksi-table tr {
+            page-break-inside: avoid;
+        }
+
+        .transaksi-table th,
+        .transaksi-table td {
+            font-size: 14px;
+            padding: 2px 3px;
+        }
+
+        .kop-usaha {
+            font-size: 16px;
+        }
+
+        .meta-table,
+        .transaksi-summary {
+            font-size: 16px;
+        }
     }
 </style>
-
 <div id="transaksi-area" class="container-fluid">
     <div class="kop-usaha">UD. Tiga Putra Karya Sentosa</div>
     <table class="meta-table">
         <tr>
-            <td class="label"><b>Tipe transaksi</b></td>
+            <td class="label"><b>Tipe Transaksi</b></td>
             <td>: {{ $transaksi->jenis_transaksi }}</td>
         </tr>
         <tr>
-            <td class="label"><b>Atas nama</b></td>
+            <td class="label"><b>Atas Nama</b></td>
             <td>: {{ $transaksi->atas_nama }}</td>
         </tr>
         <tr>
-            <td class="label"><b>Tanggal dan waktu</b></td>
+            <td class="label"><b>Tanggal dan Waktu</b></td>
             <td>: {{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d/m/Y H:i') }}</td>
         </tr>
         <tr>
@@ -163,7 +261,7 @@
         </tr>
     </table>
 
-    <div style="font-size:0.93rem; margin-left:0.2rem; margin-bottom:0.2rem;"></div>
+    <div style="font-size:1rem; margin-left:0.2rem; margin-bottom:0.2rem;"></div>
     @php
         $panjangs = $transaksi->details->pluck('panjang')->unique()->sort()->values();
         $grades = $transaksi->details->pluck('grade')->unique()->values();
@@ -175,10 +273,9 @@
     @endphp
     <div class="tabel-scroll">
     <table class="transaksi-table">
-        <thead>
+        <!-- <thead>
             <tr>
                 <th rowspan="2">Grade</th>    
-                <th rowspan="2">Jenis Kayu</th>
                 <th rowspan="2">Diameter</th>
                 @foreach($panjangs as $p)
                     <th colspan="3">{{ $p }}</th>
@@ -191,37 +288,75 @@
                     <th>Rp</th>
                 @endforeach
             </tr>
+        </thead> -->
+        <thead>
+            <tr>
+                <th rowspan="2">Grade</th>
+                <th rowspan="2">Diameter</th>
+
+                @foreach($panjangs as $p)
+                    <th colspan="3">{{ $p }}</th>
+                @endforeach
+            </tr>
+
+            <tr>
+                @foreach($panjangs as $p)
+                    <th class="col-jml">Jml</th>
+                    <th class="col-vol">Vol</th>
+                    <th class="col-rp">Nilai</th>
+                @endforeach
+            </tr>
         </thead>
         <tbody>
             @foreach($grades as $grade)
+
+                @php
+                    $rowspan = count($diameters[$grade]);
+                @endphp
+
                 @foreach($diameters[$grade] as $i => $diameter)
-                    @php
-                        $detailsByGradeDiameter = $transaksi->details->where('grade', $grade)->where('diameter', $diameter);
-                        $woodTypesInRow = $detailsByGradeDiameter->pluck('wood_type')->unique();
-                    @endphp
-                    @foreach($woodTypesInRow as $j => $woodType)
-                    <tr>
-                        @if($i == 0 && $j == 0)
-                            <td rowspan="{{ count($diameters[$grade]) * $woodTypesInRow->count() }}">{{ $grade }}</td>
-                        @endif
-                        <td>{{ $woodType }}</td>
-                        <td>{{ number_format($diameter, 2, ',', '.') }}</td>
-                        @foreach($panjangs as $p)
-                            @php
-                                $d = $transaksi->details
-                                    ->where('grade', $grade)
-                                    ->where('diameter', $diameter)
-                                    ->where('panjang', $p)
-                                    ->where('wood_type', $woodType)
-                                    ->first();
-                            @endphp
-                            <td>{{ $d ? $d->pcs : 0 }}</td>
-                            <td>{{ $d ? number_format($d->volume, 3, ',', '.') : '0,000' }}</td>
-                           <td> Rp{{ number_format($d->total_bayar_per_diameter ?? $d->harga ?? 0, 0, ',', '.') }}</td>
-                        @endforeach
-                    </tr>
+
+                <tr>
+
+                    @if($i == 0)
+                        <td rowspan="{{ $rowspan }}" class="grade-cell">
+                            {{ $grade }}
+                        </td>
+                    @endif
+
+                    <td>{{ number_format($diameter, 0, ',', '.') }}</td>
+
+                    @foreach($panjangs as $p)
+
+                        @php
+                            $d = $transaksi->details
+                                ->where('grade', $grade)
+                                ->where('diameter', $diameter)
+                                ->where('panjang', $p)
+                                ->first();
+                        @endphp
+
+                        <td>{{ $d ? $d->pcs : 0 }}</td>
+
+                        <td>
+                            {{ $d
+                                ? number_format($d->volume, 3, ',', '.')
+                                : '0,000' }}
+                        </td>
+
+                        <td class="money">
+                            Rp. {{ number_format(
+                                $d->total_bayar_per_diameter ?? $d->harga ?? 0,
+                                0,',','.'
+                            ) }}
+                        </td>
+
                     @endforeach
+
+                </tr>
+
                 @endforeach
+
             @endforeach
         </tbody>
     </table>

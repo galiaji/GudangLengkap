@@ -17,8 +17,8 @@ class WoodPriceSeeder extends Seeder
             'Rijek 2'   => [100, 130],
             'Storty 1'  => [130],
             'Storty 2'  => [130],
-            'Super 1'   => [130, 200],
-            'Super 2'   => [130, 200],
+            'Super 1'   => [130, 200, 260],
+            'Super 2'   => [130, 200, 260],
         ];
 
         $woodTypes = ['Mahoni', 'Keras', 'Sengon'];
