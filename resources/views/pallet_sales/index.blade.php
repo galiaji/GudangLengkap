@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Penjualan Palet')
+
 @section('content')
 <style>
     .main-container {

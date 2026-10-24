@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Gudang Kayu</title>
+    <title>Login | UD. TPKS</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon-tpks.png') }}">
     <!-- Tailwind CSS -->
      @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -25,7 +26,7 @@
         <div class="bg-white rounded-xl shadow-2xl border border-green-200 p-8 w-full max-w-md relative">
             <!-- Logo -->
             <div class="flex justify-center mb-3">
-                <img src="{{ asset('favicon.png') }}" alt="Logo" class="w-20 h-20 rounded-full border-4 border-green-300 shadow" />
+                <img src="{{ asset('images/logo-tpks.png') }}" alt="Logo UD. TPKS" class="w-36 h-36 object-contain" />
             </div>
             <!-- Judul -->
             <h1 class="text-2xl font-extrabold text-green-800 text-center mb-1 tracking-wide">Sistem Pembukuan Stok Kayu</h1>

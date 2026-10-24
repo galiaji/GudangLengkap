@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Input Kayu')
+@section('title', 'Potong/Gergaji Kayu')
 
 @section('content')
 @php use Illuminate\Support\Str; @endphp

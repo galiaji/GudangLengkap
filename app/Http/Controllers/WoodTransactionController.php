@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\StockOpname;
 use App\Models\WoodTransaction;
 use App\Models\WoodTransactionDetail;
 use App\Models\WoodStock;
@@ -171,6 +172,11 @@ public function storeBuy(Request $request)
         'wood_type_id.exists'   => 'Jenis Kayu tidak valid atau sedang disembunyikan.',
     ]);
 
+    // Stok yang sedang di-opname tidak boleh berubah
+    if ($pesan = StockOpname::kunciKayu($request->wood_type_id)) {
+        return response()->json(['success' => false, 'messages' => [$pesan]], 422);
+    }
+
     $woodType = WoodType::findOrFail($request->wood_type_id);
 
     DB::beginTransaction();
@@ -180,7 +186,6 @@ public function storeBuy(Request $request)
         $errors = [];
         $stocks = [];
         $stockById = [];
-        $needed = [];
         foreach ($request->details as $i => $detail) {
             $stock = WoodStock::where([
                 'wood_type_id' => $woodType->id,
@@ -510,6 +515,11 @@ public function sell()
                 'wood_type_id.exists'   => 'Jenis Kayu tidak valid atau sedang disembunyikan.',
                 'details.*.pcs.required' => 'Setidaknya 1 data log terisi.',
             ]);
+
+            // Stok yang sedang di-opname tidak boleh berubah
+            if ($pesan = StockOpname::kunciKayu($request->wood_type_id)) {
+                return response()->json(['success' => false, 'messages' => [$pesan]], 422);
+            }
 
             DB::beginTransaction();
             try {

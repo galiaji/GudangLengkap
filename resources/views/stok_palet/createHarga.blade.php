@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Tambah Ukuran Palet')
+
 @section('content')
 <style>
     body { background: #f4faef; }

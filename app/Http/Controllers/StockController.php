@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\StockOpname;
 use App\Models\WoodStock;
 use App\Models\WoodType;
 use App\Models\WoodTransaction;
@@ -131,6 +132,11 @@ public function storeSaw(Request $request)
         'details.required'      => 'Minimal 1 log kayu harus dimasukkan.',
     ]);
 
+    // Stok yang sedang di-opname tidak boleh berubah
+    if ($pesan = StockOpname::kunciKayu($request->wood_type_id)) {
+        return response()->json(['success' => false, 'messages' => [$pesan]], 422);
+    }
+
     $woodType = WoodType::findOrFail($request->wood_type_id);
 
     DB::beginTransaction();
@@ -230,6 +236,11 @@ public function storeRange(Request $request)
         'diameter.required'     => 'Diameter wajib diisi.',
         'panjang.required'      => 'Panjang wajib dipilih.',
     ]);
+
+    // Kombinasi baru tidak boleh ditambahkan selama jenis kayu ini di-opname
+    if ($pesan = StockOpname::kunciKayu($data['wood_type_id'])) {
+        return back()->withInput()->withErrors(['wood_type_id' => $pesan]);
+    }
 
     $woodType = WoodType::findOrFail($data['wood_type_id']);
 

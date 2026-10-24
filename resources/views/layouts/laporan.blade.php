@@ -2,7 +2,8 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>@yield('title', 'Laporan Keuangan')</title>
+    <title>@yield('title', 'Laporan Keuangan') | UD. TPKS</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon-tpks.png') }}">
     <style>
         body { font-family: Arial, sans-serif; margin: 24px; }
         h2, h3 { margin-bottom: 20px; }

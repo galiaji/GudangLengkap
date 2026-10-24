@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Stok Palet')
+
 @section('content')
 <style>
     body {

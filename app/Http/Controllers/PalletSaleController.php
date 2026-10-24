@@ -6,6 +6,7 @@ use App\Models\PalletSale;
 use App\Models\PalletSaleItem;
 use App\Models\PalletPrice;
 use App\Models\PalletStock;
+use App\Models\StockOpname;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf; // Tambahkan di bagian atas jika belum ada
@@ -64,6 +65,15 @@ class PalletSaleController extends Controller
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Minimal 1 item palet harus diisi jumlah PCS-nya!');
+        }
+
+        // Stok palet yang sedang di-opname tidak boleh dijual
+        $pesan = ($basahFilled > 0 ? StockOpname::kunciPalet('basah') : null)
+            ?? ($keringFilled > 0 ? StockOpname::kunciPalet('kering') : null);
+        if ($pesan) {
+            return $request->ajax()
+                ? response()->json(['success' => false, 'message' => $pesan], 422)
+                : redirect()->back()->withInput()->with('error', $pesan);
         }
 
         try {

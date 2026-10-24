@@ -13,6 +13,10 @@ use App\Http\Controllers\PalletStockController;
 use App\Http\Controllers\StockExportController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\WoodTypeController;
+use App\Http\Controllers\StockOpnameController;
+use App\Models\StockOpname;
+
+Route::model('opname', StockOpname::class);
 
 // Display the login form.
 Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
@@ -89,6 +93,20 @@ Route::middleware('auth')->group(function () {
     // Route::get('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'show'])->name('pallet-sales.show');
     Route::get('pallet-sales/{id}/nota', [\App\Http\Controllers\PalletSaleController::class, 'exportNota'])->name('pallet-sales.nota');
     Route::get('/pallet-sales/laporan-mingguan', [\App\Http\Controllers\PalletSaleController::class, 'laporanMingguan'])->name('pallet-sales.laporan-mingguan');
+
+    // Stock opname: staff memulai & menghitung, admin memeriksa & menyetujui
+    Route::get('stock-opname', [StockOpnameController::class, 'index'])->name('stock-opname.index');
+    Route::get('stock-opname/create', [StockOpnameController::class, 'create'])->name('stock-opname.create');
+    Route::post('stock-opname', [StockOpnameController::class, 'store'])->name('stock-opname.store');
+    Route::get('stock-opname/{opname}', [StockOpnameController::class, 'show'])->name('stock-opname.show');
+    Route::post('stock-opname/{opname}/hitung', [StockOpnameController::class, 'simpanHitung'])->name('stock-opname.hitung');
+    Route::get('stock-opname/{opname}/lembar', [StockOpnameController::class, 'lembar'])->name('stock-opname.lembar');
+    Route::get('stock-opname/{opname}/laporan', [StockOpnameController::class, 'laporan'])->name('stock-opname.laporan');
+    Route::middleware('role:admin')->group(function () {
+        Route::post('stock-opname/{opname}/setujui', [StockOpnameController::class, 'setujui'])->name('stock-opname.setujui');
+        Route::post('stock-opname/{opname}/kembalikan', [StockOpnameController::class, 'kembalikan'])->name('stock-opname.kembalikan');
+        Route::post('stock-opname/{opname}/batal', [StockOpnameController::class, 'batal'])->name('stock-opname.batal');
+    });
 
     Route::get('/export-stok-pdf/{woodType}', [StockExportController::class, 'exportPdf'])->name('export.stok.pdf');
     Route::get('/stock/potong-gergaji/{woodType}', [\App\Http\Controllers\StockController::class, 'showPotongGergajiForm'])->name('stock.potongGergaji.form');

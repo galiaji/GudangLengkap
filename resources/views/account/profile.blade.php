@@ -81,7 +81,7 @@
 <div class="container py-4">
     <div class="card shadow-sm profile-card">
         <div class="card-body text-center">
-            <img src="{{ asset('favicon.png') }}" alt="Avatar">
+            <img src="{{ asset('images/logo-emblem.png') }}" alt="Logo UD. TPKS">
             <h4 class="mb-1">{{ auth()->user()->name }}</h4>
             <div class="mb-2 text-muted">{{ auth()->user()->email }}</div>
             <div class="mb-3">

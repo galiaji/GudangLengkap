@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Stok ' . $woodType->name)
+
 @section('content')
 <style>
     .stock-statistik-card {

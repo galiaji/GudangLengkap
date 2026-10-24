@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Harga Palet')
+
 @section('content')
 <style>
     body {

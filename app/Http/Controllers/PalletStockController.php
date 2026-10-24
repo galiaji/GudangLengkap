@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PalletPrice;
 use App\Models\PalletStock;
+use App\Models\StockOpname;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -176,6 +177,13 @@ class PalletStockController extends Controller
             'pallets.*.volume' => 'nullable|numeric|min:0',
         ]);
 
+        // Stok palet dengan status ini sedang di-opname
+        if ($pesan = StockOpname::kunciPalet($status)) {
+            return $request->ajax()
+                ? response()->json(['success' => false, 'message' => $pesan], 422)
+                : back()->withInput()->with('error', $pesan);
+        }
+
         // Buat kode input unik
         $date = date('Ymd', strtotime($request->tanggal_input));
         $last = PalletStock::where('status', $status)
@@ -256,6 +264,11 @@ class PalletStockController extends Controller
             $prefix = 'KRG';
         } else {
             return back()->with('error', 'Status tidak valid untuk dipindahkan.');
+        }
+
+        // Status asal maupun tujuan tidak boleh sedang di-opname
+        if ($pesan = StockOpname::kunciPalet($currentStatus) ?? StockOpname::kunciPalet($nextStatus)) {
+            return back()->with('error', $pesan);
         }
 
         // Generate kode input baru untuk status berikutnya

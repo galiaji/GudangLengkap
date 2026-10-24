@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Tambah Stok Palet')
+
 @section('content')
 <div class="container py-4">
     <div class="bg-light rounded-3 p-4 mb-4">
