@@ -47,10 +47,19 @@
 </style>
 <div class="container-fluid px-1 px-md-4">
     <div class="card shadow-sm">
-        <div class="card-header">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h4 class="mb-0">Daftar Harga Palet</h4>
+            <a href="{{ route('pallet-prices.create') }}" class="btn btn-light btn-sm fw-semibold">
+                + Tambah Ukuran Palet
+            </a>
         </div>
         <div class="card-body">
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
+                </div>
+            @endif
             <div class="table-responsive">
                 <table class="table table-bordered align-middle">
                     <thead class="table-light">
@@ -64,9 +73,14 @@
                     </thead>
                     <tbody>
                         @foreach($palletPrices as $palletPrice)
-                        <tr>
+                        <tr @if(session('new_id') == $palletPrice->id) class="table-warning" id="row-baru" @endif>
                             <td style="display:none">{{ $palletPrice->pallet_code }}</td>
-                            <td>{{ $palletPrice->ukuran }}</td>
+                            <td>
+                                {{ $palletPrice->ukuran }}
+                                @if(session('new_id') == $palletPrice->id)
+                                    <span class="badge bg-success ms-1">Baru</span>
+                                @endif
+                            </td>
                             <td>Rp {{ number_format($palletPrice->harga_basah, 0, ',', '.') }}</td>
                             <td>Rp {{ number_format($palletPrice->harga_kering, 0, ',', '.') }}</td>
                             <td>
@@ -210,6 +224,10 @@
                 });
             });
         });
+
+        // Gulir ke baris ukuran yang baru ditambahkan
+        var rowBaru = document.getElementById('row-baru');
+        if (rowBaru) rowBaru.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
         // Tampilkan toast jika ada
         var toastEl = document.getElementById('toastSuccess');

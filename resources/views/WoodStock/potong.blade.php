@@ -123,13 +123,18 @@
                         <input type="text" name="atas_nama" class="form-control" style="width:180px;" placeholder="(wajib diisi)">
                     </div>
                     <div class="mb-3 d-flex align-items-center" style="max-width:320px;">
-                        <label for="wood_type" class="mb-0 me-2" style="min-width:90px;">Jenis Kayu :</label>
-                        <select name="wood_type" id="wood_type" class="form-control" style="width:180px;">
-                            <option value="" disabled selected>Pilih jenis kayu</option>
-                            @foreach ($woodTypes as $type)
-                                <option value="{{ $type }}">{{ $type }}</option>
-                            @endforeach
-                        </select>
+                        <label for="wood_type_id" class="mb-0 me-2" style="min-width:90px;">Jenis Kayu :</label>
+                        <select name="wood_type_id" id="wood_type_id" class="form-control" style="width:180px;">
+                            <option value="" disabled selected>
+                                Pilih jenis kayu
+                            </option>
+
+                        @foreach ($woodTypes as $type)
+                            <option value="{{ $type->id }}">
+                                {{ $type->name }}
+                            </option>
+                        @endforeach
+                    </select>
                     </div>
                     <div class="row">
                         @foreach ($grades as $grade => $diameters)
@@ -273,7 +278,7 @@
     function updateSummary() {
         let grandVolume = 0;
         let grandBayarJual = 0;
-        const selectedWoodType = document.getElementById('wood_type').value;
+        const selectedWoodType = document.getElementById('wood_type_id').value;
 
         Object.keys(grades).forEach(function(grade) {
             let gradeSafeStr = gradeSafe(grade);
@@ -323,7 +328,7 @@
         document.querySelectorAll('.pcs-input').forEach(input => {
             input.addEventListener('input', updateSummary);
         });
-        document.getElementById('wood_type').addEventListener('change', updateSummary);
+        document.getElementById('wood_type_id').addEventListener('change', updateSummary);
 
         // Jalankan pertama kali
         updateSummary();
@@ -343,13 +348,13 @@
         });
 
         updateSummary();
-        document.getElementById('wood_type').addEventListener('change', updateSummary);
+        document.getElementById('wood_type_id').addEventListener('change', updateSummary);
 
         document.getElementById('form-transaksi').addEventListener('submit', function(e) {
             e.preventDefault();
 
             const atas_nama = document.querySelector('[name="atas_nama"]').value.trim();
-            const wood_type = document.querySelector('[name="wood_type"]').value.trim();
+            const wood_type = document.querySelector('[name="wood_type_id"]').value.trim();
             const total_volume = parseNumber(document.getElementById('grandTotalVolume').textContent);
             const total_pembayaran = parseNumber(document.getElementById('grandTotalBayar').textContent);
 
@@ -371,7 +376,7 @@
                                 hargaPerM3[wood_type][grade] &&
                                 hargaPerM3[wood_type][grade][p]
                             ) {
-                                harga_per_m3 = parseFloat(hargaPerM3[wood_type][grade][p]['beli']) || 0;
+                                harga_per_m3 = parseFloat(hargaPerM3[wood_type][grade][p]['jual']) || 0;
                             }
                             details.push({ grade, diameter: d, panjang: p, pcs, volume, harga: volume * harga_per_m3 });
                         }
@@ -396,7 +401,7 @@
                 },
                 body: JSON.stringify({
                     atas_nama,
-                    wood_type,
+                    wood_type_id: wood_type,
                     total_volume,
                     total_pembayaran,
                     details,
@@ -422,6 +427,8 @@
                     let msg = '';
                     if (data.messages) {
                         msg = data.messages.join('<br>');
+                    } else if (data.errors) {
+                        msg = Object.values(data.errors).flat().join('<br>');
                     } else if (data.message) {
                         msg = data.message;
                     } else {

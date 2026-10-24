@@ -22,7 +22,8 @@ return new class extends Migration
             $table->decimal('total_volume', 8, 3)->default(0);
             $table->unique(['wood_type', 'grade', 'diameter', 'panjang']);
             $table->timestamps();
-            $table->foreignId('wood_price_id')->nullable()->constrained('wood_prices')->onDelete('cascade');
+            // Foreign key ke wood_prices dipasang di migrasi create_wood_prices_table
+            $table->unsignedBigInteger('wood_price_id')->nullable();
             $table->index('diameter');
             $table->index('grade');
         });

@@ -535,7 +535,22 @@
                         <i class="bi bi-cash-coin"></i>
                         <span class="sidebar-label">Harga Kayu</span>
                     </a>
+                    <a href="{{ route('stok.range.create') }}" class="btn btn-sidebar" title="Tambah Rentang Stok">
+                        <i class="bi bi-plus-square"></i>
+                        <span class="sidebar-label">Tambah Rentang Stok</span>
+                    </a>
+                    <a href="{{ route('wood-types.index') }}"
+                        class="btn btn-sidebar"
+                        title="Jenis Kayu">
+
+                        <i class="bi bi-tree"></i>
+
+                        <span class="sidebar-label">
+                            Jenis Kayu
+                        </span>
+                    </a>
                 @endif
+                
 
                 <!-- Divider -->
                 <div class="sidebar-divider my-2"></div>

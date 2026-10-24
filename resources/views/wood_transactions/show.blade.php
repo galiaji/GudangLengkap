@@ -254,7 +254,7 @@
             <td class="label"><b>Jenis Barang</b></td>
             <td>: 
                 @php
-                    $jenisBarang = $transaksi->details->pluck('wood_type')->unique()->implode(', ');
+                    $jenisBarang = $transaksi->details->pluck('wood_type_name')->unique()->implode(', ');
                 @endphp
                 {{ $jenisBarang ?: '-' }}
             </td>
@@ -265,7 +265,7 @@
     @php
         $panjangs = $transaksi->details->pluck('panjang')->unique()->sort()->values();
         $grades = $transaksi->details->pluck('grade')->unique()->values();
-        $woodTypes = $transaksi->details->pluck('wood_type')->unique()->values();
+        $woodTypes = $transaksi->details->pluck('wood_type_name')->unique()->values();
         $diameters = [];
         foreach ($grades as $grade) {
             $diameters[$grade] = $transaksi->details->where('grade', $grade)->pluck('diameter')->unique()->sort()->values();

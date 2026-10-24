@@ -133,17 +133,8 @@
     // });
 
     // Mapping ukuran ke volume per batang (m3)
-    const volumePerBatang = {
-        "8x1.2x100": 0.96,
-        "8x1.2x130": 1.248,
-        "10x1.2x100": 1.2,
-        "10x1.2x130": 1.56,
-        "12x1.2x100": 1.44,
-        "12x1.2x130": 1.872,
-        "15x1.3x100": 1.8,
-        "15x1.3x130": 2.34
-        // Tambahkan sesuai kebutuhan
-    };
+    // Diambil dari tabel harga palet, jadi ukuran baru otomatis ikut
+    const volumePerBatang = @json($palletPrices->mapWithKeys(fn ($p) => [$p->ukuran => $p->volume_per_pcs]));
 
     document.querySelectorAll('.pcs-input').forEach(function(input) {
         input.addEventListener('input', function() {

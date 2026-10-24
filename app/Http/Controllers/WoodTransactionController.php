@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\WoodTransaction;
 use App\Models\WoodTransactionDetail;
 use App\Models\WoodStock;
+use App\Models\WoodType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Vinkla\Hashids\Facades\Hashids;
@@ -73,7 +74,7 @@ class WoodTransactionController extends Controller
     //     $hargaPerM3 = [];
 
     //     foreach ($stocks as $stock) {
-    //         $hargaPerM3[$stock->wood_type][$stock->grade][$stock->panjang] = [
+    //         $hargaPerM3[$stock->wood_type_id][$stock->grade][$stock->panjang] = [
     //             'beli' => $stock->price->harga_beli_per_m3 ?? 0,
     //             // 'jual' => $stock->price->harga_jual_per_m3 ?? 0,
     //         ];
@@ -84,12 +85,12 @@ class WoodTransactionController extends Controller
     // }
 public function buy()
 {
-    $woodTypes = ['Mahoni', 'Keras', 'Sengon'];
+    $woodTypes = WoodType::visible()->orderBy('name')->get();
 
-    // Ambil stok beserta relasi harga
-    $stocks = WoodStock::with('price')
-        ->whereIn('wood_type', $woodTypes)
-        ->get();
+    $stocks = WoodStock::with([
+        'price',
+        'woodType'
+    ])->get();
 
     // Buat array asosiatif: $grades[grade] = [diameter1, diameter2, ...]
     $grades = [];
@@ -118,14 +119,20 @@ public function buy()
             $volumes[$stock->diameter][$stock->panjang] = $stock->volume ?? $stock->volume_per_batang;
         }
     }
+    // Kombinasi yang terdaftar per jenis kayu:
+    // $availableCombos[wood_type_id][grade][diameter] = [panjang, ...]
+    // Dipakai form untuk menampilkan hanya diameter/panjang milik jenis kayu terpilih.
+    $availableCombos = [];
+    foreach ($stocks as $stock) {
+        $availableCombos[$stock->wood_type_id][$stock->grade][$stock->diameter][] = (int) $stock->panjang;
+    }
 
-    $jenisKayu = request()->wood_type ?? null;
-
+    $jenisKayu = request()->wood_type_id ?? null;
     // Buat array harga per m³ dari relasi
     $hargaPerM3 = [];
     foreach ($stocks as $stock) {
         if ($stock->price) {
-            $hargaPerM3[$stock->wood_type][$stock->grade][$stock->panjang] = [
+            $hargaPerM3[$stock->wood_type_id][$stock->grade][$stock->panjang] = [
                 'beli' => $stock->price->harga_beli_per_m3 ?? 0,
                 'jual' => $stock->price->harga_jual_per_m3 ?? 0,
             ];
@@ -141,104 +148,16 @@ public function buy()
 //     $allowedLengths['Super 2']
 // );
     return view('wood_transactions.buy', compact(
-        'jenisKayu', 'woodTypes', 'grades', 'allowedLengths', 'volumes', 'hargaPerM3','stocks'
+        'jenisKayu', 'woodTypes', 'grades', 'allowedLengths', 'volumes', 'hargaPerM3', 'stocks', 'availableCombos'
     ));
 }
-
-    // Simpan transaksi pembelian
-    // public function storeBuy(Request $request)
-    // {
-    //     try {
-    //         $request->validate([
-    //             'atas_nama' => 'required|string',
-    //             'wood_type' => 'required|string',
-    //             'total_volume' => 'required|numeric',
-    //             'total_pembayaran' => 'required|numeric',
-    //             'details' => 'required|array|min:1',
-    //             'details.*.grade' => 'required|string',
-    //             'details.*.diameter' => 'required|numeric',
-    //             'details.*.panjang' => 'required|numeric',
-    //             'details.*.pcs' => 'required|integer',
-    //             'details.*.volume' => 'required|numeric',
-    //             'details.*.harga' => 'required|numeric',
-    //         ], [
-    //             'atas_nama.required' => 'Kolom atas nama wajib diisi.',
-    //             'details' => 'Setidaknya 1 data log ter isi',
-    //         ]);
-    //     } catch (\Illuminate\Validation\ValidationException $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'errors' => $e->errors(), // array: field => [pesan, ...]
-    //             'message' => 'Penyimpanan  gagal. Silakan periksa lagi.'
-    //         ], 422);
-    //     }
-
-    //     DB::beginTransaction();
-    //     try {
-    //         // Simpan transaksi utama
-    //         $transaksi = WoodTransaction::create([
-    //             'jenis_transaksi' => 'Pembelian',
-    //             'atas_nama' => $request->atas_nama,
-    //             'wood_type' => $request->wood_type,
-    //             'total_volume' => $request->total_volume,
-    //             'total_pembayaran' => $request->total_pembayaran,
-    //             'tanggal_transaksi' => now(),
-    //         ]);
-
-    //         // Simpan detail
-    //         foreach ($request->details as $detail) {
-    //             WoodTransactionDetail::create([
-    //                 'wood_transaction_id' => $transaksi->id,
-    //                 'wood_type' => $request->wood_type,
-    //                 'grade' => $detail['grade'],
-    //                 'diameter' => $detail['diameter'],
-    //                 'panjang' => $detail['panjang'],
-    //                 'pcs' => $detail['pcs'],
-    //                 'volume' => $detail['volume'],
-    //                 'harga' => $detail['harga'],
-    //             ]);
-
-    //             // Update stok (jika perlu)
-    //             $stock = WoodStock::where([
-    //                 'wood_type' => $request->wood_type,
-    //                 'grade' => $detail['grade'],
-    //                 'diameter' => $detail['diameter'],
-    //                 'panjang' => $detail['panjang'],
-    //             ])->first();
-    //             if ($stock) {
-    //                 $stock->increment('quantity', $detail['pcs']);
-    //                 $stock->increment('total_volume', $detail['volume']);
-    //             } else {
-    //                 WoodStock::create([
-    //                     'wood_type' => $request->wood_type,
-    //                     'grade' => $detail['grade'],
-    //                     'diameter' => $detail['diameter'],
-    //                     'panjang' => $detail['panjang'],
-    //                     'quantity' => $detail['pcs'],
-    //                     'total_volume' => $detail['volume'],
-    //                 ]);
-    //             }
-    //         }
-
-    //         DB::commit();
-    //         return response()->json([
-    //             'success' => true,
-    //             'redirect_url' => route('transaksi.show', \Vinkla\Hashids\Facades\Hashids::encode($transaksi->id))
-    //         ]);
-    //     } catch (\Exception $e) {
-    //       return response()->json([
-    //           'success' => false,
-    //           'message' => 'Validasi gagal. Silakan periksa input Anda. ' . $e->getMessage()
-    //         ], 422);
-    //     }
-    // }
 public function storeBuy(Request $request)
 {
     $request->validate([
         'atas_nama'        => 'required|string',
-        'wood_type'        => 'required|string',
-        'total_volume'     => 'required|numeric',
-        'total_pembayaran' => 'required|numeric',
+        'wood_type_id' => 'required|exists:wood_types,id,is_hidden,0',
+        'total_volume'     => 'nullable|numeric',
+        'total_pembayaran' => 'nullable|numeric',
         'details'          => 'required|array|min:1',
         'details.*.grade'  => 'required|string',
         'details.*.diameter' => 'required|numeric',
@@ -246,40 +165,70 @@ public function storeBuy(Request $request)
         'details.*.pcs'      => 'required|integer|min:1',
         'details.*.volume'   => 'required|numeric|min:0',
         'details.*.harga'    => 'required|numeric|min:0',
+    ], [
+        'atas_nama.required'    => 'Kolom Atas Nama wajib diisi.',
+        'wood_type_id.required' => 'Jenis Kayu wajib dipilih.',
+        'wood_type_id.exists'   => 'Jenis Kayu tidak valid atau sedang disembunyikan.',
     ]);
+
+    $woodType = WoodType::findOrFail($request->wood_type_id);
 
     DB::beginTransaction();
     try {
+        // 1. Hanya kombinasi yang sudah terdaftar yang boleh dibeli.
+        //    Kombinasi baru harus ditambahkan dulu lewat "Tambah Kombinasi Stok".
+        $errors = [];
+        $stocks = [];
+        $stockById = [];
+        $needed = [];
+        foreach ($request->details as $i => $detail) {
+            $stock = WoodStock::where([
+                'wood_type_id' => $woodType->id,
+                'grade'        => $detail['grade'],
+                'diameter'     => $detail['diameter'],
+                'panjang'      => $detail['panjang'],
+            ])->lockForUpdate()->first();
+
+            if (!$stock) {
+                $errors[] = "Kombinasi {$woodType->name} grade {$detail['grade']}, diameter {$detail['diameter']}, panjang {$detail['panjang']} belum terdaftar. Tambahkan dulu lewat menu Tambah Kombinasi Stok.";
+            } else {
+                // Baris dengan kombinasi sama memakai objek stok yang sama agar jumlahnya terakumulasi
+                $stock = $stockById[$stock->id] ??= $stock;
+            }
+            $stocks[$i] = $stock;
+        }
+
+        if (!empty($errors)) {
+            DB::rollBack();
+            return response()->json([
+                'success'  => false,
+                'messages' => $errors,
+            ], 422);
+        }
+
+        // 2. Simpan transaksi utama
         $transaksi = WoodTransaction::create([
             'jenis_transaksi'   => 'Pembelian',
             'atas_nama'         => $request->atas_nama,
-            'wood_type'         => $request->wood_type,
-            'total_volume'      => $request->total_volume,
-            'total_pembayaran'  => $request->total_pembayaran,
+            'total_volume'      => collect($request->details)->sum('volume'), // dihitung dari rincian
+            'total_pembayaran'  => collect($request->details)->sum('harga'), // dihitung dari rincian
             'tanggal_transaksi' => now(),
         ]);
 
-        foreach ($request->details as $detail) {
-            // Cari stok berdasarkan kombinasi lengkap
-            $stock = WoodStock::firstOrCreate([
-                'wood_type' => $request->wood_type,
-                'grade'     => $detail['grade'],
-                'diameter'  => $detail['diameter'],
-                'panjang'   => $detail['panjang'],
-            ], [
-                'quantity'     => 0,
-                'total_volume' => 0,
-            ]);
+        // 3. Tambah stok & simpan detail
+        foreach ($request->details as $i => $detail) {
+            $stock = $stocks[$i];
 
             // Update stok
-            $stock->increment('quantity', $detail['pcs']);
-            $stock->increment('total_volume', $detail['volume']);
+            $stock->quantity     = ($stock->quantity ?? 0) + $detail['pcs'];
+            $stock->total_volume = $stock->total_volume + $detail['volume'];
+            $stock->save();
 
             // Simpan detail transaksi dengan semua kolom wajib
             WoodTransactionDetail::create([
                 'wood_transaction_id' => $transaksi->id,
                 'wood_stock_id'       => $stock->id,
-                'wood_type'           => $request->wood_type,
+                'wood_type_id'        => $request->wood_type_id,
                 'grade'               => $detail['grade'],
                 'diameter'            => $detail['diameter'],
                 'panjang'             => $detail['panjang'],
@@ -368,9 +317,9 @@ public function storeBuy(Request $request)
 
 public function sell()
 {
-    $woodTypes = ['Mahoni', 'Keras', 'Sengon'];
+    $woodTypes = WoodType::visible()->orderBy('name')->get();
 
-    $stocks = WoodStock::whereIn('wood_type', $woodTypes)->get();
+    $stocks = WoodStock::whereNotNull('wood_type_id')->get();
 
     // Mapping grade ke rentang
     $gradeRanges = [
@@ -414,10 +363,10 @@ public function sell()
     // Data stok untuk validasi frontend
     $stockData = [];
     foreach ($stocks as $stock) {
-        $stockData[$stock->grade][$stock->diameter][$stock->panjang] = $stock->pcs ?? 0;
+        $stockData[$stock->wood_type_id][$stock->grade][$stock->diameter][$stock->panjang] = $stock->quantity ?? 0;
     }
 
-    $jenisKayu = request()->wood_type ?? null;
+    $jenisKayu = request()->wood_type_id ?? null;
 
     // Ambil semua harga dari wood_prices
     $hargaPerM3 = (new WoodPriceController)->getHargaPerM3();
@@ -545,9 +494,9 @@ public function sell()
     {
             $request->validate([
                 'atas_nama'        => 'required|string',
-                'wood_type'        => 'required|string',
-                'total_volume'     => 'required|numeric',
-                'total_pembayaran' => 'required|numeric',
+                'wood_type_id'     => 'required|exists:wood_types,id,is_hidden,0',
+                'total_volume'     => 'nullable|numeric',
+                'total_pembayaran' => 'nullable|numeric',
                 'details'          => 'required|array|min:1',
                 'details.*.grade'  => 'required|string',
                 'details.*.diameter' => 'required|numeric',
@@ -556,38 +505,40 @@ public function sell()
                 'details.*.volume'   => 'required|numeric|min:0',
                 'details.*.harga'    => 'required|numeric|min:0',
             ], [
-                'atas_nama.required' => 'Kolom atas nama wajib diisi.',
+                'atas_nama.required'    => 'Kolom atas nama wajib diisi.',
+                'wood_type_id.required' => 'Jenis Kayu wajib dipilih.',
+                'wood_type_id.exists'   => 'Jenis Kayu tidak valid atau sedang disembunyikan.',
                 'details.*.pcs.required' => 'Setidaknya 1 data log terisi.',
             ]);
 
             DB::beginTransaction();
             try {
-                // Simpan transaksi utama
-                $transaksi = WoodTransaction::create([
-                    'jenis_transaksi'   => 'Penjualan',
-                    'atas_nama'         => $request->atas_nama,
-                    'wood_type'         => $request->wood_type,
-                    'total_volume'      => $request->total_volume,
-                    'total_pembayaran'  => $request->total_pembayaran,
-                    'tanggal_transaksi' => now(),
-                ]);
-
                 $errors = [];
+                $stocks = [];
+                $stockById = [];
+                $needed = [];
 
                 // Validasi stok sebelum transaksi
-                foreach ($request->details as $detail) {
+                foreach ($request->details as $i => $detail) {
                     $stock = WoodStock::where([
-                        'wood_type' => $request->wood_type,
-                        'grade'     => $detail['grade'],
-                        'diameter'  => $detail['diameter'],
-                        'panjang'   => $detail['panjang'],
-                    ])->first();
+                        'wood_type_id' => $request->wood_type_id,
+                        'grade'        => $detail['grade'],
+                        'diameter'     => $detail['diameter'],
+                        'panjang'      => $detail['panjang'],
+                    ])->lockForUpdate()->first();
+
+                    if ($stock) {
+                        // Baris dengan kombinasi sama memakai objek stok yang sama, dan pcs-nya dijumlahkan
+                        $stock = $stockById[$stock->id] ??= $stock;
+                        $needed[$stock->id] = ($needed[$stock->id] ?? 0) + $detail['pcs'];
+                    }
 
                     if (!$stock) {
                         $errors[] = "Stok kayu tidak ditemukan untuk grade {$detail['grade']}, diameter {$detail['diameter']}, panjang {$detail['panjang']}.";
-                    } elseif ($stock->quantity < $detail['pcs']) {
-                        $errors[] = "Stok kayu tidak mencukupi untuk grade {$detail['grade']}, diameter {$detail['diameter']}, panjang {$detail['panjang']}.";
+                    } elseif (($stock->quantity ?? 0) < $needed[$stock->id]) {
+                        $errors[] = "Stok kayu tidak mencukupi untuk grade {$detail['grade']}, diameter {$detail['diameter']}, panjang {$detail['panjang']}. Maksimal " . ($stock->quantity ?? 0) . " pcs.";
                     }
+                    $stocks[$i] = $stock;
                 }
 
                 if (!empty($errors)) {
@@ -598,19 +549,23 @@ public function sell()
                     ], 422);
                 }
 
+                // Simpan transaksi utama
+                $transaksi = WoodTransaction::create([
+                    'jenis_transaksi'   => 'Penjualan',
+                    'atas_nama'         => $request->atas_nama,
+                    'total_volume'      => collect($request->details)->sum('volume'), // dihitung dari rincian
+                    'total_pembayaran'  => collect($request->details)->sum('harga'), // dihitung dari rincian
+                    'tanggal_transaksi' => now(),
+                ]);
+
                 // Simpan detail transaksi dan kurangi stok
-                foreach ($request->details as $detail) {
-                    $stock = WoodStock::where([
-                        'wood_type' => $request->wood_type,
-                        'grade'     => $detail['grade'],
-                        'diameter'  => $detail['diameter'],
-                        'panjang'   => $detail['panjang'],
-                    ])->first();
+                foreach ($request->details as $i => $detail) {
+                    $stock = $stocks[$i];
 
                     WoodTransactionDetail::create([
                         'wood_transaction_id' => $transaksi->id,
                         'wood_stock_id'       => $stock->id,
-                        'wood_type'           => $request->wood_type,
+                        'wood_type_id'        => $request->wood_type_id,
                         'grade'               => $detail['grade'],
                         'diameter'            => $detail['diameter'],
                         'panjang'             => $detail['panjang'],
@@ -620,8 +575,9 @@ public function sell()
                     ]);
 
                     // Kurangi stok
-                    $stock->decrement('quantity', $detail['pcs']);
-                    $stock->decrement('total_volume', $detail['volume']);
+                    $stock->quantity     = ($stock->quantity ?? 0) - $detail['pcs'];
+                    $stock->total_volume = max(0, $stock->total_volume - $detail['volume']);
+                    $stock->save();
                 }
 
                 DB::commit();
@@ -629,8 +585,9 @@ public function sell()
                     'success'      => true,
                     'redirect_url' => route('transaksi.show', \Vinkla\Hashids\Facades\Hashids::encode($transaksi->id)),
                 ]);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 DB::rollBack();
+                report($e);
                 return response()->json([
                     'success' => false,
                     'message' => 'Penyimpanan gagal. ' . $e->getMessage(),
@@ -642,7 +599,7 @@ public function sell()
     public function show($hashid)
     {
         $id = Hashids::decode($hashid)[0] ?? null;
-        $transaksi = WoodTransaction::findOrFail($id);
+        $transaksi = WoodTransaction::with("details.woodType")->findOrFail($id);
         return view('wood_transactions.show', compact('transaksi'));
     }
 
@@ -685,6 +642,11 @@ public function sell()
 
     public function laporanBulanan(Request $request)
     {
+        $request->validate([
+            'bulan' => 'nullable|integer|between:1,12',
+            'tahun' => 'nullable|integer|between:2000,2100',
+        ]);
+
         $bulan = $request->input(
             'bulan',
             now()->format('m')
@@ -740,6 +702,10 @@ public function sell()
 
     public function laporanTahunan(Request $request)
     {
+        $request->validate([
+            'tahun' => 'nullable|integer|between:2000,2100',
+        ]);
+
         $tahun = $request->input(
             'tahun',
             now()->format('Y')

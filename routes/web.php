@@ -11,6 +11,8 @@ use App\Http\Controllers\WetPalletStockController;
 use App\Http\Controllers\DryingPalletStockController;
 use App\Http\Controllers\PalletStockController;
 use App\Http\Controllers\StockExportController;
+use App\Http\Controllers\StockController;
+use App\Http\Controllers\WoodTypeController;
 
 // Display the login form.
 Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
@@ -31,11 +33,20 @@ Route::middleware('auth')->group(function () {
         Route::get('account', [AccountController::class, 'index'])->name('account.index');
         Route::get('account/create', [AccountController::class, 'create'])->name('account.create');
         Route::post('account', [AccountController::class, 'store'])->name('account.store');
-        Route::get('account/{hashid}', [AccountController::class, 'show'])->name('account.show');
         Route::get('account/{hashid}/edit', [AccountController::class, 'edit'])->name('account.edit');
         Route::put('account/{hashid}', [AccountController::class, 'update'])->name('account.update');
         Route::delete('account/{hashid}', [AccountController::class, 'destroy'])->name('account.destroy');
-        Route::resource('pallet-prices', \App\Http\Controllers\PalletPriceController::class)->only(['index', 'edit', 'update']);
+        Route::get('pallet-prices/create', [PalletStockController::class, 'createUkuran'])->name('pallet-prices.create');
+        Route::post('pallet-prices', [PalletStockController::class, 'storeUkuran'])->name('pallet-prices.store');
+        Route::resource('pallet-prices', \App\Http\Controllers\PalletPriceController::class)->only(['index', 'update']);
+        Route::get('/stok/rentang/tambah', [StockController::class, 'createRange'])->name('stok.range.create');
+        Route::post('/stok/rentang/simpan', [StockController::class, 'storeRange'])->name('stok.range.store');
+        Route::get('/wood-types', [WoodTypeController::class, 'index'])->name('wood-types.index');
+
+        Route::post('/wood-types', [WoodTypeController::class, 'store'])->name('wood-types.store');
+        Route::delete('/wood-types/{woodType}', [WoodTypeController::class, 'destroy'])->name('wood-types.destroy');
+        Route::patch('/wood-types/{woodType}/hide', [WoodTypeController::class, 'hide'])->name('wood-types.hide');
+        Route::patch('/wood-types/{woodType}/unhide', [WoodTypeController::class, 'unhide'])->name('wood-types.unhide');
     });
 
     // Semua user login bisa akses transaksi & stok
@@ -67,9 +78,6 @@ Route::middleware('auth')->group(function () {
     // Stok Palet (semua status: basah & penjemuran)
     Route::get('pallet-stocks/create', [PalletStockController::class, 'create'])->name('pallet_stocks.create');
     Route::post('pallet-stocks', [PalletStockController::class, 'store'])->name('pallet_stocks.store');
-    Route::get('pallet-stocks/{id}/edit', [PalletStockController::class, 'edit'])->name('pallet_stocks.edit');
-    Route::put('pallet-stocks/{id}', [PalletStockController::class, 'update'])->name('pallet_stocks.update');
-    Route::delete('pallet-stocks/{id}', [PalletStockController::class, 'destroy'])->name('pallet_stocks.destroy');
 
     // Halaman utama stok palet (semua stok)
     Route::get('pallet-stocks', [PalletStockController::class, 'indexStock'])->name('pallet_stocks.index');
@@ -79,15 +87,10 @@ Route::middleware('auth')->group(function () {
     Route::get('pallet-sales/create', [\App\Http\Controllers\PalletSaleController::class, 'create'])->name('pallet-sales.create');
     Route::post('pallet-sales', [\App\Http\Controllers\PalletSaleController::class, 'store'])->name('pallet-sales.store');
     // Route::get('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'show'])->name('pallet-sales.show');
-    Route::get('pallet-sales/{pallet_sale}/edit', [\App\Http\Controllers\PalletSaleController::class, 'edit'])->name('pallet-sales.edit');
-    Route::put('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'update'])->name('pallet-sales.update');
-    Route::delete('pallet-sales/{pallet_sale}', [\App\Http\Controllers\PalletSaleController::class, 'destroy'])->name('pallet-sales.destroy');
     Route::get('pallet-sales/{id}/nota', [\App\Http\Controllers\PalletSaleController::class, 'exportNota'])->name('pallet-sales.nota');
     Route::get('/pallet-sales/laporan-mingguan', [\App\Http\Controllers\PalletSaleController::class, 'laporanMingguan'])->name('pallet-sales.laporan-mingguan');
 
     Route::get('/export-stok-pdf/{woodType}', [StockExportController::class, 'exportPdf'])->name('export.stok.pdf');
     Route::get('/stock/potong-gergaji/{woodType}', [\App\Http\Controllers\StockController::class, 'showPotongGergajiForm'])->name('stock.potongGergaji.form');
-    Route::post('/stock/potong-gergaji', [\App\Http\Controllers\StockController::class, 'potongGergaji'])->name('stock.potongGergaji');
     Route::post('/wood-transactions/store-saw', [\App\Http\Controllers\StockController::class, 'storeSaw'])->name('wood_transactions.storeSaw');
-    Route::get('/export/pallet-stock', [\App\Http\Controllers\StockExportController::class, 'exportPalletPdf'])->name('export.pallet.pdf');
 });

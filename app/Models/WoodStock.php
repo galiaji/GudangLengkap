@@ -18,7 +18,7 @@ class WoodStock extends Model
      * @var array
      */
     protected $fillable = [
-        'wood_type',   
+        'wood_type_id',   
         'grade',       
         'diameter',
         'panjang',
@@ -30,6 +30,16 @@ class WoodStock extends Model
     public function price()
     {
         return $this->belongsTo(WoodPrice::class, 'wood_price_id');
+    }
+    public function woodType()
+    {
+        return $this->belongsTo(WoodType::class, 'wood_type_id');
+    }
+
+    // Nama jenis kayu (pengganti kolom lama "wood_type")
+    public function getWoodTypeNameAttribute()
+    {
+        return $this->getRelationValue('woodType')?->name;
     }
      public function transactionDetails() {
         return $this->hasMany(WoodTransactionDetail::class, 'wood_stock_id');

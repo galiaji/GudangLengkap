@@ -113,6 +113,9 @@
                 @if(session('success'))
                     <div class="alert alert-success">{{ session('success') }}</div>
                 @endif
+                @if(session('error'))
+                    <div class="alert alert-danger">{{ session('error') }}</div>
+                @endif
                 <div class="d-flex justify-content-end align-items-center mb-3">
                     <a href="{{ route('account.create') }}" class="btn btn-success btn-sm">+ Tambah Akun</a>
                 </div>
@@ -152,7 +155,9 @@
                                         @csrf
                                         @method('DELETE')
                                     </form>
-                                    <button type="button" class="btn btn-danger btn-sm btn-delete" data-action="{{ route('account.destroy', $user->hashid) }}">Hapus</button>
+                                    @if($user->id !== auth()->id())
+                                        <button type="button" class="btn btn-danger btn-sm btn-delete" data-action="{{ route('account.destroy', $user->hashid) }}">Hapus</button>
+                                    @endif
                                 </td>
                             </tr>
                             @empty

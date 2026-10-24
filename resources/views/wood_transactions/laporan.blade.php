@@ -51,7 +51,7 @@
                     </td>
 
                     <td>
-                        {{ $item->details->pluck('wood_type')->unique()->implode(', ') ?: '-' }}
+                        {{ $item->details->pluck('wood_type_name')->unique()->implode(', ') ?: '-' }}
                     </td>
 
                     <td>
@@ -139,7 +139,7 @@
                     </td>
 
                     <td>
-                        {{ $item->details->pluck('wood_type')->unique()->implode(', ') ?: '-' }}
+                        {{ $item->details->pluck('wood_type_name')->unique()->implode(', ') ?: '-' }}
                     </td>
 
                     <td>

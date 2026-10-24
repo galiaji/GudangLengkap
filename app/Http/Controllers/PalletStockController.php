@@ -80,47 +80,11 @@ class PalletStockController extends Controller
         $allDryDetails = PalletStock::where('status', 'kering')->get()->groupBy('input_code');
 
         // --- Summary per pallet_code & ukuran ---
-        $wetSummary = PalletStock::select(
-                'pallet_code',
-                'ukuran',
-                DB::raw('SUM(pcs) as pcs'),
-                DB::raw('SUM(volume) as volume')
-            )
-            ->where('status', 'basah')
-            ->groupBy('pallet_code', 'ukuran')
-            ->get()
-            ->map(function($item) {
-                $item->harga_basah = PalletPrice::where('pallet_code', $item->pallet_code)->value('harga_basah') ?? 0;
-                return $item;
-            });
-
-        $dryingSummary = PalletStock::select(
-                'pallet_code',
-                'ukuran',
-                DB::raw('SUM(pcs) as pcs'),
-                DB::raw('SUM(volume) as volume')
-            )
-            ->where('status', 'penjemuran')
-            ->groupBy('pallet_code', 'ukuran')
-            ->get()
-            ->map(function($item) {
-                $item->harga_satuan = PalletPrice::where('pallet_code', $item->pallet_code)->value('harga_kering') ?? 0;
-                return $item;
-            });
-
-        $drySummary = PalletStock::select(
-                'pallet_code',
-                'ukuran',
-                DB::raw('SUM(pcs) as pcs'),
-                DB::raw('SUM(volume) as volume')
-            )
-            ->where('status', 'kering')
-            ->groupBy('pallet_code', 'ukuran')
-            ->get()
-            ->map(function($item) {
-                $item->harga_satuan = PalletPrice::where('pallet_code', $item->pallet_code)->value('harga_kering') ?? 0;
-                return $item;
-            });
+        // Semua ukuran terdaftar di harga palet selalu tampil (0 jika belum ada stok).
+        $prices = PalletPrice::orderBy('id')->get();
+        $wetSummary    = $this->buildSummary($prices, 'basah', 'harga_basah', 'harga_basah');
+        $dryingSummary = $this->buildSummary($prices, 'penjemuran', 'harga_kering', 'harga_satuan');
+        $drySummary    = $this->buildSummary($prices, 'kering', 'harga_kering', 'harga_satuan');
 
         // --- Kirim ke view ---
         return view('stok_palet.index', compact(
@@ -137,6 +101,48 @@ class PalletStockController extends Controller
             'dryingSummary',
             'drySummary'
         ));
+    }
+
+    /**
+     * Ringkasan stok per ukuran untuk satu status.
+     * $priceColumn: kolom harga yang dipakai, $priceKey: nama properti yang dibaca view.
+     */
+    private function buildSummary($prices, string $status, string $priceColumn, string $priceKey)
+    {
+        $totals = PalletStock::select(
+                'pallet_code',
+                'ukuran',
+                DB::raw('SUM(pcs) as pcs'),
+                DB::raw('SUM(volume) as volume')
+            )
+            ->where('status', $status)
+            ->groupBy('pallet_code', 'ukuran')
+            ->get()
+            ->keyBy(fn ($row) => $row->pallet_code . '|' . $row->ukuran);
+
+        $summary = $prices->map(function ($price) use ($totals, $priceColumn, $priceKey) {
+            $row = $totals->pull($price->pallet_code . '|' . $price->ukuran);
+            return (object) [
+                'pallet_code' => $price->pallet_code,
+                'ukuran'      => $price->ukuran,
+                'pcs'         => (int) ($row->pcs ?? 0),
+                'volume'      => (float) ($row->volume ?? 0),
+                $priceKey     => (float) ($price->$priceColumn ?? 0),
+            ];
+        });
+
+        // Stok dengan ukuran yang tidak ada di daftar harga tetap ditampilkan
+        foreach ($totals as $row) {
+            $summary->push((object) [
+                'pallet_code' => $row->pallet_code,
+                'ukuran'      => $row->ukuran,
+                'pcs'         => (int) $row->pcs,
+                'volume'      => (float) $row->volume,
+                $priceKey     => 0,
+            ]);
+        }
+
+        return $summary->values();
     }
 
     // Form tambah stok palet (basah/penjemuran)
@@ -161,6 +167,7 @@ class PalletStockController extends Controller
         };
 
         $validated = $request->validate([
+            'status' => 'nullable|in:basah,penjemuran,kering',
             'tanggal_input' => 'required|date',
             'pallets' => 'required|array',
             'pallets.*.pallet_code' => 'required|exists:pallet_prices,pallet_code',
@@ -184,14 +191,19 @@ class PalletStockController extends Controller
         $input_code = $prefix . $date . '-' . str_pad($urut, 3, '0', STR_PAD_LEFT);
 
         // Siapkan data insert
+        // Ukuran & volume diambil dari data palet (berdasarkan kode), bukan dari browser
+        $palletPrices = PalletPrice::whereIn('pallet_code', collect($request->pallets)->pluck('pallet_code'))
+            ->get()->keyBy('pallet_code');
+
         $data = [];
         foreach ($request->pallets as $pallet) {
             if (!empty($pallet['pcs']) && $pallet['pcs'] > 0) {
+                $price = $palletPrices[$pallet['pallet_code']];
                 $data[] = [
                     'pallet_code'   => $pallet['pallet_code'],
-                    'ukuran'        => $pallet['ukuran'],
+                    'ukuran'        => $price->ukuran,
                     'pcs'           => $pallet['pcs'],
-                    'volume'        => $pallet['volume'],
+                    'volume'        => round($pallet['pcs'] * $price->volume_per_pcs, 3),
                     'status'        => $status,
                     'input_code'    => $input_code,
                     'tanggal_input' => $request->tanggal_input, 
@@ -268,5 +280,48 @@ class PalletStockController extends Controller
         }
 
         return back()->with('success', 'Palet berhasil dipindahkan ke status ' . $nextStatus . '.');
+    }
+
+    // Form tambah ukuran palet baru
+    public function createUkuran()
+    {
+        $existing = PalletPrice::orderBy('id')->pluck('ukuran');
+        $nextCode = PalletPrice::nextCode();
+        return view('stok_palet.createHarga', compact('existing', 'nextCode'));
+    }
+
+    // Simpan ukuran palet baru (harga default 0)
+    public function storeUkuran(Request $request)
+    {
+        $request->validate([
+            'tebal'   => 'required|numeric|gt:0|max:1000',
+            'lebar'   => 'required|numeric|gt:0|max:1000',
+            'panjang' => 'required|numeric|gt:0|max:10000',
+        ], [], [
+            'tebal'   => 'tebal',
+            'lebar'   => 'lebar',
+            'panjang' => 'panjang',
+        ]);
+
+        $ukuran = PalletPrice::formatUkuran($request->tebal, $request->lebar, $request->panjang);
+
+        if (PalletPrice::where('ukuran', $ukuran)->exists()) {
+            return back()->withInput()->withErrors([
+                'tebal' => "Ukuran {$ukuran} sudah terdaftar.",
+            ]);
+        }
+
+        $palletPrice = PalletPrice::create([
+            'pallet_code'    => PalletPrice::nextCode(),
+            'ukuran'         => $ukuran,
+            'volume_per_pcs' => PalletPrice::volumeFromUkuran($ukuran),
+            'harga_basah'    => 0,
+            'harga_kering'   => 0,
+        ]);
+
+        return redirect()
+            ->route('pallet-prices.index')
+            ->with('success', "Ukuran palet {$ukuran} (kode {$palletPrice->pallet_code}) berhasil ditambahkan. Harga masih 0, silakan isi harganya.")
+            ->with('new_id', $palletPrice->id);
     }
 }

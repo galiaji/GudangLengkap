@@ -10,7 +10,7 @@ class PalletPriceController extends Controller
     // Tampilkan daftar harga palet
     public function index()
     {
-        $palletPrices = PalletPrice::all();
+        $palletPrices = PalletPrice::orderBy('id')->get();
         return view('stok_palet.indexHarga', compact('palletPrices'));
     }
 

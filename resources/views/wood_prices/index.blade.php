@@ -150,9 +150,15 @@
 
                 <div class="row">
                     @foreach ($groupedWoodPrices as $woodType => $prices)
-                        <div class="col-md-6 mb-4">
-                            <div class="grade-table mb-3">
-                                <h3 class="text-center py-2" style="background: #f1f8e9; margin:0;">{{ $woodType }}</h3>
+                        @php $isNew = session('new_wood_type') === $woodType; @endphp
+                        <div class="col-md-6 mb-4" @if($isNew) id="harga-baru" @endif>
+                            <div class="grade-table mb-3" @if($isNew) style="outline: 3px solid #f0ad4e; outline-offset: 2px;" @endif>
+                                <h3 class="text-center py-2" style="background: {{ $isNew ? '#fff3cd' : '#f1f8e9' }}; margin:0;">
+                                    {{ $woodType }}
+                                    @if($isNew)
+                                        <span class="badge bg-success align-middle" style="font-size:0.6em;">Baru, isi harganya</span>
+                                    @endif
+                                </h3>
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-hover mb-0">
                                         <thead>
@@ -329,6 +335,10 @@ document.querySelectorAll('.edit-harga-form').forEach(function(form) {
     });
 });
 document.addEventListener('DOMContentLoaded', function () {
+    // Gulir ke tabel harga jenis kayu yang baru ditambahkan
+    var hargaBaru = document.getElementById('harga-baru');
+    if (hargaBaru) hargaBaru.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
     var toastEl = document.getElementById('toastSuccess');
     if (toastEl) {
         var toast = new bootstrap.Toast(toastEl);

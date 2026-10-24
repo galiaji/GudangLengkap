@@ -65,7 +65,7 @@
     @foreach($woodTypes as $woodType)
         <div class="jenis-kayu">Jenis Kayu : {{ $woodType }}</div>
         @php
-            $grades = $stocks->where('wood_type', $woodType)->pluck('grade')->unique()->values();
+            $grades = $stocks->where('wood_type_name', $woodType)->pluck('grade')->unique()->values();
 
             // Grade selain "Rijek" di atas (urut alfabet), "Rijek 1" di kiri bawah, "Rijek 2" di kanan bawah
             $grades = $grades->sort(function($a, $b) {
@@ -96,10 +96,10 @@
                         <td class="grade-td">
                             <div class="grade-title">Grade: {{ $grades[$j] }}</div>
                             @php
-                                $panjangs = $stocks->where('wood_type', $woodType)
+                                $panjangs = $stocks->where('wood_type_name', $woodType)
                                     ->where('grade', $grades[$j])
                                     ->pluck('panjang')->unique()->sort()->values();
-                                $diameters = $stocks->where('wood_type', $woodType)
+                                $diameters = $stocks->where('wood_type_name', $woodType)
                                     ->where('grade', $grades[$j])
                                     ->pluck('diameter')->unique()->sort()->values();
                             @endphp
@@ -118,7 +118,7 @@
                                         <td>{{ $diameter }}</td>
                                         @foreach($panjangs as $panjang)
                                             @php
-                                                $pcs = $stocks->where('wood_type', $woodType)
+                                                $pcs = $stocks->where('wood_type_name', $woodType)
                                                     ->where('grade', $grades[$j])
                                                     ->where('diameter', $diameter)
                                                     ->where('panjang', $panjang)
@@ -133,7 +133,7 @@
                                     @foreach($panjangs as $panjang)
                                         <td>
                                             {{ number_format(
-                                                $stocks->where('wood_type', $woodType)
+                                                $stocks->where('wood_type_name', $woodType)
                                                     ->where('grade', $grades[$j])
                                                     ->where('panjang', $panjang)
                                                     ->sum('quantity') ?: 0, 0, ',', '.'
@@ -146,7 +146,7 @@
                                     @foreach($panjangs as $panjang)
                                         <td>
                                             {{ number_format(
-                                                $stocks->where('wood_type', $woodType)
+                                                $stocks->where('wood_type_name', $woodType)
                                                     ->where('grade', $grades[$j])
                                                     ->where('panjang', $panjang)
                                                     ->reduce(function($carry, $item) {

@@ -38,7 +38,7 @@ class WoodPriceController extends Controller
         }
 
         $request->validate([
-            'harga_beli_per_m3' => 'required|numeric',
+            'harga_beli_per_m3' => 'required|numeric|min:0',
         ]);
 
         $woodPrice = WoodPrice::find($id);
@@ -61,7 +61,7 @@ class WoodPriceController extends Controller
         }
 
         $request->validate([
-            'harga_jual_per_m3' => 'required|numeric',
+            'harga_jual_per_m3' => 'required|numeric|min:0',
         ]);
 
         $woodPrice = WoodPrice::find($id);
@@ -79,8 +79,16 @@ class WoodPriceController extends Controller
         $allPrices = WoodPrice::all();
         $hargaPerM3 = [];
 
+        // Tabel wood_prices masih menyimpan NAMA jenis kayu,
+        // jadi petakan nama -> id agar cocok dengan wood_type_id di form.
+        $typeIds = \App\Models\WoodType::pluck('id', 'name');
+
         foreach ($allPrices as $row) {
-            $hargaPerM3[$row->wood_type][$row->grade][$row->panjang] = [
+            $typeId = $typeIds[$row->wood_type] ?? null;
+            if (!$typeId) {
+                continue;
+            }
+            $hargaPerM3[$typeId][$row->grade][$row->panjang] = [
                 'beli' => $row->harga_beli_per_m3,
                 'jual' => $row->harga_jual_per_m3,
             ];

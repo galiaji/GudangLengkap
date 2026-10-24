@@ -24,8 +24,10 @@ class PalletSaleController extends Controller
         }
 
         // Sorting
-        $sort = $request->get('sort', 'tanggal');
-        $direction = $request->get('direction', 'desc');
+        // Hanya kolom & arah yang diizinkan, selain itu pakai default
+        $sort = in_array($request->get('sort'), ['tanggal', 'customer', 'created_at'], true)
+            ? $request->get('sort') : 'tanggal';
+        $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sort, $direction);
 
         $sales = $query->paginate(10)->appends($request->all());
@@ -35,7 +37,7 @@ class PalletSaleController extends Controller
 
     public function create()
     {
-        $ukuranList = \App\Models\PalletPrice::select('ukuran', 'harga_basah', 'harga_kering')->get();
+        $ukuranList = \App\Models\PalletPrice::select('pallet_code', 'ukuran', 'volume_per_pcs', 'harga_basah', 'harga_kering')->orderBy('id')->get();
         return view('pallet_sales.create', compact('ukuranList'));
     }
 
@@ -61,7 +63,7 @@ class PalletSaleController extends Controller
         if (($basahFilled + $keringFilled) < 1) {
             return redirect()->back()
                 ->withInput()
-                ->with('Gagal', 'Minimal 1 item palet harus diisi jumlah PCS-nya!');
+                ->with('error', 'Minimal 1 item palet harus diisi jumlah PCS-nya!');
         }
 
         try {
@@ -74,15 +76,16 @@ class PalletSaleController extends Controller
                 ]);
 
                 // Proses palet basah (FIFO)
+                $statusPalet = 'basah';
                 foreach ($request->basah ?? [] as $item) {
                     if (intval($item['pcs']) > 0) {
                         $palletPrice = PalletPrice::where('ukuran', $item['ukuran'])->first();
                         $pallet_code = $palletPrice ? $palletPrice->pallet_code : null;
                         $pcsNeeded = intval($item['pcs']);
-                        $totalVolume = floatval($item['volume']);
-                        $harga = floatval($item['harga_satuan']);
-                        $subtotal = str_replace('.', '', $item['subtotal']);
-                        $subtotal = floatval($subtotal);
+                        // Volume & subtotal dihitung dari data ukuran/harga palet, bukan dari browser
+                        $totalVolume = $palletPrice ? round($pcsNeeded * $palletPrice->volume_per_pcs, 3) : 0;
+                        $harga = $palletPrice ? (float) $palletPrice->{'harga_' . $statusPalet} : 0;
+                        $subtotal = round($totalVolume * $harga);
 
                         PalletSaleItem::create([
                             'pallet_sale_id' => $sale->id,
@@ -116,6 +119,9 @@ class PalletSaleController extends Controller
 
                             $takePcs = min($stock->pcs, $pcsToReduce);
 
+                            // Volume ikut berkurang sebanding pcs yang diambil
+                            $volumePerPcs  = $stock->pcs > 0 ? $stock->volume / $stock->pcs : 0;
+                            $stock->volume = max(0, round($stock->volume - $volumePerPcs * $takePcs, 3));
                             $stock->pcs -= $takePcs;
                             $stock->pcs = max(0, $stock->pcs);
                             $stock->save();
@@ -130,15 +136,16 @@ class PalletSaleController extends Controller
                 }
 
                 // Proses palet kering (FIFO)
+                $statusPalet = 'kering';
                 foreach ($request->kering ?? [] as $item) {
                     if (intval($item['pcs']) > 0) {
                         $palletPrice = PalletPrice::where('ukuran', $item['ukuran'])->first();
                         $pallet_code = $palletPrice ? $palletPrice->pallet_code : null;
                         $pcsNeeded = intval($item['pcs']);
-                        $totalVolume = floatval($item['volume']);
-                        $harga = floatval($item['harga_satuan']);
-                        $subtotal = str_replace('.', '', $item['subtotal']);
-                        $subtotal = floatval($subtotal);
+                        // Volume & subtotal dihitung dari data ukuran/harga palet, bukan dari browser
+                        $totalVolume = $palletPrice ? round($pcsNeeded * $palletPrice->volume_per_pcs, 3) : 0;
+                        $harga = $palletPrice ? (float) $palletPrice->{'harga_' . $statusPalet} : 0;
+                        $subtotal = round($totalVolume * $harga);
 
                         PalletSaleItem::create([
                             'pallet_sale_id' => $sale->id,
@@ -172,6 +179,9 @@ class PalletSaleController extends Controller
 
                             $takePcs = min($stock->pcs, $pcsToReduce);
 
+                            // Volume ikut berkurang sebanding pcs yang diambil
+                            $volumePerPcs  = $stock->pcs > 0 ? $stock->volume / $stock->pcs : 0;
+                            $stock->volume = max(0, round($stock->volume - $volumePerPcs * $takePcs, 3));
                             $stock->pcs -= $takePcs;
                             $stock->pcs = max(0, $stock->pcs);
                             $stock->save();

@@ -82,15 +82,21 @@
 </style>
 <div class="container-fluid py-4" id="laporan-stock">
     <div class="d-print-none">
-        <h2 class="stock-statistik-title mb-4">Statistik Stok {{ $woodType }}</h2>
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
+            </div>
+        @endif
+        <h2 class="stock-statistik-title mb-4">Statistik Stok {{ $woodType->name }}</h2>
         <div class="mb-3 text-end">
-            <a href="{{ route('export.stok.pdf', ['woodType' => $woodType]) }}" class="btn btn-danger me-2">
+            <a href="{{ route('export.stok.pdf', ['woodType' => $woodType->id]) }}" class="btn btn-danger me-2">
                 <i class="bi bi-file-earmark-pdf"></i> Export PDF
             </a>
         </div>
     </div>
     <div class="d-none d-print-block mb-4">
-        <h2 class="text-center">Laporan Stok {{ $woodType }}</h2>
+        <h2 class="text-center">Laporan Stok {{ $woodType->name }}</h2>
         <div class="text-end" style="font-size:13px;">Dicetak: {{ now()->format('d-m-Y H:i') }}</div>
         <hr>
     </div>

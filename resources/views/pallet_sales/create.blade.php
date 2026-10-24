@@ -257,17 +257,11 @@
 
 <script>
     // Mapping ukuran ke volume per batang (m3)
-    const volumePerBatang = {
-        "8x1.2x100": 0.96 / 1000,
-        "8x1.2x130": 1.248/ 1000,
-        "10x1.2x100": 1.2/ 1000,
-        "10x1.2x130": 1.56/ 1000,
-        "12x1.2x100": 1.44/ 1000,
-        "12x1.2x130": 1.872/ 1000,
-        "15x1.3x100": 1.8/ 1000,
-        "15x1.3x130": 2.34/ 1000
-        // Tambahkan sesuai kebutuhan
-    };
+    // Diambil dari tabel harga palet (dibagi 1000 seperti sebelumnya), jadi ukuran baru otomatis ikut
+    const volumePerBatang = Object.fromEntries(
+        Object.entries(@json($ukuranList->mapWithKeys(fn ($p) => [$p->ukuran => $p->volume_per_pcs])))
+            .map(([ukuran, vol]) => [ukuran, vol / 1000])
+    );
 
     // Hitung subtotal otomatis untuk palet basah
     document.querySelectorAll('.pcs-basah').forEach(function(input) {

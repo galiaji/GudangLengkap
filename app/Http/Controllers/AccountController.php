@@ -45,14 +45,6 @@ class AccountController extends Controller
         }
     }
 
-    public function show($hashid)
-    {
-        $id = Hashids::decode($hashid)[0] ?? null;
-        $account = \App\Models\User::findOrFail($id);
-
-        return view('account.show', compact('account'));
-    }
-
     public function edit($hashid)
     {
         $id = Hashids::decode($hashid)[0] ?? null;
@@ -89,6 +81,10 @@ class AccountController extends Controller
     {
         $id = Hashids::decode($hashid)[0] ?? null;
         $account = \App\Models\User::findOrFail($id);
+
+        if ($account->id === auth()->id()) {
+            return redirect()->route('account.index')->with('error', 'Anda tidak bisa menghapus akun yang sedang dipakai login.');
+        }
 
         $account->delete();
         return redirect()->route('account.index')->with('success', 'Akun berhasil dihapus.');
