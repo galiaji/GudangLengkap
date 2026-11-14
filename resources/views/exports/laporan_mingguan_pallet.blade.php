@@ -17,38 +17,41 @@
         <thead>
             <tr>
                 <th>No</th>
-                <th>Kode Transaksi</th>
                 <th>Tanggal</th>
                 <th>Customer</th>
-                <th>Total Volume</th>
+                <th>Total PCS</th>
+                <th>Total Volume (m³)</th>
                 <th>Grand Total</th>
             </tr>
         </thead>
         <tbody>
             @php
+                $total_pcs_all = 0;
                 $total_volume_all = 0;
                 $grand_total_all = 0;
             @endphp
             @foreach($sales as $i => $sale)
             @php
-                $total_volume = $sale->items->sum(function($item) {
-                    return $item->pcs * $item->volume;
-                });
+                // Volume item sudah total (pcs x volume per pcs, m³), jadi cukup dijumlahkan
+                $total_pcs = $sale->items->sum('pcs');
+                $total_volume = $sale->items->sum('volume');
                 $grand_total = $sale->items->sum('subtotal');
+                $total_pcs_all += $total_pcs;
                 $total_volume_all += $total_volume;
                 $grand_total_all += $grand_total;
             @endphp
             <tr>
                 <td>{{ $i+1 }}</td>
-                <td>{{ $sale->kode_transaksi }}</td>
                 <td>{{ date('d/m/Y', strtotime($sale->tanggal)) }}</td>
                 <td>{{ $sale->customer }}</td>
+                <td>{{ number_format($total_pcs, 0, ',', '.') }}</td>
                 <td>{{ number_format($total_volume, 3, ',', '.') }}</td>
                 <td>Rp{{ number_format($grand_total,0,',','.') }}</td>
             </tr>
             @endforeach
             <tr class="total-row">
-                <td colspan="4">TOTAL</td>
+                <td colspan="3">TOTAL</td>
+                <td>{{ number_format($total_pcs_all, 0, ',', '.') }}</td>
                 <td>{{ number_format($total_volume_all, 3, ',', '.') }}</td>
                 <td>Rp{{ number_format($grand_total_all,0,',','.') }}</td>
             </tr>

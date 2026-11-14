@@ -8,375 +8,311 @@ use App\Models\StockOpname;
 use App\Models\StockOpnameItem;
 use App\Models\WoodStock;
 use App\Models\WoodType;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Stock opname (khusus admin):
+ * - UC-GD-20 log kayu: pilih jenis kayu, isi jumlah batang fisik per grade/diameter/panjang.
+ * - UC-GD-21 pallet: pilih batch, isi jumlah pcs fisik untuk semua ukuran terdaftar.
+ * Saat disimpan, hasil dicatat dan stok langsung disesuaikan dengan jumlah fisik.
+ */
 class StockOpnameController extends Controller
 {
-    // Daftar sesi stock opname
+    private const URUTAN_STATUS = ['basah' => 1, 'penjemuran' => 2, 'kering' => 3];
+
+    private const PESAN_VALIDASI = [
+        'fisik.required'   => 'Jumlah fisik wajib diisi.',
+        'fisik.*.required' => 'Jumlah fisik wajib diisi untuk semua baris.',
+        'fisik.*.integer'  => 'Jumlah fisik harus berupa angka bulat.',
+        'fisik.*.min'      => 'Jumlah fisik tidak boleh negatif.',
+        'fisik.*.max'      => 'Jumlah fisik terlalu besar.',
+        'keterangan.max'   => 'Keterangan maksimal 1000 karakter.',
+    ];
+
+    // ================= Riwayat stock opname (menu utama) =================
+
+    // Dua tabel bersebelahan: riwayat log kayu & riwayat pallet (halaman masing-masing terpisah)
     public function index()
     {
-        $opnames = StockOpname::with('pembuat')
-            ->withCount('items')
-            ->withCount(['items as items_selisih_count' => fn ($q) => $q->where('selisih', '!=', 0)])
+        $riwayat = fn (string $jenis) => StockOpname::with('pembuat')
+            ->where('jenis', $jenis)
+            ->withCount([
+                'items',
+                'items as items_selisih_count' => fn ($q) => $q->where('selisih', '!=', 0),
+            ])
             ->orderByDesc('id')
-            ->get();
+            ->paginate(15, ['*'], "hal_{$jenis}")
+            ->withQueryString();
 
-        return view('stock_opname.index', compact('opnames'));
+        return view('stock_opname.index', [
+            'kayu'  => $riwayat('kayu'),
+            'palet' => $riwayat('palet'),
+        ]);
     }
 
-    // Form mulai stock opname
-    public function create()
+    // ================= UC-GD-20: Stock opname log kayu =================
+
+    public function kayu(Request $request)
     {
         $woodTypes = WoodType::visible()->orderBy('name')->get();
-        $aktif     = StockOpname::aktif()->get();
+        $woodType  = $request->filled('wood_type_id') ? $woodTypes->firstWhere('id', (int) $request->wood_type_id) : null;
 
-        return view('stock_opname.create', [
-            'woodTypes'     => $woodTypes,
-            'kayuTerkunci'  => $aktif->where('jenis', 'kayu')->pluck('wood_type_id')->all(),
-            'paletTerkunci' => $aktif->where('jenis', 'palet')->pluck('pallet_status')->all(),
+        // Urutan grade mengikuti data stok, sama seperti form pembelian/penjualan log kayu
+        $stocks = $woodType
+            ? WoodStock::where('wood_type_id', $woodType->id)->orderBy('id')->get()
+            : collect();
+
+        // Matriks per grade: baris diameter x kolom panjang (format form pembelian/penjualan)
+        $grid = $stocks->groupBy('grade')->map(fn ($rows) => [
+            'diameter' => $rows->pluck('diameter')->unique()->sort()->values(),
+            'panjang'  => $rows->pluck('panjang')->unique()->sort()->values(),
+            'sel'      => $rows->keyBy(fn ($s) => $s->diameter . '|' . $s->panjang),
         ]);
+
+        return view('stock_opname.kayu', compact('woodTypes', 'woodType', 'stocks', 'grid'));
     }
 
-    /**
-     * Mulai stock opname: kunci stok yang dipilih dan simpan jumlah sistem saat ini (snapshot).
-     */
-    public function store(Request $request)
+    public function storeKayu(Request $request)
     {
         $data = $request->validate([
-            'jenis'         => 'required|in:kayu,palet',
-            'wood_type_id'  => 'required_if:jenis,kayu|nullable|exists:wood_types,id,is_hidden,0',
-            'pallet_status' => ['required_if:jenis,palet', 'nullable', Rule::in(StockOpname::STATUS_PALET)],
-            'catatan'       => 'nullable|string|max:1000',
-        ], [
-            'jenis.required'            => 'Jenis stok wajib dipilih.',
-            'wood_type_id.required_if'  => 'Jenis kayu wajib dipilih.',
-            'wood_type_id.exists'       => 'Jenis kayu tidak valid atau sedang disembunyikan.',
-            'pallet_status.required_if' => 'Status palet wajib dipilih.',
+            'wood_type_id' => 'required|exists:wood_types,id,is_hidden,0',
+            'fisik'        => 'required|array',
+            'fisik.*'      => 'required|integer|min:0|max:1000000',
+            'sistem'       => 'array',
+            'keterangan'   => 'nullable|string|max:1000',
+        ], self::PESAN_VALIDASI + [
+            'wood_type_id.required' => 'Jenis kayu wajib dipilih.',
+            'wood_type_id.exists'   => 'Jenis kayu tidak valid atau sedang disembunyikan.',
         ]);
 
-        $opname = DB::transaction(function () use ($data) {
-            if ($data['jenis'] === 'kayu') {
-                $woodType = WoodType::lockForUpdate()->findOrFail($data['wood_type_id']);
-                if ($pesan = StockOpname::kunciKayu($woodType->id)) {
-                    return $pesan;
-                }
-                $cakupan = 'Kayu ' . $woodType->name;
-            } else {
-                if ($pesan = StockOpname::kunciPalet($data['pallet_status'])) {
-                    return $pesan;
-                }
-                $cakupan = 'Palet ' . ucfirst($data['pallet_status']);
-            }
+        $woodType = WoodType::findOrFail($data['wood_type_id']);
 
-            $opname = StockOpname::create([
-                'kode'          => StockOpname::nextKode(),
-                'tanggal'       => now()->toDateString(),
-                'jenis'         => $data['jenis'],
-                'wood_type_id'  => $data['jenis'] === 'kayu' ? $data['wood_type_id'] : null,
-                'pallet_status' => $data['jenis'] === 'palet' ? $data['pallet_status'] : null,
-                'cakupan'       => $cakupan,
-                'status'        => 'menghitung',
-                'dibuat_oleh'   => auth()->id(),
-                'catatan'       => $data['catatan'] ?? null,
+        $opname = DB::transaction(function () use ($data, $woodType) {
+            $stocks = WoodStock::with('price')
+                ->where('wood_type_id', $woodType->id)
+                ->orderBy('grade')->orderBy('diameter')->orderBy('panjang')
+                ->lockForUpdate()
+                ->get();
+
+            $this->pastikanLengkapDanTerbaru(
+                $stocks->mapWithKeys(fn ($s) => [$s->id => (int) ($s->quantity ?? 0)]), $data
+            );
+
+            $opname = $this->buatOpname($data, [
+                'jenis'        => 'kayu',
+                'wood_type_id' => $woodType->id,
+                'cakupan'      => 'Kayu ' . $woodType->name,
             ]);
 
-            $opname->items()->createMany(
-                $data['jenis'] === 'kayu' ? $this->snapshotKayu($opname) : $this->snapshotPalet($opname)
-            );
+            foreach ($stocks as $stock) {
+                $item = $this->simpanItem($opname, [
+                    'wood_stock_id'  => $stock->id,
+                    'label'          => "{$stock->grade} · Ø{$stock->diameter} · P{$stock->panjang}",
+                    'volume_per_pcs' => (float) $stock->volume,
+                    'harga'          => (float) ($stock->price->harga_beli_per_m3 ?? 0),
+                    'qty_sistem'     => (int) ($stock->quantity ?? 0),
+                    'qty_fisik'      => (int) $data['fisik'][$stock->id],
+                ]);
+
+                // Stok log kayu = jumlah fisik (hanya yang selisih)
+                if ($item->selisih !== 0) {
+                    $stock->quantity     = $item->qty_fisik;
+                    $stock->total_volume = round($item->qty_fisik * $stock->volume, 3);
+                    $stock->save();
+                }
+            }
 
             return $opname;
         });
 
-        if (is_string($opname)) {
-            return back()->withInput()->with('error', $opname);
-        }
-
-        return redirect()->route('stock-opname.show', $opname)
-            ->with('success', "Stock opname {$opname->kode} dimulai. Stok {$opname->cakupan} dikunci. Silakan hitung stok fisik.");
+        return $this->selesai($opname);
     }
+
+    // ================= UC-GD-21: Stock opname pallet per batch =================
+
+    public function palet(Request $request)
+    {
+        $batches = PalletStock::select(
+                'input_code', 'status', 'tanggal_input',
+                DB::raw('COUNT(*) as jumlah_ukuran'), DB::raw('SUM(pcs) as total_pcs')
+            )
+            ->groupBy('input_code', 'status', 'tanggal_input')
+            ->get()
+            ->sortBy(fn ($b) => [self::URUTAN_STATUS[$b->status] ?? 9, $b->tanggal_input, $b->input_code])
+            ->values();
+
+        $inputCode = $request->filled('input_code') ? (string) $request->input_code : null;
+        $batch     = $inputCode ? $batches->firstWhere('input_code', $inputCode) : null;
+        $baris     = $batch ? $this->barisBatch(PalletStock::where('input_code', $inputCode)->get()) : collect();
+
+        return view('stock_opname.palet', compact('batches', 'batch', 'baris'));
+    }
+
+    public function storePalet(Request $request)
+    {
+        $data = $request->validate([
+            'input_code' => 'required|string|exists:pallet_stocks,input_code',
+            'fisik'      => 'required|array',
+            'fisik.*'    => 'required|integer|min:0|max:1000000',
+            'sistem'     => 'array',
+            'keterangan' => 'nullable|string|max:1000',
+        ], self::PESAN_VALIDASI + [
+            'input_code.required' => 'Batch wajib dipilih.',
+            'input_code.exists'   => 'Batch tidak ditemukan atau stoknya sudah habis.',
+        ]);
+
+        $opname = DB::transaction(function () use ($data) {
+            $rows  = PalletStock::where('input_code', $data['input_code'])->lockForUpdate()->get();
+            $baris = $this->barisBatch($rows);
+            $acuan = $rows->first(); // status & tanggal batch, dipakai untuk ukuran yang baru ditemukan
+
+            $this->pastikanLengkapDanTerbaru($baris->mapWithKeys(fn ($b) => [$b->kode => $b->sistem]), $data);
+
+            $opname = $this->buatOpname($data, [
+                'jenis'         => 'palet',
+                'pallet_status' => $acuan->status,
+                'input_code'    => $data['input_code'],
+                'cakupan'       => "Batch {$data['input_code']} (" . ucfirst($acuan->status) . ')',
+            ]);
+
+            foreach ($baris as $b) {
+                $item = $this->simpanItem($opname, [
+                    'pallet_code'    => $b->kode,
+                    'input_code'     => $data['input_code'],
+                    'label'          => $b->ukuran,
+                    'volume_per_pcs' => $b->volume_per_pcs,
+                    'harga'          => $b->harga,
+                    'qty_sistem'     => $b->sistem,
+                    'qty_fisik'      => (int) $data['fisik'][$b->kode],
+                ]);
+
+                if ($item->selisih === 0) {
+                    continue;
+                }
+
+                $volume = round($item->qty_fisik * $b->volume_per_pcs, 3);
+                if ($b->row && $item->qty_fisik === 0) {
+                    $b->row->delete();                       // ukuran ini sudah tidak ada di batch
+                } elseif ($b->row) {
+                    $b->row->update(['pcs' => $item->qty_fisik, 'volume' => $volume]);
+                } else {
+                    PalletStock::create([                    // ukuran yang belum terinput di batch
+                        'pallet_code'   => $b->kode,
+                        'ukuran'        => $b->ukuran,
+                        'pcs'           => $item->qty_fisik,
+                        'volume'        => $volume,
+                        'status'        => $acuan->status,
+                        'input_code'    => $data['input_code'],
+                        'tanggal_input' => $acuan->tanggal_input,
+                    ]);
+                }
+            }
+
+            return $opname;
+        });
+
+        return $this->selesai($opname);
+    }
+
+    // ================= Detail hasil =================
 
     public function show(StockOpname $opname)
     {
-        $opname->load(['items', 'pembuat', 'penyetuju']);
+        $opname->load(['items', 'pembuat', 'woodType']);
 
-        $ringkasan = [
-            'jumlah'       => $opname->items->count(),
-            'terisi'       => $opname->items->whereNotNull('qty_fisik')->count(),
-            'selisih'      => $opname->items->where('selisih', '!=', 0)->whereNotNull('selisih')->count(),
-            'kurang'       => $opname->items->where('selisih', '<', 0)->sum('selisih'),
-            'lebih'        => $opname->items->where('selisih', '>', 0)->sum('selisih'),
-            'nilai'        => $opname->items->sum('nilai_selisih'),
-            'volume'       => $opname->items->sum('volume_selisih'),
+        return view('stock_opname.show', compact('opname'));
+    }
+
+    // ================= Bantuan =================
+
+    /**
+     * Semua ukuran pallet terdaftar untuk satu batch (yang belum ada di batch: stok tercatat 0),
+     * ditambah ukuran di batch yang tidak ada di daftar harga. Diurutkan sesuai daftar ukuran.
+     */
+    private function barisBatch(Collection $rows): Collection
+    {
+        $status    = $rows->first()->status ?? 'basah';
+        $byCode    = $rows->keyBy('pallet_code');
+        $buatBaris = fn ($kode, $ukuran, $row, ?PalletPrice $p) => (object) [
+            'kode'           => $kode,
+            'ukuran'         => $ukuran,
+            'status'         => $status,
+            'row'            => $row,
+            'sistem'         => (int) ($row->pcs ?? 0),
+            'volume_per_pcs' => $p ? $p->volumeM3PerPcs() : ($row && $row->pcs > 0 ? $row->volume / $row->pcs : 0),
+            // Basah & penjemuran pakai harga basah (masih basah), kering pakai harga kering
+            'harga'          => $p ? (float) ($status === 'kering' ? $p->harga_kering : $p->harga_basah) : 0,
         ];
 
-        return view('stock_opname.show', [
-            'opname'    => $opname,
-            'ringkasan' => $ringkasan,
-            'alasanList' => StockOpname::ALASAN,
-        ]);
+        $prices = PalletPrice::orderBy('id')->get();
+        $baris  = $prices->map(fn ($p) => $buatBaris($p->pallet_code, $p->ukuran, $byCode[$p->pallet_code] ?? null, $p));
+
+        $lain = $rows->whereNotIn('pallet_code', $prices->pluck('pallet_code'))
+            ->map(fn ($r) => $buatBaris($r->pallet_code, $r->ukuran, $r, null));
+
+        return $baris->concat($lain)->values();
     }
 
     /**
-     * Simpan hasil hitung fisik. Tombol "ajukan" juga mengirim ke admin untuk diperiksa.
+     * Semua baris wajib diisi, dan stok tercatat tidak boleh berubah sejak halaman dibuka
+     * (misalnya ada transaksi di antaranya). Jika berubah, pengguna diminta memuat ulang.
+     *
+     * @param Collection $sistem [kunci isian => jumlah stok tercatat saat ini]
      */
-    public function simpanHitung(Request $request, StockOpname $opname)
+    private function pastikanLengkapDanTerbaru(Collection $sistem, array $data): void
     {
-        if ($opname->status !== 'menghitung') {
-            return back()->with('error', 'Hasil hitung hanya bisa diubah saat status opname "Menghitung".');
-        }
-
-        $request->validate([
-            'fisik'   => 'array',
-            'fisik.*' => 'nullable|integer|min:0|max:1000000',
-        ], [
-            'fisik.*.integer' => 'Jumlah fisik harus bilangan bulat.',
-            'fisik.*.min'     => 'Jumlah fisik tidak boleh negatif.',
-        ]);
-
-        $fisik  = $request->input('fisik', []);
-        $ajukan = $request->input('aksi') === 'ajukan';
-
-        DB::transaction(function () use ($opname, $fisik) {
-            foreach ($opname->items as $item) {
-                if (!array_key_exists($item->id, $fisik)) {
-                    continue;
-                }
-                $nilai = $fisik[$item->id];
-                $item->qty_fisik = ($nilai === null || $nilai === '') ? null : (int) $nilai;
-                $this->hitungSelisih($item);
-                $item->save();
-            }
-        });
-
-        if (!$ajukan) {
-            return back()->with('success', 'Hasil hitung disimpan sementara.');
-        }
-
-        $kosong = $opname->items()->whereNull('qty_fisik')->count();
-        if ($kosong > 0) {
-            return back()->with('error', "Masih ada {$kosong} item yang belum diisi jumlah fisiknya. Isi 0 jika barangnya memang tidak ada.");
-        }
-
-        $opname->update(['status' => 'menunggu']);
-
-        return redirect()->route('stock-opname.show', $opname)
-            ->with('success', 'Hasil hitung diajukan. Menunggu pemeriksaan dan persetujuan admin.');
-    }
-
-    // Admin mengembalikan opname untuk dihitung ulang
-    public function kembalikan(StockOpname $opname)
-    {
-        if ($opname->status !== 'menunggu') {
-            return back()->with('error', 'Hanya opname yang menunggu persetujuan yang bisa dikembalikan.');
-        }
-
-        $opname->update(['status' => 'menghitung']);
-
-        return redirect()->route('stock-opname.show', $opname)
-            ->with('success', 'Opname dikembalikan untuk dihitung ulang. Stok tetap terkunci.');
-    }
-
-    /**
-     * Admin menyetujui: stok disesuaikan dengan jumlah fisik, lalu kunci dilepas.
-     */
-    public function setujui(Request $request, StockOpname $opname)
-    {
-        if ($opname->status !== 'menunggu') {
-            return back()->with('error', 'Hanya opname yang menunggu persetujuan yang bisa disetujui.');
-        }
-
-        $itemSelisih = $opname->items()->where('selisih', '!=', 0)->get();
-
-        $rules = [];
-        foreach ($itemSelisih as $item) {
-            $rules["alasan.{$item->id}"]     = ['required', Rule::in(StockOpname::ALASAN)];
-            $rules["keterangan.{$item->id}"] = 'nullable|string|max:255';
-        }
-        $request->validate($rules, [
-            'alasan.*.required' => 'Alasan wajib dipilih untuk setiap item yang selisih.',
-            'alasan.*.in'       => 'Alasan tidak valid.',
-        ]);
-
-        DB::transaction(function () use ($request, $opname, $itemSelisih) {
-            foreach ($itemSelisih as $item) {
-                $item->alasan     = $request->input("alasan.{$item->id}");
-                $item->keterangan = $request->input("keterangan.{$item->id}");
-                $item->save();
-            }
-
-            if ($opname->jenis === 'kayu') {
-                $this->sesuaikanKayu($opname);
-            } else {
-                $this->sesuaikanPalet($opname, $itemSelisih);
-            }
-
-            $opname->update([
-                'status'         => 'selesai',
-                'disetujui_oleh' => auth()->id(),
-                'disetujui_at'   => now(),
+        $kurang = $sistem->keys()->reject(fn ($k) => array_key_exists($k, $data['fisik']))->count();
+        if ($sistem->isEmpty() || $kurang > 0) {
+            throw ValidationException::withMessages([
+                'fisik' => $sistem->isEmpty()
+                    ? 'Tidak ada stok yang bisa dihitung.'
+                    : "Masih ada {$kurang} baris yang belum diisi. Isi 0 jika barangnya tidak ada.",
             ]);
-        });
-
-        return redirect()->route('stock-opname.show', $opname)
-            ->with('success', "Stock opname {$opname->kode} disetujui. Stok sudah disesuaikan dan kunci dilepas.");
-    }
-
-    // Admin membatalkan opname: stok tidak diubah, kunci dilepas
-    public function batal(StockOpname $opname)
-    {
-        if (!$opname->isAktif()) {
-            return back()->with('error', 'Opname ini sudah tidak aktif.');
         }
 
-        $opname->update(['status' => 'batal']);
-
-        return redirect()->route('stock-opname.show', $opname)
-            ->with('success', "Stock opname {$opname->kode} dibatalkan. Stok tidak diubah dan kunci dilepas.");
-    }
-
-    // Lembar hitung untuk petugas (tanpa angka stok sistem)
-    public function lembar(StockOpname $opname)
-    {
-        $opname->load('items');
-
-        return Pdf::loadView('exports.opname_lembar', compact('opname'))
-            ->setPaper('a4', 'portrait')
-            ->download("lembar-hitung-{$opname->kode}.pdf");
-    }
-
-    // Laporan hasil stock opname
-    public function laporan(StockOpname $opname)
-    {
-        $opname->load(['items', 'pembuat', 'penyetuju']);
-
-        return Pdf::loadView('exports.opname_laporan', compact('opname'))
-            ->setPaper('a4', 'landscape')
-            ->download("laporan-{$opname->kode}.pdf");
-    }
-
-    // ---------- Bantuan ----------
-
-    private function snapshotKayu(StockOpname $opname): array
-    {
-        return WoodStock::with('price')
-            ->where('wood_type_id', $opname->wood_type_id)
-            ->orderBy('grade')->orderBy('diameter')->orderBy('panjang')
-            ->lockForUpdate()
-            ->get()
-            ->map(fn ($s) => [
-                'wood_stock_id'  => $s->id,
-                'label'          => "{$s->grade} · Ø{$s->diameter} · P{$s->panjang}",
-                'volume_per_pcs' => (float) $s->volume,
-                'harga'          => (float) ($s->price->harga_beli_per_m3 ?? 0),
-                'qty_sistem'     => (int) ($s->quantity ?? 0),
-            ])->all();
-    }
-
-    private function snapshotPalet(StockOpname $opname): array
-    {
-        $pcs = PalletStock::where('status', $opname->pallet_status)
-            ->lockForUpdate()
-            ->get()
-            ->groupBy('pallet_code')
-            ->map(fn ($rows) => (int) $rows->sum('pcs'));
-
-        $hargaField = $opname->pallet_status === 'kering' ? 'harga_kering' : 'harga_basah';
-
-        return PalletPrice::orderBy('id')->get()->map(fn ($p) => [
-            'pallet_code'    => $p->pallet_code,
-            'label'          => $p->ukuran,
-            'volume_per_pcs' => (float) $p->volume_per_pcs,
-            'harga'          => (float) ($p->{$hargaField} ?? 0),
-            'qty_sistem'     => $pcs[$p->pallet_code] ?? 0,
-        ])->all();
-    }
-
-    private function hitungSelisih(StockOpnameItem $item): void
-    {
-        if ($item->qty_fisik === null) {
-            $item->selisih = $item->volume_selisih = $item->nilai_selisih = null;
-            return;
-        }
-
-        $item->selisih        = $item->qty_fisik - $item->qty_sistem;
-        $item->volume_selisih = round($item->selisih * $item->volume_per_pcs, 3);
-        $item->nilai_selisih  = round($item->volume_selisih * $item->harga, 2);
-    }
-
-    // Stok kayu = jumlah fisik
-    private function sesuaikanKayu(StockOpname $opname): void
-    {
-        foreach ($opname->items()->where('selisih', '!=', 0)->get() as $item) {
-            $stock = WoodStock::lockForUpdate()->find($item->wood_stock_id);
-            if (!$stock) {
-                continue;
-            }
-            $stock->quantity     = $item->qty_fisik;
-            $stock->total_volume = round($item->qty_fisik * $stock->volume, 3);
-            $stock->save();
+        $berubah = $sistem->filter(fn ($qty, $k) => isset($data['sistem'][$k]) && (int) $data['sistem'][$k] !== $qty);
+        if ($berubah->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'fisik' => 'Stok tercatat berubah sejak halaman dibuka (ada transaksi baru). '
+                    . 'Muat ulang halaman untuk melihat stok terbaru, lalu periksa kembali hasil hitung.',
+            ]);
         }
     }
 
-    /**
-     * Stok palet: kurang -> dikurangi FIFO (stok paling lama dulu),
-     * lebih -> ditambah baris stok baru berkode OPN.
-     */
-    private function sesuaikanPalet(StockOpname $opname, $itemSelisih): void
+    private function buatOpname(array $data, array $atribut): StockOpname
     {
-        $status = $opname->pallet_status;
-        $today  = now()->toDateString();
-        $kodeInput = null; // satu kode OPN untuk semua kelebihan dalam opname ini
-
-        foreach ($itemSelisih as $item) {
-            $price = PalletPrice::where('pallet_code', $item->pallet_code)->first();
-            if (!$price) {
-                continue;
-            }
-
-            if ($item->selisih < 0) {
-                $kurangi = -$item->selisih;
-                $stocks = PalletStock::where('pallet_code', $item->pallet_code)
-                    ->where('status', $status)
-                    ->where('pcs', '>', 0)
-                    ->orderBy('tanggal_input')->orderBy('id')
-                    ->lockForUpdate()
-                    ->get();
-
-                foreach ($stocks as $stock) {
-                    if ($kurangi <= 0) {
-                        break;
-                    }
-                    $ambil = min($stock->pcs, $kurangi);
-                    $volumePerPcs  = $stock->pcs > 0 ? $stock->volume / $stock->pcs : 0;
-                    $stock->volume = max(0, round($stock->volume - $volumePerPcs * $ambil, 3));
-                    $stock->pcs   -= $ambil;
-                    $kurangi      -= $ambil;
-
-                    $stock->pcs > 0 ? $stock->save() : $stock->delete();
-                }
-            } else {
-                PalletStock::create([
-                    'pallet_code'   => $price->pallet_code,
-                    'ukuran'        => $price->ukuran,
-                    'pcs'           => $item->selisih,
-                    'volume'        => round($item->selisih * $price->volume_per_pcs, 3),
-                    'status'        => $status,
-                    'input_code'    => $kodeInput ??= $this->kodeInputOpname($today),
-                    'tanggal_input' => $today,
-                ]);
-            }
-        }
+        return StockOpname::create($atribut + [
+            'kode'        => StockOpname::nextKode(),
+            'tanggal'     => now()->toDateString(),
+            'status'      => 'selesai',
+            'dibuat_oleh' => auth()->id(),
+            'catatan'     => $data['keterangan'] ?? null,
+        ]);
     }
 
-    private function kodeInputOpname(string $tanggal): string
+    // Simpan satu baris hasil hitung beserta selisih jumlah, volume (m³), dan nilai
+    private function simpanItem(StockOpname $opname, array $atribut): StockOpnameItem
     {
-        $prefix = 'OPN' . date('Ymd', strtotime($tanggal)) . '-';
-        $last = PalletStock::where('input_code', 'like', $prefix . '%')->orderByDesc('input_code')->value('input_code');
-        $urut = $last ? ((int) substr($last, strlen($prefix))) + 1 : 1;
+        $selisih = $atribut['qty_fisik'] - $atribut['qty_sistem'];
+        $volume  = $selisih * $atribut['volume_per_pcs'];
 
-        return $prefix . str_pad($urut, 3, '0', STR_PAD_LEFT);
+        return $opname->items()->create($atribut + [
+            'selisih'        => $selisih,
+            'volume_selisih' => round($volume, 3),
+            'nilai_selisih'  => round($volume * $atribut['harga'], 2),
+        ]);
+    }
+
+    private function selesai(StockOpname $opname)
+    {
+        $jumlah = $opname->items()->where('selisih', '!=', 0)->count();
+        $pesan  = $jumlah > 0
+            ? "Stock opname {$opname->kode} disimpan. {$jumlah} item selisih, stok sudah disesuaikan dengan hasil hitung fisik."
+            : "Stock opname {$opname->kode} disimpan. Tidak ada selisih, stok tidak berubah.";
+
+        return redirect()->route('stock-opname.show', $opname)->with('success', $pesan);
     }
 }

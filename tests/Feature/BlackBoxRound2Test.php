@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\WoodPrice;
 use App\Models\WoodStock;
 use App\Models\WoodTransaction;
+use App\Models\WoodTransactionDetail;
 use App\Models\WoodType;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
@@ -71,7 +72,7 @@ class BlackBoxRound2Test extends TestCase
     private function stokPalet(PalletPrice $p, int $pcs, string $status = 'basah', string $tgl = '2026-10-01'): PalletStock
     {
         return PalletStock::create([
-            'pallet_code' => $p->pallet_code, 'ukuran' => $p->ukuran, 'pcs' => $pcs, 'volume' => $pcs * $p->volume_per_pcs,
+            'pallet_code' => $p->pallet_code, 'ukuran' => $p->ukuran, 'pcs' => $pcs, 'volume' => round($pcs * $p->volumeM3PerPcs(), 3),
             'status' => $status, 'input_code' => 'R2' . (++self::$n), 'tanggal_input' => $tgl,
         ]);
     }
@@ -79,7 +80,7 @@ class BlackBoxRound2Test extends TestCase
     private function itemPalet(PalletPrice $p, int $pcs, string $status = 'basah', array $over = []): array
     {
         $harga = $status === 'basah' ? $p->harga_basah : $p->harga_kering;
-        $vol   = $pcs * $p->volume_per_pcs;
+        $vol   = $pcs * $p->volumeM3PerPcs();
         return array_merge([
             'ukuran' => $p->ukuran, 'pcs' => $pcs, 'volume' => $vol, 'harga_satuan' => $harga,
             'subtotal' => number_format($vol * $harga, 0, ',', '.'),
@@ -165,18 +166,50 @@ class BlackBoxRound2Test extends TestCase
             ->assertDontSee('<script>alert(1)</script>', false)->assertSee('&lt;script&gt;', false);
     }
 
+    // ========== R-B2. Harga kayu selalu per m³, bukan dari browser ==========
+
+    public function test_RB7_beli_kayu_harga_dan_volume_dimanipulasi(): void
+    {
+        [$t, $s] = $this->kayu(10); // 0.041 m³/batang, beli Rp 1.000.000/m³
+        $this->actingAs($this->user())->postJson(route('wood_transactions.storeBuy'),
+            $this->trx($t, [$this->baris(['pcs' => 2, 'volume' => 5, 'harga' => 1])]))->assertOk();
+        $d = WoodTransactionDetail::latest('id')->first();
+        $this->assertEqualsWithDelta(0.082, (float) $d->volume, 0.0001, "Volume tersimpan {$d->volume}, seharusnya 2 x 0,041");
+        $this->assertEquals(82000, (float) $d->harga, "Harga tersimpan {$d->harga}, seharusnya 0,082 m³ x Rp 1.000.000");
+        $this->assertEquals(82000, (float) WoodTransaction::latest('id')->first()->total_pembayaran);
+        $this->assertEqualsWithDelta(0.492, (float) $s->fresh()->total_volume, 0.0001, 'Stok bertambah 0,082 m³, bukan 5');
+    }
+
+    public function test_RB8_jual_kayu_harga_dimanipulasi(): void
+    {
+        [$t] = $this->kayu(10); // jual Rp 1.500.000/m³
+        $this->actingAs($this->user())->postJson(route('wood_transactions.storeSell'),
+            $this->trx($t, [$this->baris(['pcs' => 2, 'volume' => 0.082, 'harga' => 1])]))->assertOk();
+        $this->assertEquals(123000, (float) WoodTransactionDetail::latest('id')->first()->harga, 'Seharusnya 0,082 m³ x Rp 1.500.000');
+    }
+
+    public function test_RB9_potong_gergaji_harga_dihitung_per_m3(): void
+    {
+        [$t] = $this->kayu(10);
+        $this->actingAs($this->user())->postJson(route('wood_transactions.storeSaw'),
+            $this->trx($t, [$this->baris(['pcs' => 3, 'volume' => 0.123, 'harga' => 999999999])], ['jenis_transaksi' => 'gergajian']))->assertOk();
+        $trx = WoodTransaction::latest('id')->first();
+        $this->assertEquals(184500, (float) $trx->total_pembayaran, 'Seharusnya 0,123 m³ x Rp 1.500.000');
+        $this->assertEqualsWithDelta(0.123, (float) $trx->total_volume, 0.0001);
+    }
+
     // ========== R-C. Nilai palet yang dikirim browser ==========
 
     public function test_RC1_jual_palet_subtotal_dimanipulasi(): void
     {
-        $p = $this->palet('8x1.2x100', 1000); // 0.96 m3/pcs x 1000 = 960 per pcs
+        $p = $this->palet('8x1.2x100', 1000000); // 0.00096 m³/pcs x Rp 1.000.000/m³ = 960 per pcs
         $this->stokPalet($p, 10);
         $this->actingAs($this->user())->post(route('pallet-sales.store'), [
             'tanggal' => '2026-10-24', 'customer' => 'R2 Manipulasi',
             'basah' => [$this->itemPalet($p, 5, 'basah', ['subtotal' => '1'])],
         ]);
         $item = PalletSaleItem::latest('id')->first();
-        $this->assertEquals(4800, (float) $item->subtotal, "Subtotal tersimpan {$item->subtotal}, seharusnya 5 x 0,96 x 1000 = 4800");
+        $this->assertEquals(4800, (float) $item->subtotal, "Subtotal tersimpan {$item->subtotal}, seharusnya 5 x 0,00096 x 1.000.000 = 4800");
     }
 
     public function test_RC2_jual_palet_volume_dimanipulasi(): void
@@ -188,7 +221,8 @@ class BlackBoxRound2Test extends TestCase
             'basah' => [$this->itemPalet($p, 5, 'basah', ['volume' => 999])],
         ]);
         $item = PalletSaleItem::latest('id')->first();
-        $this->assertEqualsWithDelta(4.8, (float) $item->volume, 0.001, "Volume tersimpan {$item->volume}, seharusnya 4,8");
+        // 5 x 0,00096 = 0,0048 m³ -> disimpan 3 desimal = 0,005
+        $this->assertEqualsWithDelta(0.005, (float) $item->volume, 0.0001, "Volume tersimpan {$item->volume}, seharusnya 0,005 m³");
     }
 
     public function test_RC3_input_stok_palet_volume_dimanipulasi(): void
@@ -199,7 +233,8 @@ class BlackBoxRound2Test extends TestCase
             'pallets' => [['pallet_code' => $p->pallet_code, 'ukuran' => $p->ukuran, 'pcs' => 10, 'volume' => 999]],
         ]);
         $s = PalletStock::where('pallet_code', $p->pallet_code)->first();
-        $this->assertEqualsWithDelta(9.6, (float) $s->volume, 0.001, "Volume tersimpan {$s->volume}, seharusnya 10 x 0,96 = 9,6");
+        // 10 x 0,00096 = 0,0096 m³ -> disimpan 3 desimal = 0,010
+        $this->assertEqualsWithDelta(0.010, (float) $s->volume, 0.0001, "Volume tersimpan {$s->volume}, seharusnya 0,010 m³");
     }
 
     public function test_RC4_input_stok_palet_ukuran_tidak_cocok_dengan_kode(): void
@@ -430,8 +465,10 @@ class BlackBoxRound2Test extends TestCase
         [$t] = $this->kayu(10);
         $u = $this->user();
         $this->actingAs($u)->postJson(route('wood_transactions.storeBuy'), $this->trx($t, [$this->baris(['harga' => 41000])]))->assertOk();
+        // Laporan langsung terunduh sebagai PDF
         $this->actingAs($u)->get(route('transaksi.laporan.harian'))->assertOk()
-            ->assertViewHas('totalPembayaranPembelian', fn ($v) => (float) $v >= 41000);
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertDownload();
     }
 
     public function test_RH2_laporan_tahunan_tahun_tidak_valid(): void

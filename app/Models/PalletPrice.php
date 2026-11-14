@@ -40,6 +40,16 @@ class PalletPrice extends Model
     }
 
     /**
+     * Volume per pcs dalam m³. volume_per_pcs disimpan dalam (T x L x P) / 1000,
+     * jadi perlu dibagi 1000 lagi, contoh 8x1.2x100 => 0.96 / 1000 = 0.00096 m³.
+     * Dipakai untuk volume stok, penjualan, dan stock opname (harga palet per m³).
+     */
+    public function volumeM3PerPcs(): float
+    {
+        return $this->volume_per_pcs / 1000;
+    }
+
+    /**
      * Kode palet berikutnya: A1, A2, ... => A{angka terbesar + 1}
      */
     public static function nextCode(): string
@@ -52,12 +62,35 @@ class PalletPrice extends Model
     }
 
     /**
-     * Gabungkan dimensi menjadi teks ukuran, contoh (8, 1.2, 100) => "8x1.2x100".
+     * Gabungkan dimensi menjadi teks ukuran lebar x tebal x panjang,
+     * contoh lebar 8, tebal 1.2, panjang 100 => "8x1.2x100".
      */
-    public static function formatUkuran($tebal, $lebar, $panjang): string
+    public static function formatUkuran($lebar, $tebal, $panjang): string
     {
         $fmt = fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.');
-        return $fmt($tebal) . 'x' . $fmt($lebar) . 'x' . $fmt($panjang);
+        return $fmt($lebar) . 'x' . $fmt($tebal) . 'x' . $fmt($panjang);
+    }
+
+    /**
+     * Cari ukuran terdaftar yang sama walaupun urutan dimensinya berbeda
+     * (8x1.2x100, 1.2x8x100, dan 1.2x100x8 dianggap sama). Mengembalikan teks ukuran lama atau null.
+     */
+    public static function ukuranSama($tebal, $lebar, $panjang): ?string
+    {
+        $kunci = function ($t, $l, $p) {
+            $d = [round((float) $t, 2), round((float) $l, 2), round((float) $p, 2)];
+            sort($d);
+            return implode('|', $d);
+        };
+        $dicari = $kunci((float) $tebal, (float) $lebar, (float) $panjang);
+
+        return self::pluck('ukuran')->first(function ($ukuran) use ($kunci, $dicari) {
+            $d = array_map(
+                fn ($n) => (float) str_replace(',', '.', $n),
+                explode('x', strtolower(str_replace(' ', '', (string) $ukuran)))
+            );
+            return count($d) === 3 && $kunci($d[0], $d[1], $d[2]) === $dicari;
+        });
     }
 
     public function palletStocks()

@@ -35,7 +35,9 @@
     @stack('head')
 </head>
 <body>
-    <button class="btn-print" onclick="window.print()">Print</button>
+    @unless ($pdf ?? false)
+        <button class="btn-print" onclick="window.print()">Print</button>
+    @endunless
     @yield('content')
 </body>
 </html>

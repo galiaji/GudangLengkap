@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\PalletPrice;
 use App\Models\PalletStock;
-use App\Models\StockOpname;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -84,7 +83,8 @@ class PalletStockController extends Controller
         // Semua ukuran terdaftar di harga palet selalu tampil (0 jika belum ada stok).
         $prices = PalletPrice::orderBy('id')->get();
         $wetSummary    = $this->buildSummary($prices, 'basah', 'harga_basah', 'harga_basah');
-        $dryingSummary = $this->buildSummary($prices, 'penjemuran', 'harga_kering', 'harga_satuan');
+        // Penjemuran dinilai dengan harga basah karena kondisinya masih basah
+        $dryingSummary = $this->buildSummary($prices, 'penjemuran', 'harga_basah', 'harga_satuan');
         $drySummary    = $this->buildSummary($prices, 'kering', 'harga_kering', 'harga_satuan');
 
         // --- Kirim ke view ---
@@ -177,13 +177,6 @@ class PalletStockController extends Controller
             'pallets.*.volume' => 'nullable|numeric|min:0',
         ]);
 
-        // Stok palet dengan status ini sedang di-opname
-        if ($pesan = StockOpname::kunciPalet($status)) {
-            return $request->ajax()
-                ? response()->json(['success' => false, 'message' => $pesan], 422)
-                : back()->withInput()->with('error', $pesan);
-        }
-
         // Buat kode input unik
         $date = date('Ymd', strtotime($request->tanggal_input));
         $last = PalletStock::where('status', $status)
@@ -211,7 +204,7 @@ class PalletStockController extends Controller
                     'pallet_code'   => $pallet['pallet_code'],
                     'ukuran'        => $price->ukuran,
                     'pcs'           => $pallet['pcs'],
-                    'volume'        => round($pallet['pcs'] * $price->volume_per_pcs, 3),
+                    'volume'        => round($pallet['pcs'] * $price->volumeM3PerPcs(), 3),
                     'status'        => $status,
                     'input_code'    => $input_code,
                     'tanggal_input' => $request->tanggal_input, 
@@ -266,11 +259,6 @@ class PalletStockController extends Controller
             return back()->with('error', 'Status tidak valid untuk dipindahkan.');
         }
 
-        // Status asal maupun tujuan tidak boleh sedang di-opname
-        if ($pesan = StockOpname::kunciPalet($currentStatus) ?? StockOpname::kunciPalet($nextStatus)) {
-            return back()->with('error', $pesan);
-        }
-
         // Generate kode input baru untuk status berikutnya
         $today = now()->toDateString();
         $date = now()->format('Ymd');
@@ -300,7 +288,7 @@ class PalletStockController extends Controller
     {
         $existing = PalletPrice::orderBy('id')->pluck('ukuran');
         $nextCode = PalletPrice::nextCode();
-        return view('stok_palet.createHarga', compact('existing', 'nextCode'));
+        return view('stok_palet.createUkuran', compact('existing', 'nextCode'));
     }
 
     // Simpan ukuran palet baru (harga default 0)
@@ -308,19 +296,26 @@ class PalletStockController extends Controller
     {
         $request->validate([
             'tebal'   => 'required|numeric|gt:0|max:1000',
-            'lebar'   => 'required|numeric|gt:0|max:1000',
+            'lebar'   => 'required|numeric|gt:0|max:1000|gte:tebal',
             'panjang' => 'required|numeric|gt:0|max:10000',
-        ], [], [
+        ], [
+            'lebar.gte' => 'Lebar tidak boleh lebih kecil dari tebal.',
+        ], [
             'tebal'   => 'tebal',
             'lebar'   => 'lebar',
             'panjang' => 'panjang',
         ]);
 
-        $ukuran = PalletPrice::formatUkuran($request->tebal, $request->lebar, $request->panjang);
+        // Ukuran ditulis lebar x tebal x panjang, contoh 8x1.2x100
+        $ukuran = PalletPrice::formatUkuran($request->lebar, $request->tebal, $request->panjang);
 
-        if (PalletPrice::where('ukuran', $ukuran)->exists()) {
+        // Kombinasi dimensi yang sama dengan urutan berbeda dianggap ukuran yang sama
+        $sama = PalletPrice::ukuranSama($request->tebal, $request->lebar, $request->panjang);
+        if ($sama !== null) {
             return back()->withInput()->withErrors([
-                'tebal' => "Ukuran {$ukuran} sudah terdaftar.",
+                'tebal' => $sama === $ukuran
+                    ? "Ukuran {$ukuran} sudah terdaftar."
+                    : "Ukuran {$ukuran} sudah terdaftar sebagai {$sama} (kombinasi dimensi sama, urutan berbeda).",
             ]);
         }
 

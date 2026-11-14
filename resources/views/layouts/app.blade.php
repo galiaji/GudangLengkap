@@ -399,14 +399,14 @@
                 <a href="{{ route('pallet-sales.index') }}" class="btn-sidebar {{ $aktif('pallet-sales.*') }}" title="Penjualan Palet">
                     <i class="bi bi-receipt"></i><span class="sidebar-label">Penjualan Palet</span>
                 </a>
-
-                {{-- Gudang (Stock Opname) - disembunyikan dulu, hapus komentar ini untuk menampilkan
-                <div class="sidebar-divider"></div>
-                <div class="sidebar-section">Gudang</div>
-                <a href="{{ route('stock-opname.index') }}" class="btn-sidebar {{ $aktif('stock-opname.*') }}" title="Stock Opname">
-                    <i class="bi bi-clipboard-check"></i><span class="sidebar-label">Stock Opname</span>
-                </a>
-                --}}
+                @if ($isAdmin)
+                    <!-- Gudang: stock opname log kayu & pallet -->
+                    <div class="sidebar-divider"></div>
+                    <div class="sidebar-section">Gudang</div>
+                    <a href="{{ route('stock-opname.index') }}" class="btn-sidebar {{ $aktif('stock-opname.*') }}" title="Stock Opname">
+                        <i class="bi bi-clipboard-check"></i><span class="sidebar-label">Stock Opname</span>
+                    </a>
+                @endif
             </nav>
 
             <div class="sidebar-bottom">
@@ -430,22 +430,6 @@
 
         <!-- Konten Utama -->
         <main class="app-main">
-            @auth
-                @php $opnameAktif = \App\Models\StockOpname::aktif()->orderBy('id')->get(); @endphp
-                @if ($opnameAktif->isNotEmpty())
-                    <div class="alert alert-warning d-flex align-items-start gap-2 py-2">
-                        <i class="bi bi-lock-fill mt-1"></i>
-                        <div>
-                            <strong>Stock opname sedang berlangsung.</strong>
-                            Transaksi untuk stok berikut dikunci sementara:
-                            @foreach ($opnameAktif as $oa)
-                                <a href="{{ route('stock-opname.show', $oa) }}" class="alert-link">{{ $oa->cakupan }}</a>
-                                ({{ $oa->kode }}){{ $loop->last ? '.' : ',' }}
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-            @endauth
             @yield('content')
         </main>
     </div>
@@ -496,6 +480,195 @@
                 if (!layarKecil()) setBuka(false);
             });
         });
+    </script>
+    <!-- Popup konfirmasi bersama: pakai atribut data-confirm di <form> atau tombol submit -->
+    <div class="modal fade" id="modalKonfirmasi" tabindex="-1" aria-labelledby="modalKonfirmasiJudul" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header" id="modalKonfirmasiHeader">
+                    <h5 class="modal-title d-flex align-items-center gap-2" id="modalKonfirmasiJudul">
+                        <i class="bi" id="modalKonfirmasiIkon"></i><span id="modalKonfirmasiTeksJudul">Konfirmasi</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body" id="modalKonfirmasiPesan"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn" id="modalKonfirmasiOk">Ya, Lanjutkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            var el = document.getElementById('modalKonfirmasi');
+            var gaya = {
+                success: { header: 'bg-success text-white', tombol: 'btn-success', ikon: 'bi-check2-circle' },
+                danger:  { header: 'bg-danger text-white',  tombol: 'btn-danger',  ikon: 'bi-exclamation-triangle' },
+                warning: { header: 'bg-warning text-dark',  tombol: 'btn-warning', ikon: 'bi-exclamation-circle' }
+            };
+
+            /**
+             * Tampilkan popup konfirmasi. Hasil: Promise true (Ya) / false (Batal).
+             * opsi: { judul, tombol, jenis: 'success' | 'danger' | 'warning' }
+             */
+            window.konfirmasi = function (pesan, opsi) {
+                opsi = opsi || {};
+                var g = gaya[opsi.jenis] || gaya.success;
+                var header = document.getElementById('modalKonfirmasiHeader');
+                var ok = document.getElementById('modalKonfirmasiOk');
+
+                header.className = 'modal-header ' + g.header;
+                header.querySelector('.btn-close').classList.toggle('btn-close-white', opsi.jenis !== 'warning');
+                document.getElementById('modalKonfirmasiIkon').className = 'bi ' + g.ikon;
+                document.getElementById('modalKonfirmasiTeksJudul').textContent = opsi.judul || 'Konfirmasi';
+                document.getElementById('modalKonfirmasiPesan').textContent = pesan;
+                ok.className = 'btn ' + g.tombol;
+                ok.textContent = opsi.tombol || 'Ya, Lanjutkan';
+
+                var modal = bootstrap.Modal.getOrCreateInstance(el);
+                return new Promise(function (selesai) {
+                    var dipilih = false;
+                    ok.onclick = function () { dipilih = true; modal.hide(); };
+                    el.addEventListener('hidden.bs.modal', function () { selesai(dipilih); }, { once: true });
+                    modal.show();
+                });
+            };
+
+            // Form/tombol dengan data-confirm: tahan pengiriman sampai pengguna memilih "Ya"
+            document.addEventListener('submit', function (e) {
+                var form = e.target;
+                if (form.dataset.sudahDikonfirmasi) {
+                    delete form.dataset.sudahDikonfirmasi;
+                    return;
+                }
+                var tombol = e.submitter;
+                var sumber = tombol && tombol.dataset.confirm !== undefined ? tombol
+                    : (form.dataset.confirm !== undefined ? form : null);
+                if (!sumber) return;
+
+                e.preventDefault();
+                window.konfirmasi(sumber.dataset.confirm, {
+                    judul: sumber.dataset.confirmJudul,
+                    tombol: sumber.dataset.confirmTombol,
+                    jenis: sumber.dataset.confirmJenis
+                }).then(function (ya) {
+                    if (!ya) return;
+                    form.dataset.sudahDikonfirmasi = '1';
+                    // Kirim ulang lewat tombol yang sama agar name/value tombol (mis. aksi=ajukan) ikut terkirim
+                    tombol ? form.requestSubmit(tombol) : form.requestSubmit();
+                });
+            });
+        })();
+    </script>
+    <script>
+        /**
+         * Pindah antar-isian dengan tombol panah di semua form (beli, jual, gergajian, pallet, opname, dll).
+         * Isian tujuan dicari dari posisinya di layar, jadi berlaku juga untuk tabel dengan sel gabungan.
+         * - Atas/Bawah: ke isian di baris atas/bawah yang paling dekat, di dalam tabel yang sama
+         *   (keluar tabel hanya ke isian yang berada di atas/bawah tabel, mis. Atas Nama).
+         * - Kiri/Kanan: ke isian sebelah di baris yang sama; isian teks hanya pindah jika
+         *   kursor sudah di awal/akhir teks.
+         * Tambahkan atribut data-no-arrow-nav pada isian yang tidak ingin ikut.
+         */
+        (function () {
+            var TIPE = ['text', 'number', 'tel', 'search', 'email', 'password'];
+
+            function bisaDipilih(el) {
+                return el instanceof HTMLInputElement
+                    && TIPE.indexOf(el.type) !== -1
+                    && !el.disabled && !el.readOnly
+                    && !el.hasAttribute('data-no-arrow-nav')
+                    && el.getClientRects().length > 0;
+            }
+
+            function posisi(el) {
+                var r = el.getBoundingClientRect();
+                return { el: el, atas: r.top, bawah: r.bottom, kiri: r.left, kanan: r.right,
+                         x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2, tinggi: r.height };
+            }
+
+            // Kandidat: isian dalam form/modal yang sama
+            function kandidat(el) {
+                var wadah = el.form || el.closest('.modal') || document;
+                return Array.prototype.filter.call(wadah.querySelectorAll('input'), function (i) {
+                    return i !== el && bisaDipilih(i);
+                }).map(posisi);
+            }
+
+            function terdekatX(daftar, x) {
+                return daftar.reduce(function (a, b) { return Math.abs(b.x - x) < Math.abs(a.x - x) ? b : a; });
+            }
+
+            // Baris terdekat di atas/bawah (isian dengan posisi vertikal hampir sama dianggap satu baris)
+            function barisBerikut(semua, kini, arah) {
+                var calon = semua.filter(function (c) {
+                    return arah > 0 ? c.atas >= kini.bawah - 2 : c.bawah <= kini.atas + 2;
+                });
+                if (!calon.length) return [];
+                var batas = arah > 0
+                    ? Math.min.apply(null, calon.map(function (c) { return c.atas; }))
+                    : Math.max.apply(null, calon.map(function (c) { return c.bawah; }));
+                return calon.filter(function (c) {
+                    return Math.abs((arah > 0 ? c.atas : c.bawah) - batas) < Math.max(6, kini.tinggi / 2);
+                });
+            }
+
+            function tujuan(el, tombol) {
+                var semua = kandidat(el);
+                if (!semua.length) return null;
+                var kini = posisi(el);
+
+                if (tombol === 'ArrowDown' || tombol === 'ArrowUp') {
+                    var arah = tombol === 'ArrowDown' ? 1 : -1;
+                    var tabel = el.closest('table');
+                    if (tabel) {
+                        // Utamakan baris lain di tabel yang sama (tabel grade bisa bersebelahan)
+                        var dalam = barisBerikut(semua.filter(function (c) { return tabel.contains(c.el); }), kini, arah);
+                        if (dalam.length) return terdekatX(dalam, kini.x).el;
+                        // Keluar tabel hanya ke isian yang benar-benar di atas/bawah tabel
+                        var t = tabel.getBoundingClientRect();
+                        semua = semua.filter(function (c) {
+                            return !tabel.contains(c.el) && (arah > 0 ? c.atas >= t.bottom - 2 : c.bawah <= t.top + 2);
+                        });
+                    }
+                    var baris = barisBerikut(semua, kini, arah);
+                    return baris.length ? terdekatX(baris, kini.x).el : null;
+                }
+
+                // Kiri/kanan: hanya di baris yang sama (boleh lanjut ke tabel di sebelahnya)
+                var kanan = tombol === 'ArrowRight';
+                var sebaris = semua.filter(function (c) {
+                    return Math.abs(c.y - kini.y) < kini.tinggi / 2 && (kanan ? c.x > kini.x : c.x < kini.x);
+                });
+                return sebaris.length ? terdekatX(sebaris, kini.x).el : null;
+            }
+
+            // Isian teks: kiri/kanan hanya pindah jika kursor di awal/akhir dan tidak ada teks terpilih
+            function kursorDiUjung(el, tombol) {
+                if (el.type === 'number' || el.selectionStart === null) return true;
+                if (el.selectionStart !== el.selectionEnd) return false;
+                return tombol === 'ArrowLeft' ? el.selectionStart === 0 : el.selectionEnd === el.value.length;
+            }
+
+            document.addEventListener('keydown', function (e) {
+                var tombol = e.key;
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(tombol) === -1) return;
+                if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) return;
+                var el = e.target;
+                if (!bisaDipilih(el)) return;
+                if ((tombol === 'ArrowLeft' || tombol === 'ArrowRight') && !kursorDiUjung(el, tombol)) return;
+
+                var target = tujuan(el, tombol);
+                // Isian angka: atas/bawah tidak lagi menambah/mengurangi nilai secara tidak sengaja
+                if (target || el.type === 'number') e.preventDefault();
+                if (!target) return;
+
+                target.focus();
+                target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                if (typeof target.select === 'function') target.select();
+            });
+        })();
     </script>
     @yield('scripts')
 </body>

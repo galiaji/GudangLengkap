@@ -363,7 +363,8 @@
                     let pcs = input ? parseInt(input.value) || 0 : 0;
                     totalPcs += pcs;
 
-                    let volPerBatang = (volumes[d] && volumes[d][p]) ? parseFloat(volumes[d][p]) : 0;
+                    // Volume baru dihitung setelah jenis kayu dipilih
+                    let volPerBatang = (selectedWoodType && volumes[d] && volumes[d][p]) ? parseFloat(volumes[d][p]) : 0;
                     totalVol += pcs * volPerBatang;
                 });
 

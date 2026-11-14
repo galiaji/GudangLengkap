@@ -171,13 +171,13 @@
                 </div>
             </form>
             <div class="mb-3 d-print-none">
-                <a href="{{ route('transaksi.laporan.harian') }}" target="_blank" class="btn btn-outline-success">
+                <a href="{{ route('transaksi.laporan.harian') }}" class="btn btn-outline-success">
                     <i class="bi bi-printer"></i> Print Laporan Hari Ini
                 </a>
-                <a href="{{ route('transaksi.laporan.bulanan') }}" target="_blank" class="btn btn-outline-primary">
+                <a href="{{ route('transaksi.laporan.bulanan') }}" class="btn btn-outline-primary">
                     <i class="bi bi-printer"></i> Print Laporan Bulanan
                 </a>
-                <a href="{{ route('transaksi.laporan.tahunan') }}" target="_blank" class="btn btn-outline-secondary">
+                <a href="{{ route('transaksi.laporan.tahunan') }}" class="btn btn-outline-secondary">
                     <i class="bi bi-printer"></i> Print Laporan Tahunan
                 </a>
             </div>

@@ -39,16 +39,16 @@
 
                 <div class="row g-3">
                     <div class="col-12 col-sm-4">
-                        <label for="tebal" class="form-label">Tebal (cm)</label>
-                        <input type="number" step="0.01" min="0.01" name="tebal" id="tebal"
-                               class="form-control dim-input @error('tebal') is-invalid @enderror"
-                               value="{{ old('tebal') }}" placeholder="contoh: 8" required>
-                    </div>
-                    <div class="col-12 col-sm-4">
                         <label for="lebar" class="form-label">Lebar (cm)</label>
                         <input type="number" step="0.01" min="0.01" name="lebar" id="lebar"
                                class="form-control dim-input @error('lebar') is-invalid @enderror"
-                               value="{{ old('lebar') }}" placeholder="contoh: 1.2" required>
+                               value="{{ old('lebar') }}" placeholder="contoh: 8" required>
+                    </div>
+                    <div class="col-12 col-sm-4">
+                        <label for="tebal" class="form-label">Tebal (cm)</label>
+                        <input type="number" step="0.01" min="0.01" name="tebal" id="tebal"
+                               class="form-control dim-input @error('tebal') is-invalid @enderror"
+                               value="{{ old('tebal') }}" placeholder="contoh: 1.2" required>
                     </div>
                     <div class="col-12 col-sm-4">
                         <label for="panjang" class="form-label">Panjang (cm)</label>
@@ -59,8 +59,11 @@
                 </div>
 
                 <div class="preview-box mt-3">
-                    Ukuran: <strong id="preview-ukuran">-</strong>
+                    Ukuran (L x T x P): <strong id="preview-ukuran">-</strong>
                     &nbsp;·&nbsp; Volume per pcs: <strong id="preview-volume">-</strong>
+                    <div class="small mt-1" id="preview-lebar" style="color:#b02a37;" hidden>
+                        Lebar tidak boleh lebih kecil dari tebal.
+                    </div>
                     <div class="small mt-1" id="preview-warning" style="color:#b02a37;" hidden>
                         Ukuran ini sudah terdaftar.
                     </div>
@@ -84,7 +87,7 @@
 </div>
 
 <script>
-    // Pratinjau ukuran & volume, rumus sama dengan server: (T x L x P) / 1000
+    // Pratinjau ukuran (lebar x tebal x panjang) & volume, rumus sama dengan server: (L x T x P) / 1000
     (function () {
         const existing = @json($existing);
         const fmt = n => String(Math.round(parseFloat(n) * 100) / 100);
@@ -93,12 +96,23 @@
             const l = document.getElementById('lebar').value;
             const p = document.getElementById('panjang').value;
             const ok = [t, l, p].every(v => parseFloat(v) > 0);
-            const ukuran = ok ? `${fmt(t)}x${fmt(l)}x${fmt(p)}` : '-';
+            const ukuran = ok ? `${fmt(l)}x${fmt(t)}x${fmt(p)}` : '-';
+            document.getElementById('preview-lebar').hidden = !(ok && parseFloat(l) < parseFloat(t));
             document.getElementById('preview-ukuran').textContent = ukuran;
             document.getElementById('preview-volume').textContent = ok
                 ? (parseFloat(t) * parseFloat(l) * parseFloat(p) / 1000).toLocaleString('id-ID', { maximumFractionDigits: 6 })
                 : '-';
-            document.getElementById('preview-warning').hidden = !existing.includes(ukuran);
+            // Sama seperti server: kombinasi dimensi yang sama dengan urutan berbeda dianggap ukuran yang sama
+            const kunci = (a, b, c) => [a, b, c].map(n => Math.round(n * 100) / 100).sort((x, y) => x - y).join('|');
+            const dicari = ok ? kunci(parseFloat(t), parseFloat(l), parseFloat(p)) : null;
+            const sama = ok ? existing.find(u => {
+                const d = String(u).replace(/\s/g, '').toLowerCase().split('x').map(n => parseFloat(n.replace(',', '.')));
+                return d.length === 3 && kunci(d[0], d[1], d[2]) === dicari;
+            }) : null;
+            const warning = document.getElementById('preview-warning');
+            warning.textContent = sama === ukuran ? 'Ukuran ini sudah terdaftar.'
+                : `Ukuran ini sudah terdaftar sebagai ${sama} (kombinasi dimensi sama, urutan berbeda).`;
+            warning.hidden = !sama;
         }
         document.querySelectorAll('.dim-input').forEach(el => el.addEventListener('input', update));
         update();

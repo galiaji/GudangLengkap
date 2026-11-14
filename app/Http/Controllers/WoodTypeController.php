@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StockOpname;
 use App\Models\WoodPrice;
 use App\Models\WoodType;
 use Illuminate\Http\Request;
@@ -35,10 +34,6 @@ class WoodTypeController extends Controller
      */
     public function destroy(WoodType $woodType)
     {
-        if ($pesan = StockOpname::kunciKayu($woodType->id)) {
-            return back()->with('error', $pesan);
-        }
-
         $blocker = $this->deleteBlocker($woodType);
         if ($blocker) {
             return back()->with('error', "Jenis kayu {$woodType->name} tidak bisa dihapus: {$blocker}");
@@ -59,10 +54,6 @@ class WoodTypeController extends Controller
      */
     public function hide(WoodType $woodType)
     {
-        if ($pesan = StockOpname::kunciKayu($woodType->id)) {
-            return back()->with('error', $pesan);
-        }
-
         $qty = $this->totalQuantity($woodType);
         if ($qty > 0) {
             return back()->with('error', "Jenis kayu {$woodType->name} tidak bisa disembunyikan: masih ada stok {$qty} pcs.");

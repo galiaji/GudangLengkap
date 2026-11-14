@@ -32,7 +32,7 @@
                     <thead class="table-success">
                         <tr>
                             <th>Kode Palet</th>
-                            <th>Ukuran</th>
+                            <th>Ukuran (L x T x P)</th>
                             <th>Jumlah (pcs)</th>
                             <th>Volume</th>
                         </tr>

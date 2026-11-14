@@ -89,7 +89,7 @@ class BlackBoxTest extends TestCase
     {
         return PalletStock::create([
             'pallet_code' => $p->pallet_code, 'ukuran' => $p->ukuran, 'pcs' => $pcs,
-            'volume' => $pcs * $p->volume_per_pcs, 'status' => $status,
+            'volume' => round($pcs * $p->volumeM3PerPcs(), 3), 'status' => $status,
             'input_code' => 'UJI' . (++self::$n), 'tanggal_input' => $tgl,
         ]);
     }
@@ -536,7 +536,7 @@ class BlackBoxTest extends TestCase
 
     public function test_M01_tambah_ukuran_palet_valid(): void
     {
-        $this->actingAs($this->admin())->post(route('pallet-prices.store'), ['tebal' => 9, 'lebar' => 2, 'panjang' => 120])
+        $this->actingAs($this->admin())->post(route('pallet-prices.store'), ['lebar' => 9, 'tebal' => 2, 'panjang' => 120])
             ->assertRedirect(route('pallet-prices.index'));
         $this->assertDatabaseHas('pallet_prices', ['ukuran' => '9x2x120']);
     }
@@ -544,7 +544,7 @@ class BlackBoxTest extends TestCase
     public function test_M02_tambah_ukuran_palet_duplikat(): void
     {
         $p = $this->palet('7x1x90');
-        $this->actingAs($this->admin())->post(route('pallet-prices.store'), ['tebal' => 7, 'lebar' => 1, 'panjang' => 90])
+        $this->actingAs($this->admin())->post(route('pallet-prices.store'), ['lebar' => 7, 'tebal' => 1, 'panjang' => 90])
             ->assertSessionHasErrors('tebal');
     }
 
@@ -650,7 +650,7 @@ class BlackBoxTest extends TestCase
         return array_merge([
             'tanggal' => '2026-10-24', 'customer' => 'CV Uji', 'keterangan' => '',
             $status => [[
-                'ukuran' => $p->ukuran, 'pcs' => $pcs, 'volume' => $pcs * $p->volume_per_pcs,
+                'ukuran' => $p->ukuran, 'pcs' => $pcs, 'volume' => round($pcs * $p->volumeM3PerPcs(), 3),
                 'harga_satuan' => 1000, 'subtotal' => number_format($pcs * 1000, 0, ',', '.'),
             ]],
         ], $over);
@@ -708,12 +708,12 @@ class BlackBoxTest extends TestCase
 
     public function test_P06_volume_stok_palet_ikut_berkurang_setelah_dijual(): void
     {
-        $p = $this->palet(); // 0.96 per pcs
-        $s = $this->stokPalet($p, 10); // volume 9.6
+        $p = $this->palet(); // 0.00096 m³ per pcs
+        $s = $this->stokPalet($p, 10); // volume 0.010 m³
         $this->actingAs($this->admin())->post(route('pallet-sales.store'), $this->jualPalet($p, 4));
         $s->refresh();
         $this->assertEquals(6, $s->pcs);
-        $this->assertEqualsWithDelta(5.76, (float) $s->volume, 0.001, "Volume stok masih {$s->volume} m³ padahal sisa 6 pcs.");
+        $this->assertEqualsWithDelta(0.006, (float) $s->volume, 0.0001, "Volume stok masih {$s->volume} m³ padahal sisa 6 pcs.");
     }
 
     public function test_P07_daftar_penjualan_palet_parameter_urut_tidak_valid(): void
@@ -732,6 +732,25 @@ class BlackBoxTest extends TestCase
 
         $this->actingAs($u)->get(route('pallet-sales.nota', $sale->id))->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->actingAs($u)->get(route('pallet-sales.laporan-mingguan'))->assertOk()->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_P09_laporan_mingguan_volume_tidak_dihitung_ganda(): void
+    {
+        $p = $this->palet(); // 0.00096 m³ per pcs
+        $this->stokPalet($p, 20);
+        $this->actingAs($this->admin())->post(route('pallet-sales.store'),
+            $this->jualPalet($p, 10, 'basah', ['tanggal' => now()->toDateString(), 'customer' => 'CV Mingguan']));
+        $sale = PalletSale::with('items')->latest('id')->first();
+        $this->assertEqualsWithDelta(0.010, (float) $sale->items->sum('volume'), 0.0001);
+
+        // Isi laporan: total volume = jumlah volume item (0,010 m³), bukan pcs x volume (0,100)
+        $html = view('exports.laporan_mingguan_pallet', [
+            'sales' => collect([$sale]), 'start' => now()->startOfWeek(), 'end' => now()->endOfWeek(),
+        ])->render();
+        $this->assertStringContainsString('CV Mingguan', $html);
+        $this->assertStringContainsString('<td>0,010</td>', $html);
+        $this->assertStringNotContainsString('0,100', $html);
+        $this->assertStringNotContainsString('Kode Transaksi', $html);
     }
 
     public function test_P09_nota_penjualan_id_tidak_ada(): void

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class StockOpnameItem extends Model
 {
     protected $fillable = [
-        'stock_opname_id', 'wood_stock_id', 'pallet_code', 'label', 'volume_per_pcs', 'harga',
+        'stock_opname_id', 'wood_stock_id', 'pallet_code', 'input_code', 'label', 'volume_per_pcs', 'harga',
         'qty_sistem', 'qty_fisik', 'selisih', 'volume_selisih', 'nilai_selisih', 'alasan', 'keterangan',
     ];
 

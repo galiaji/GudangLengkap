@@ -2,26 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Hasil stock opname. Disimpan sekali jalan: saat disimpan, stok langsung disesuaikan
+ * dengan hasil hitung fisik (UC-GD-20 log kayu per jenis kayu, UC-GD-21 pallet per batch).
+ */
 class StockOpname extends Model
 {
-    // Status yang membuat stok terkunci
-    public const STATUS_AKTIF = ['menghitung', 'menunggu'];
-
-    public const STATUS_PALET = ['basah', 'penjemuran', 'kering'];
-
-    public const ALASAN = ['Rusak / busuk', 'Hilang', 'Salah catat', 'Susut', 'Lainnya'];
-
     protected $fillable = [
-        'kode', 'tanggal', 'jenis', 'wood_type_id', 'pallet_status', 'cakupan',
-        'status', 'dibuat_oleh', 'disetujui_oleh', 'disetujui_at', 'catatan',
+        'kode', 'tanggal', 'jenis', 'wood_type_id', 'pallet_status', 'input_code', 'cakupan',
+        'status', 'dibuat_oleh', 'catatan',
     ];
 
     protected $casts = [
-        'tanggal'      => 'date',
-        'disetujui_at' => 'datetime',
+        'tanggal' => 'date',
     ];
 
     public function items()
@@ -39,65 +34,20 @@ class StockOpname extends Model
         return $this->belongsTo(User::class, 'dibuat_oleh');
     }
 
-    public function penyetuju()
+    public function scopeKayu($query)
     {
-        return $this->belongsTo(User::class, 'disetujui_oleh');
+        return $query->where('jenis', 'kayu');
     }
 
-    public function scopeAktif(Builder $query): Builder
+    public function scopePalet($query)
     {
-        return $query->whereIn('status', self::STATUS_AKTIF);
+        return $query->where('jenis', 'palet');
     }
 
-    public function isAktif(): bool
+    // Item yang jumlah fisiknya berbeda dengan stok tercatat
+    public function itemSelisih()
     {
-        return in_array($this->status, self::STATUS_AKTIF, true);
-    }
-
-    public function statusLabel(): string
-    {
-        return [
-            'menghitung' => 'Menghitung',
-            'menunggu'   => 'Menunggu persetujuan',
-            'selesai'    => 'Selesai',
-            'batal'      => 'Dibatalkan',
-        ][$this->status] ?? $this->status;
-    }
-
-    public function statusBadge(): string
-    {
-        return [
-            'menghitung' => 'bg-warning text-dark',
-            'menunggu'   => 'bg-info text-dark',
-            'selesai'    => 'bg-success',
-            'batal'      => 'bg-secondary',
-        ][$this->status] ?? 'bg-secondary';
-    }
-
-    /**
-     * Pesan kunci jika stok jenis kayu ini sedang di-opname, atau null jika bebas.
-     */
-    public static function kunciKayu($woodTypeId): ?string
-    {
-        $opname = self::aktif()->where('jenis', 'kayu')->where('wood_type_id', $woodTypeId)->first();
-
-        return $opname ? self::pesanKunci($opname) : null;
-    }
-
-    /**
-     * Pesan kunci jika stok palet dengan status ini sedang di-opname, atau null jika bebas.
-     */
-    public static function kunciPalet(?string $status): ?string
-    {
-        $opname = self::aktif()->where('jenis', 'palet')->where('pallet_status', $status)->first();
-
-        return $opname ? self::pesanKunci($opname) : null;
-    }
-
-    private static function pesanKunci(self $opname): string
-    {
-        return "Stok {$opname->cakupan} sedang dalam stock opname {$opname->kode}. "
-            . 'Transaksi untuk stok ini dikunci sampai opname selesai atau dibatalkan.';
+        return $this->items->filter(fn ($i) => (int) $i->selisih !== 0);
     }
 
     public static function nextKode(): string

@@ -62,12 +62,18 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
                 </div>
             @endif
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
+                </div>
+            @endif
             <div class="table-responsive">
                 <table class="table table-bordered align-middle">
                     <thead class="table-light">
                         <tr>
                             <th style="display:none">Kode Palet</th>
-                            <th>Ukuran</th>
+                            <th>Ukuran (L x T x P)</th>
                             <th>Harga Basah</th>
                             <th>Harga Kering</th>
                             <th>Aksi</th>
@@ -86,10 +92,21 @@
                             <td>Rp {{ number_format($palletPrice->harga_basah, 0, ',', '.') }}</td>
                             <td>Rp {{ number_format($palletPrice->harga_kering, 0, ',', '.') }}</td>
                             <td>
-                                <!-- Tombol Edit -->
-                                <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ $palletPrice->id }}">
-                                    Edit
-                                </button>
+                                <div class="d-flex gap-1">
+                                    <!-- Tombol Edit -->
+                                    <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ $palletPrice->id }}">
+                                        Edit
+                                    </button>
+                                    {{-- Tombol Hapus disembunyikan. Untuk menampilkan lagi, hapus tanda komentar Blade ini.
+                                    <form action="{{ route('pallet-prices.destroy', $palletPrice->id) }}" method="POST" class="m-0"
+                                          data-confirm="Hapus ukuran palet {{ $palletPrice->ukuran }}? Ukuran yang masih punya stok atau riwayat penjualan tidak bisa dihapus."
+                                          data-confirm-judul="Hapus Ukuran Palet" data-confirm-tombol="Ya, Hapus" data-confirm-jenis="danger">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+                                    </form>
+                                    --}}
+                                </div>
                             </td>
                         </tr>
 
@@ -110,7 +127,7 @@
                                                     <input type="text" class="form-control" value="{{ $palletPrice->pallet_code }}" readonly>
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label class="form-label">Ukuran</label>
+                                                    <label class="form-label">Ukuran (L x T x P)</label>
                                                     <input type="text" class="form-control" value="{{ $palletPrice->ukuran }}" readonly>
                                                 </div>
                                                 <div class="mb-3">

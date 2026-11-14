@@ -26,6 +26,7 @@
         .tabel-pallet th { background: #f0f0f0; }
         .right { text-align: right; }
         .total { font-weight: bold; background: #f5f5f5; }
+        .satuan { font-size: 10pt; font-weight: normal; }
     </style>
 </head>
 <body>
@@ -38,76 +39,55 @@
                 <strong>Pelanggan:</strong> {{ $sale->customer ?? '-' }}
             </td>
             <td class="info-kanan" style="width:40%; vertical-align:top; text-align:right;">
-                <strong>Total Volume:</strong> {{ number_format($total_volume, 3, ',', '.') }}<br>
+                <strong>Total Volume:</strong> {{ number_format($total_volume, 3, ',', '.') }} m³<br>
                 <strong>Grand Total:</strong> Rp{{ number_format($grand_total, 0, ',', '.') }}
             </td>
         </tr>
     </table>
 
+    @php
+        // Hanya bagian yang ada item-nya yang ditampilkan; jika hanya satu, tabelnya selebar halaman
+        $bagian = collect([
+            ['judul' => 'Pallet Basah',  'label' => 'Basah',  'items' => $basah,  'volume' => $total_volume_basah,  'total' => $grand_total_basah],
+            ['judul' => 'Pallet Kering', 'label' => 'Kering', 'items' => $kering, 'volume' => $total_volume_kering, 'total' => $grand_total_kering],
+        ])->filter(fn ($b) => $b['items']->count() > 0)->values();
+        $lebarKolom = $bagian->count() > 1 ? '50%' : '100%';
+    @endphp
+
     <table width="100%" style="margin-bottom:20px;">
         <tr>
-            {{-- Pallet Basah --}}
-            <td valign="top" style="width:50%;">
-                @if($basah->count())
-                <div class="subjudul">Pallet Basah</div>
+            @forelse($bagian as $b)
+            <td valign="top" style="width:{{ $lebarKolom }};">
+                <div class="subjudul">{{ $b['judul'] }}</div>
                 <table class="tabel-pallet" style="width:100%;">
                     <thead>
                         <tr>
-                            <th>Ukuran</th>
+                            <th>Ukuran<br><span class="satuan">(L x T x P)</span></th>
                             <th>Pcs</th>
-                            <th>Volume</th>
+                            <th>Volume<br><span class="satuan">(m³)</span></th>
                             <th>Subtotal</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($basah as $item)
+                        @foreach($b['items'] as $item)
                         <tr>
-                            <td>{{ $item->ukuran ?? '-' }}</td>
-                            <td>{{ $item->pcs ?? 0 }}</td>
-                            <td>{{ number_format($item->volume ?? 0, 3, ',', '.') }}</td>
-                            <td class="right">Rp{{ number_format($item->subtotal ?? 0, 0, ',', '.') }}</td>
+                            <td>{{ $item->ukuran }}</td>
+                            <td>{{ number_format($item->pcs, 0, ',', '.') }}</td>
+                            <td>{{ number_format($item->volume, 3, ',', '.') }}</td>
+                            <td class="right">Rp{{ number_format($item->subtotal, 0, ',', '.') }}</td>
                         </tr>
                         @endforeach
                         <tr class="total">
-                            <td colspan="2" class="right">TOTAL Basah</td>
-                            <td><b>{{ number_format($total_volume_basah, 3, ',', '.') }}</b></td>
-                            <td class="right"><b>Rp{{ number_format($grand_total_basah, 0, ',', '.') }}</b></td>
+                            <td colspan="2" class="right">TOTAL {{ $b['label'] }}</td>
+                            <td><b>{{ number_format($b['volume'], 3, ',', '.') }}</b></td>
+                            <td class="right"><b>Rp{{ number_format($b['total'], 0, ',', '.') }}</b></td>
                         </tr>
                     </tbody>
                 </table>
-                @endif
             </td>
-            {{-- Pallet Kering --}}
-            <td valign="top" style="width:50%;">
-                @if($kering->count())
-                <div class="subjudul">Pallet Kering</div>
-                <table class="tabel-pallet" style="width:100%;">
-                    <thead>
-                        <tr>
-                            <th>Ukuran</th>
-                            <th>Pcs</th>
-                            <th>Volume</th>
-                            <th>Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($kering as $item)
-                        <tr>
-                            <td>{{ $item->ukuran ?? '-' }}</td>
-                            <td>{{ $item->pcs ?? 0 }}</td>
-                            <td>{{ number_format($item->volume ?? 0, 3, ',', '.') }}</td>
-                            <td class="right">Rp{{ number_format($item->subtotal ?? 0, 0, ',', '.') }}</td>
-                        </tr>
-                        @endforeach
-                        <tr class="total">
-                            <td colspan="2" class="right">TOTAL Kering</td>
-                            <td><b>{{ number_format($total_volume_kering, 3, ',', '.') }}</b></td>
-                            <td class="right"><b>Rp{{ number_format($grand_total_kering, 0, ',', '.') }}</b></td>
-                        </tr>
-                    </tbody>
-                </table>
-                @endif
-            </td>
+            @empty
+            <td style="text-align:center;">Tidak ada item pada transaksi ini.</td>
+            @endforelse
         </tr>
     </table>
 

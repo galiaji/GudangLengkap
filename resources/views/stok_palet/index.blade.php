@@ -68,7 +68,7 @@
                         <tr>
                             <th>No</th>
                             <th>Kode Palet</th>
-                            <th>Ukuran</th>
+                            <th>Ukuran (L x T x P)</th>
                             <th>Total Jumlah (pcs)</th>
                             <th>Total Volume</th>
                             <th>Nilai/Harga Total</th>
@@ -104,7 +104,7 @@
                         <tr>
                             <th>No</th>
                             <th>Kode Palet</th>
-                            <th>Ukuran</th>
+                            <th>Ukuran (L x T x P)</th>
                             <th>Total Jumlah (pcs)</th>
                             <th>Total Volume</th>
                             <th>Nilai/Harga Total</th>
@@ -138,7 +138,7 @@
                         <tr>
                             <th>No</th>
                             <th>Kode Palet</th>
-                            <th>Ukuran</th>
+                            <th>Ukuran (L x T x P)</th>
                             <th>Total Jumlah (pcs)</th>
                             <th>Total Volume</th>
                             <th>Nilai/Harga Total</th>
@@ -240,7 +240,7 @@
                             <thead>
                                 <tr>
                                     <th>Kode Palet</th>
-                                    <th>Ukuran</th>
+                                    <th>Ukuran (L x T x P)</th>
                                     <th>Jumlah (pcs)</th>
                                     <th>Volume</th>
                                 </tr>
@@ -343,7 +343,7 @@
                             <thead>
                                 <tr>
                                     <th>Kode Palet</th>
-                                    <th>Ukuran</th>
+                                    <th>Ukuran (L x T x P)</th>
                                     <th>Jumlah (pcs)</th>
                                     <th>Volume</th>
                                 </tr>
@@ -446,7 +446,7 @@
                             <thead>
                                 <tr>
                                     <th>Kode Palet</th>
-                                    <th>Ukuran</th>
+                                    <th>Ukuran (L x T x P)</th>
                                     <th>Jumlah (pcs)</th>
                                     <th>Volume</th>
                                 </tr>

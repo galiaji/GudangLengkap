@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StockOpname;
 use App\Models\WoodStock;
 use App\Models\WoodType;
 use App\Models\WoodTransaction;
 use App\Models\WoodTransactionDetail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -132,11 +132,6 @@ public function storeSaw(Request $request)
         'details.required'      => 'Minimal 1 log kayu harus dimasukkan.',
     ]);
 
-    // Stok yang sedang di-opname tidak boleh berubah
-    if ($pesan = StockOpname::kunciKayu($request->wood_type_id)) {
-        return response()->json(['success' => false, 'messages' => [$pesan]], 422);
-    }
-
     $woodType = WoodType::findOrFail($request->wood_type_id);
 
     DB::beginTransaction();
@@ -177,18 +172,26 @@ public function storeSaw(Request $request)
             ], 422);
         }
 
+        // Volume & harga (per m³) dihitung ulang dari data stok, bukan dari browser.
+        // Potong/gergaji memakai harga jual, sama seperti form.
+        $hitung = [];
+        foreach ($request->details as $i => $detail) {
+            $hitung[$i] = $stocks[$i]->hitungBaris((int) $detail['pcs'], 'harga_jual_per_m3');
+        }
+
         // 2. Simpan transaksi utama
         $transaksi = WoodTransaction::create([
             'jenis_transaksi'   => 'gergajian',
             'atas_nama'         => $request->atas_nama,
-            'total_volume'      => collect($request->details)->sum('volume'), // dihitung dari rincian
-            'total_pembayaran'  => collect($request->details)->sum('harga'), // dihitung dari rincian
+            'total_volume'      => collect($hitung)->sum(0), // dihitung dari rincian
+            'total_pembayaran'  => collect($hitung)->sum(1), // dihitung dari rincian
             'tanggal_transaksi' => now(),
         ]);
 
         // 3. Simpan detail & kurangi stok
         foreach ($request->details as $i => $detail) {
             $stock = $stocks[$i];
+            [$volume, $harga] = $hitung[$i];
 
             WoodTransactionDetail::create([
                 'wood_transaction_id' => $transaksi->id,
@@ -198,12 +201,12 @@ public function storeSaw(Request $request)
                 'diameter'            => $detail['diameter'],
                 'panjang'             => $detail['panjang'],
                 'pcs'                 => $detail['pcs'],
-                'volume'              => $detail['volume'],
-                'harga'               => $detail['harga'],
+                'volume'              => $volume,
+                'harga'               => $harga,
             ]);
 
             $stock->quantity     = ($stock->quantity ?? 0) - $detail['pcs'];
-            $stock->total_volume = max(0, $stock->total_volume - $detail['volume']);
+            $stock->total_volume = max(0, $stock->total_volume - $volume);
             $stock->save();
         }
 
@@ -236,11 +239,6 @@ public function storeRange(Request $request)
         'diameter.required'     => 'Diameter wajib diisi.',
         'panjang.required'      => 'Panjang wajib dipilih.',
     ]);
-
-    // Kombinasi baru tidak boleh ditambahkan selama jenis kayu ini di-opname
-    if ($pesan = StockOpname::kunciKayu($data['wood_type_id'])) {
-        return back()->withInput()->withErrors(['wood_type_id' => $pesan]);
-    }
 
     $woodType = WoodType::findOrFail($data['wood_type_id']);
 
@@ -321,4 +319,20 @@ public function createRange()
         ));
 }
 
+    // Ekspor laporan stok log kayu satu jenis kayu ke PDF (dipindah dari StockExportController)
+    public function exportPdf($woodType)
+    {
+        // Parameter route bisa berupa id atau nama jenis kayu
+        $type = WoodType::where('id', $woodType)
+            ->orWhere('name', $woodType)
+            ->firstOrFail();
+
+        $woodTypes = [$type->name];
+        $stocks = WoodStock::with('woodType')->where('wood_type_id', $type->id)->get();
+
+        $pdf = Pdf::loadView('exports.stock_pdf', compact('woodTypes', 'stocks'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download('laporan-stok-' . strtolower($type->name) . '.pdf');
+    }
 }

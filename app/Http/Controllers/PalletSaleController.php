@@ -6,7 +6,6 @@ use App\Models\PalletSale;
 use App\Models\PalletSaleItem;
 use App\Models\PalletPrice;
 use App\Models\PalletStock;
-use App\Models\StockOpname;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf; // Tambahkan di bagian atas jika belum ada
@@ -67,14 +66,6 @@ class PalletSaleController extends Controller
                 ->with('error', 'Minimal 1 item palet harus diisi jumlah PCS-nya!');
         }
 
-        // Stok palet yang sedang di-opname tidak boleh dijual
-        $pesan = ($basahFilled > 0 ? StockOpname::kunciPalet('basah') : null)
-            ?? ($keringFilled > 0 ? StockOpname::kunciPalet('kering') : null);
-        if ($pesan) {
-            return $request->ajax()
-                ? response()->json(['success' => false, 'message' => $pesan], 422)
-                : redirect()->back()->withInput()->with('error', $pesan);
-        }
 
         try {
             DB::transaction(function () use ($request) {
@@ -93,9 +84,10 @@ class PalletSaleController extends Controller
                         $pallet_code = $palletPrice ? $palletPrice->pallet_code : null;
                         $pcsNeeded = intval($item['pcs']);
                         // Volume & subtotal dihitung dari data ukuran/harga palet, bukan dari browser
-                        $totalVolume = $palletPrice ? round($pcsNeeded * $palletPrice->volume_per_pcs, 3) : 0;
+                        $volumeAsli  = $palletPrice ? $pcsNeeded * $palletPrice->volumeM3PerPcs() : 0; // m³
+                        $totalVolume = round($volumeAsli, 3);
                         $harga = $palletPrice ? (float) $palletPrice->{'harga_' . $statusPalet} : 0;
-                        $subtotal = round($totalVolume * $harga);
+                        $subtotal = round($volumeAsli * $harga); // dari volume sebelum dibulatkan
 
                         PalletSaleItem::create([
                             'pallet_sale_id' => $sale->id,
@@ -153,9 +145,10 @@ class PalletSaleController extends Controller
                         $pallet_code = $palletPrice ? $palletPrice->pallet_code : null;
                         $pcsNeeded = intval($item['pcs']);
                         // Volume & subtotal dihitung dari data ukuran/harga palet, bukan dari browser
-                        $totalVolume = $palletPrice ? round($pcsNeeded * $palletPrice->volume_per_pcs, 3) : 0;
+                        $volumeAsli  = $palletPrice ? $pcsNeeded * $palletPrice->volumeM3PerPcs() : 0; // m³
+                        $totalVolume = round($volumeAsli, 3);
                         $harga = $palletPrice ? (float) $palletPrice->{'harga_' . $statusPalet} : 0;
-                        $subtotal = round($totalVolume * $harga);
+                        $subtotal = round($volumeAsli * $harga); // dari volume sebelum dibulatkan
 
                         PalletSaleItem::create([
                             'pallet_sale_id' => $sale->id,
@@ -234,31 +227,24 @@ class PalletSaleController extends Controller
     {
         $sale = \App\Models\PalletSale::with('items')->findOrFail($id);
 
-        // Ambil semua ukuran dari tabel harga
-        $allUkuran = \App\Models\PalletPrice::pluck('ukuran')->unique();
-
-        // Siapkan data basah dan penjemuran, pastikan semua ukuran ada
-        $basah = collect();
-        $kering = collect();
-
-        foreach ($allUkuran as $ukuran) {
-            // Cari item basah & penjemuran untuk ukuran ini
-            $itemBasah = $sale->items->where('status', 'basah')->where('ukuran', $ukuran)->first();
-            $itemKering = $sale->items->where('status', 'kering')->where('ukuran', $ukuran)->first();
-
-            $basah->push((object)[
+        // Nota hanya memuat ukuran yang benar-benar dijual (tanpa baris 0),
+        // diurutkan sesuai daftar harga palet
+        $urutan = \App\Models\PalletPrice::orderBy('id')->pluck('ukuran')->flip();
+        $ringkas = fn (string $status) => $sale->items
+            ->where('status', $status)
+            ->where('pcs', '>', 0)
+            ->groupBy('ukuran')
+            ->map(fn ($rows, $ukuran) => (object) [
                 'ukuran'   => $ukuran,
-                'pcs'      => $itemBasah ? $itemBasah->pcs : 0,
-                'volume'   => $itemBasah ? $itemBasah->volume : 0,
-                'subtotal' => $itemBasah ? $itemBasah->subtotal : 0,
-            ]);
-            $kering->push((object)[
-                'ukuran'   => $ukuran,
-                'pcs'      => $itemKering ? $itemKering->pcs : 0,
-                'volume'   => $itemKering ? $itemKering->volume : 0,
-                'subtotal' => $itemKering ? $itemKering->subtotal : 0,
-            ]);
-        }
+                'pcs'      => $rows->sum('pcs'),
+                'volume'   => $rows->sum('volume'),
+                'subtotal' => $rows->sum('subtotal'),
+            ])
+            ->sortBy(fn ($r) => $urutan[$r->ukuran] ?? PHP_INT_MAX)
+            ->values();
+
+        $basah  = $ringkas('basah');
+        $kering = $ringkas('kering');
 
         $total_volume = $sale->items->sum('volume');
         $grand_total = $sale->items->sum('subtotal');

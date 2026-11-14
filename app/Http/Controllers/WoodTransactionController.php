@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StockOpname;
 use App\Models\WoodTransaction;
 use App\Models\WoodTransactionDetail;
 use App\Models\WoodStock;
 use App\Models\WoodType;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Vinkla\Hashids\Facades\Hashids;
 
 class WoodTransactionController extends Controller
@@ -172,11 +173,6 @@ public function storeBuy(Request $request)
         'wood_type_id.exists'   => 'Jenis Kayu tidak valid atau sedang disembunyikan.',
     ]);
 
-    // Stok yang sedang di-opname tidak boleh berubah
-    if ($pesan = StockOpname::kunciKayu($request->wood_type_id)) {
-        return response()->json(['success' => false, 'messages' => [$pesan]], 422);
-    }
-
     $woodType = WoodType::findOrFail($request->wood_type_id);
 
     DB::beginTransaction();
@@ -211,22 +207,29 @@ public function storeBuy(Request $request)
             ], 422);
         }
 
+        // Volume & harga (per m³) dihitung ulang dari data stok, bukan dari browser
+        $hitung = [];
+        foreach ($request->details as $i => $detail) {
+            $hitung[$i] = $stocks[$i]->hitungBaris((int) $detail['pcs'], 'harga_beli_per_m3');
+        }
+
         // 2. Simpan transaksi utama
         $transaksi = WoodTransaction::create([
             'jenis_transaksi'   => 'Pembelian',
             'atas_nama'         => $request->atas_nama,
-            'total_volume'      => collect($request->details)->sum('volume'), // dihitung dari rincian
-            'total_pembayaran'  => collect($request->details)->sum('harga'), // dihitung dari rincian
+            'total_volume'      => collect($hitung)->sum(0), // dihitung dari rincian
+            'total_pembayaran'  => collect($hitung)->sum(1), // dihitung dari rincian
             'tanggal_transaksi' => now(),
         ]);
 
         // 3. Tambah stok & simpan detail
         foreach ($request->details as $i => $detail) {
             $stock = $stocks[$i];
+            [$volume, $harga] = $hitung[$i];
 
             // Update stok
             $stock->quantity     = ($stock->quantity ?? 0) + $detail['pcs'];
-            $stock->total_volume = $stock->total_volume + $detail['volume'];
+            $stock->total_volume = $stock->total_volume + $volume;
             $stock->save();
 
             // Simpan detail transaksi dengan semua kolom wajib
@@ -238,8 +241,8 @@ public function storeBuy(Request $request)
                 'diameter'            => $detail['diameter'],
                 'panjang'             => $detail['panjang'],
                 'pcs'                 => $detail['pcs'],
-                'volume'              => $detail['volume'],
-                'harga'               => $detail['harga'],
+                'volume'              => $volume,
+                'harga'               => $harga,
             ]);
         }
 
@@ -516,11 +519,6 @@ public function sell()
                 'details.*.pcs.required' => 'Setidaknya 1 data log terisi.',
             ]);
 
-            // Stok yang sedang di-opname tidak boleh berubah
-            if ($pesan = StockOpname::kunciKayu($request->wood_type_id)) {
-                return response()->json(['success' => false, 'messages' => [$pesan]], 422);
-            }
-
             DB::beginTransaction();
             try {
                 $errors = [];
@@ -559,18 +557,25 @@ public function sell()
                     ], 422);
                 }
 
+                // Volume & harga (per m³) dihitung ulang dari data stok, bukan dari browser
+                $hitung = [];
+                foreach ($request->details as $i => $detail) {
+                    $hitung[$i] = $stocks[$i]->hitungBaris((int) $detail['pcs'], 'harga_jual_per_m3');
+                }
+
                 // Simpan transaksi utama
                 $transaksi = WoodTransaction::create([
                     'jenis_transaksi'   => 'Penjualan',
                     'atas_nama'         => $request->atas_nama,
-                    'total_volume'      => collect($request->details)->sum('volume'), // dihitung dari rincian
-                    'total_pembayaran'  => collect($request->details)->sum('harga'), // dihitung dari rincian
+                    'total_volume'      => collect($hitung)->sum(0), // dihitung dari rincian
+                    'total_pembayaran'  => collect($hitung)->sum(1), // dihitung dari rincian
                     'tanggal_transaksi' => now(),
                 ]);
 
                 // Simpan detail transaksi dan kurangi stok
                 foreach ($request->details as $i => $detail) {
                     $stock = $stocks[$i];
+                    [$volume, $harga] = $hitung[$i];
 
                     WoodTransactionDetail::create([
                         'wood_transaction_id' => $transaksi->id,
@@ -580,13 +585,13 @@ public function sell()
                         'diameter'            => $detail['diameter'],
                         'panjang'             => $detail['panjang'],
                         'pcs'                 => $detail['pcs'],
-                        'volume'              => $detail['volume'],
-                        'harga'               => $detail['harga'],
+                        'volume'              => $volume,
+                        'harga'               => $harga,
                     ]);
 
                     // Kurangi stok
                     $stock->quantity     = ($stock->quantity ?? 0) - $detail['pcs'];
-                    $stock->total_volume = max(0, $stock->total_volume - $detail['volume']);
+                    $stock->total_volume = max(0, $stock->total_volume - $volume);
                     $stock->save();
                 }
 
@@ -628,7 +633,7 @@ public function sell()
 
         $penjualan = $transaksi->where('jenis_transaksi', 'Penjualan');
 
-        return view('wood_transactions.laporan', [
+        return $this->unduhLaporan([
             'judul' => 'Laporan Harian',
             'periode' => \Carbon\Carbon::parse($today)
                 ->translatedFormat('d F Y'),
@@ -688,7 +693,7 @@ public function sell()
             'Penjualan'
         );
 
-        return view('wood_transactions.laporan', [
+        return $this->unduhLaporan([
             'judul' => 'Laporan Bulanan',
             'periode' => \Carbon\Carbon::create($tahun, $bulan)
                 ->translatedFormat('F Y'),
@@ -738,7 +743,7 @@ public function sell()
             'Penjualan'
         );
 
-        return view('wood_transactions.laporan', [
+        return $this->unduhLaporan([
             'judul' => 'Laporan Tahunan',
             'periode' => $tahun,
 
@@ -757,5 +762,15 @@ public function sell()
             'totalPembayaranPenjualan' =>
                 $penjualan->sum('total_pembayaran'),
         ]);
+    }
+
+    // Laporan transaksi langsung diunduh sebagai file PDF
+    private function unduhLaporan(array $data)
+    {
+        $namaFile = Str::slug($data['judul'] . ' ' . $data['periode']) . '.pdf';
+
+        return Pdf::loadView('wood_transactions.laporan', $data + ['pdf' => true])
+            ->setPaper('a4', 'portrait')
+            ->download($namaFile);
     }
 }

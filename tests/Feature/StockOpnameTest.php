@@ -12,6 +12,11 @@ use App\Models\WoodType;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
+/**
+ * Black box test stock opname:
+ * - UC-GD-20 Melakukan stock opname log kayu (SRS-19)
+ * - UC-GD-21 Melakukan stock opname pallet (SRS-20)
+ */
 class StockOpnameTest extends TestCase
 {
     use DatabaseTransactions;
@@ -27,10 +32,10 @@ class StockOpnameTest extends TestCase
         ]);
     }
 
-    /** Jenis kayu dengan dua kombinasi stok: A (qty $qtyA) dan B (qty $qtyB). */
-    private function kayu(int $qtyA = 10, int $qtyB = 4): array
+    /** Jenis kayu dengan dua kombinasi stok: A (Ø20, 0.041 m³/btg) dan B (Ø25, 0.064 m³/btg). */
+    private function kayu(int $qtyA = 10, int $qtyB = 4, bool $hidden = false): array
     {
-        $type  = WoodType::create(['name' => 'SOKayu' . (++self::$n)]);
+        $type  = WoodType::create(['name' => 'SOKayu' . (++self::$n), 'is_hidden' => $hidden]);
         $price = WoodPrice::create(['wood_type' => $type->name, 'grade' => 'Super 1', 'panjang' => 130,
             'harga_beli_per_m3' => 1000000, 'harga_jual_per_m3' => 1500000]);
         $buat = function ($diameter, $qty, $vol) use ($type, $price) {
@@ -46,413 +51,383 @@ class StockOpnameTest extends TestCase
     private function palet(string $ukuran = '8x1.2x100'): PalletPrice
     {
         return PalletPrice::create(['pallet_code' => 'SO' . (++self::$n), 'ukuran' => $ukuran,
-            'volume_per_pcs' => PalletPrice::volumeFromUkuran($ukuran), 'harga_basah' => 1000, 'harga_kering' => 1500]);
+            'volume_per_pcs' => PalletPrice::volumeFromUkuran($ukuran), 'harga_basah' => 1000000, 'harga_kering' => 1500000]);
     }
 
-    private function stokPalet(PalletPrice $p, int $pcs, string $status = 'basah', string $tgl = '2026-10-01'): PalletStock
+    /** Satu batch berisi beberapa ukuran: [[PalletPrice, pcs], ...] */
+    private function batch(array $isi, string $status = 'basah', string $tgl = '2026-10-01'): array
     {
-        return PalletStock::create(['pallet_code' => $p->pallet_code, 'ukuran' => $p->ukuran, 'pcs' => $pcs,
-            'volume' => $pcs * $p->volume_per_pcs, 'status' => $status, 'input_code' => 'SOI' . (++self::$n), 'tanggal_input' => $tgl]);
+        $kode = strtoupper(substr($status, 0, 3)) . 'SO-' . (++self::$n);
+        return array_map(fn ($baris) => PalletStock::create([
+            'pallet_code' => $baris[0]->pallet_code, 'ukuran' => $baris[0]->ukuran, 'pcs' => $baris[1],
+            'volume' => round($baris[1] * $baris[0]->volumeM3PerPcs(), 3), 'status' => $status,
+            'input_code' => $kode, 'tanggal_input' => $tgl,
+        ]), $isi);
     }
 
-    private function mulaiKayu(User $u, WoodType $t): StockOpname
+    /** Data form: fisik per id stok + stok tercatat yang tampil saat halaman dibuka. */
+    private function isian(array $stocks, array $fisik, string $kolomQty): array
     {
-        $this->actingAs($u)->post(route('stock-opname.store'), ['jenis' => 'kayu', 'wood_type_id' => $t->id])
-            ->assertRedirect();
-        return StockOpname::where('wood_type_id', $t->id)->latest('id')->firstOrFail();
-    }
-
-    private function mulaiPalet(User $u, string $status): StockOpname
-    {
-        $this->actingAs($u)->post(route('stock-opname.store'), ['jenis' => 'palet', 'pallet_status' => $status])
-            ->assertRedirect();
-        return StockOpname::where('pallet_status', $status)->latest('id')->firstOrFail();
-    }
-
-    /** Isi jumlah fisik berdasarkan label atau pallet_code => qty, lalu ajukan. */
-    private function hitungDanAjukan(User $u, StockOpname $o, callable $fisikDari)
-    {
-        $fisik = [];
-        foreach ($o->items as $item) {
-            $fisik[$item->id] = $fisikDari($item);
+        $data = ['fisik' => [], 'sistem' => []];
+        foreach ($stocks as $i => $s) {
+            $data['fisik'][$s->id]  = $fisik[$i];
+            $data['sistem'][$s->id] = $s->{$kolomQty};
         }
-        return $this->actingAs($u)->post(route('stock-opname.hitung', $o), ['fisik' => $fisik, 'aksi' => 'ajukan']);
+        return $data;
     }
 
-    private function trxKayu(WoodType $t, int $pcs = 1): array
+    private function simpanKayu(User $u, WoodType $t, array $stocks, array $fisik, array $over = [])
     {
-        return ['atas_nama' => 'Uji', 'wood_type_id' => $t->id, 'details' => [[
-            'grade' => 'Super 1', 'diameter' => 20, 'panjang' => 130, 'pcs' => $pcs, 'volume' => 0.041 * $pcs, 'harga' => 41000 * $pcs,
-        ]]];
+        return $this->actingAs($u)->post(route('stock-opname.kayu.store'),
+            array_merge(['wood_type_id' => $t->id], $this->isian($stocks, $fisik, 'quantity'), $over));
     }
 
-    // ========== Halaman ==========
-
-    public function test_SO01_halaman_daftar_dan_form_tampil(): void
+    /**
+     * Data form pallet: semua ukuran terdaftar, dikunci per kode ukuran.
+     * Ukuran yang tidak disebut di $fisik diisi sama dengan stok tercatat (tidak ada selisih).
+     */
+    private function isianPalet(string $inputCode, array $fisik): array
     {
-        $u = $this->user('staff');
-        $this->actingAs($u)->get(route('stock-opname.index'))->assertOk();
-        $this->actingAs($u)->get(route('stock-opname.create'))->assertOk();
+        $pcs  = PalletStock::where('input_code', $inputCode)->pluck('pcs', 'pallet_code');
+        $data = ['fisik' => [], 'sistem' => []];
+        foreach (PalletPrice::pluck('pallet_code') as $kode) {
+            $data['sistem'][$kode] = (int) ($pcs[$kode] ?? 0);
+            $data['fisik'][$kode]  = array_key_exists($kode, $fisik) ? $fisik[$kode] : $data['sistem'][$kode];
+        }
+        return $data;
     }
 
-    // ========== Mulai & snapshot ==========
-
-    public function test_SO02_mulai_opname_kayu_menyimpan_snapshot(): void
+    private function simpanPalet(User $u, string $inputCode, array $fisik, array $over = [])
     {
-        [$t, $a, $b] = $this->kayu(10, 4);
-        $o = $this->mulaiKayu($this->user('staff'), $t);
-
-        $this->assertSame('menghitung', $o->status);
-        $this->assertSame('Kayu ' . $t->name, $o->cakupan);
-        $this->assertMatchesRegularExpression('/^SO-\d{8}-\d{2}$/', $o->kode);
-        $this->assertEquals(2, $o->items()->count());
-        $this->assertEquals(10, $o->items()->where('wood_stock_id', $a->id)->value('qty_sistem'));
-        $this->assertEquals(1000000, $o->items()->where('wood_stock_id', $a->id)->value('harga'));
+        return $this->actingAs($u)->post(route('stock-opname.palet.store'),
+            array_merge(['input_code' => $inputCode], $this->isianPalet($inputCode, $fisik), $over));
     }
 
-    public function test_SO03_mulai_opname_palet_menyimpan_semua_ukuran(): void
-    {
-        $p1 = $this->palet('8x1.2x100');
-        $p2 = $this->palet('10x1.2x130');
-        $this->stokPalet($p1, 5);
-        $this->stokPalet($p1, 7);
-        $this->stokPalet($p1, 99, 'kering'); // status lain tidak ikut
-        $o = $this->mulaiPalet($this->user(), 'basah');
+    // ================= UC-GD-20: Stock opname log kayu =================
 
-        $this->assertEquals(12, $o->items()->where('pallet_code', $p1->pallet_code)->value('qty_sistem'));
-        $this->assertEquals(0, $o->items()->where('pallet_code', $p2->pallet_code)->value('qty_sistem'));
-    }
-
-    public function test_SO04_tidak_bisa_opname_ganda_untuk_stok_yang_sama(): void
-    {
-        [$t] = $this->kayu();
-        $u = $this->user();
-        $this->mulaiKayu($u, $t);
-        $this->actingAs($u)->post(route('stock-opname.store'), ['jenis' => 'kayu', 'wood_type_id' => $t->id])
-            ->assertSessionHas('error');
-        $this->assertEquals(1, StockOpname::where('wood_type_id', $t->id)->count());
-    }
-
-    public function test_SO05_validasi_mulai_opname(): void
-    {
-        $u = $this->user();
-        $this->actingAs($u)->post(route('stock-opname.store'), ['jenis' => 'kayu'])->assertSessionHasErrors('wood_type_id');
-        $this->actingAs($u)->post(route('stock-opname.store'), ['jenis' => 'palet', 'pallet_status' => 'ngawur'])->assertSessionHasErrors('pallet_status');
-        $this->actingAs($u)->post(route('stock-opname.store'), ['jenis' => 'lain'])->assertSessionHasErrors('jenis');
-    }
-
-    // ========== Penguncian ==========
-
-    public function test_SO06_kunci_kayu_menolak_semua_transaksi_jenis_itu(): void
-    {
-        [$t, $a] = $this->kayu(10);
-        $u = $this->user();
-        $this->mulaiKayu($u, $t);
-
-        $this->actingAs($u)->postJson(route('wood_transactions.storeBuy'), $this->trxKayu($t))
-            ->assertStatus(422)->assertJsonFragment(['success' => false]);
-        $this->actingAs($u)->postJson(route('wood_transactions.storeSell'), $this->trxKayu($t))->assertStatus(422);
-        $this->actingAs($u)->postJson(route('wood_transactions.storeSaw'), $this->trxKayu($t) + ['jenis_transaksi' => 'gergajian'])->assertStatus(422);
-        $this->actingAs($u)->post(route('stok.range.store'), ['wood_type_id' => $t->id, 'grade' => 'Super 2', 'diameter' => 30, 'panjang' => 200])
-            ->assertSessionHasErrors('wood_type_id');
-        $this->actingAs($u)->patch(route('wood-types.hide', $t))->assertSessionHas('error');
-        $this->actingAs($u)->delete(route('wood-types.destroy', $t))->assertSessionHas('error');
-
-        $this->assertEquals(10, $a->fresh()->quantity);
-    }
-
-    public function test_SO07_kunci_kayu_tidak_mengganggu_jenis_kayu_lain(): void
-    {
-        [$t1] = $this->kayu();
-        [$t2, $a2] = $this->kayu(10);
-        $u = $this->user();
-        $this->mulaiKayu($u, $t1);
-
-        $this->actingAs($u)->postJson(route('wood_transactions.storeSell'), $this->trxKayu($t2, 2))->assertOk();
-        $this->assertEquals(8, $a2->fresh()->quantity);
-    }
-
-    public function test_SO08_kunci_palet_menolak_transaksi_status_itu(): void
-    {
-        $p = $this->palet();
-        $s = $this->stokPalet($p, 10, 'basah');
-        $k = $this->stokPalet($p, 10, 'kering');
-        $u = $this->user();
-        $this->mulaiPalet($u, 'basah');
-
-        // input stok basah ditolak, kering tetap boleh
-        $this->actingAs($u)->post(route('pallet_stocks.store'), ['tanggal_input' => '2026-10-24', 'status' => 'basah',
-            'pallets' => [['pallet_code' => $p->pallet_code, 'ukuran' => $p->ukuran, 'pcs' => 5, 'volume' => 4.8]]])
-            ->assertSessionHas('error');
-        $this->actingAs($u)->post(route('pallet_stocks.store'), ['tanggal_input' => '2026-10-24', 'status' => 'kering',
-            'pallets' => [['pallet_code' => $p->pallet_code, 'ukuran' => $p->ukuran, 'pcs' => 5, 'volume' => 4.8]]])
-            ->assertRedirect(route('pallet_stocks.index'));
-
-        // pindah status dari basah ditolak
-        $this->actingAs($u)->post(route('stok_palet.moveToNextStatus', $s->input_code))->assertSessionHas('error');
-        $this->assertSame('basah', $s->fresh()->status);
-
-        // jual basah ditolak, jual kering boleh
-        $item = fn ($pcs) => [['ukuran' => $p->ukuran, 'pcs' => $pcs, 'volume' => 0, 'harga_satuan' => 0, 'subtotal' => '0']];
-        $this->actingAs($u)->post(route('pallet-sales.store'), ['tanggal' => '2026-10-24', 'customer' => 'X', 'basah' => $item(2)])
-            ->assertSessionHas('error');
-        $this->assertEquals(10, $s->fresh()->pcs);
-        $this->actingAs($u)->post(route('pallet-sales.store'), ['tanggal' => '2026-10-24', 'customer' => 'Y', 'kering' => $item(2)])
-            ->assertRedirect(route('pallet-sales.index'));
-        $this->assertEquals(8, $k->fresh()->pcs);
-    }
-
-    public function test_SO09_pindah_status_ke_status_yang_dikunci_ditolak(): void
-    {
-        $p = $this->palet();
-        $s = $this->stokPalet($p, 10, 'basah');
-        $u = $this->user();
-        $this->mulaiPalet($u, 'penjemuran');
-        $this->actingAs($u)->post(route('stok_palet.moveToNextStatus', $s->input_code))->assertSessionHas('error');
-        $this->assertSame('basah', $s->fresh()->status);
-    }
-
-    public function test_SO10_banner_kunci_tampil_di_halaman(): void
-    {
-        [$t] = $this->kayu();
-        $u = $this->user('staff');
-        $o = $this->mulaiKayu($u, $t);
-        $this->actingAs($u)->get('/dashboard')->assertOk()->assertSee('Stock opname sedang berlangsung')->assertSee($o->kode);
-    }
-
-    // ========== Menghitung ==========
-
-    public function test_SO11_form_hitung_tidak_menampilkan_stok_sistem(): void
-    {
-        [$t] = $this->kayu(987654, 4);
-        $u = $this->user('staff');
-        $o = $this->mulaiKayu($u, $t);
-        $this->actingAs($u)->get(route('stock-opname.show', $o))->assertOk()
-            ->assertSee('Input Hasil Hitung Fisik')->assertDontSee('987654')->assertDontSee('987.654');
-    }
-
-    public function test_SO12_simpan_sementara_lalu_ajukan_wajib_lengkap(): void
-    {
-        [$t, $a] = $this->kayu();
-        $u = $this->user('staff');
-        $o = $this->mulaiKayu($u, $t);
-        $itemA = $o->items()->where('wood_stock_id', $a->id)->first();
-
-        $this->actingAs($u)->post(route('stock-opname.hitung', $o), ['fisik' => [$itemA->id => 9], 'aksi' => 'simpan'])
-            ->assertSessionHas('success');
-        $this->assertEquals(9, $itemA->fresh()->qty_fisik);
-        $this->assertSame('menghitung', $o->fresh()->status);
-
-        $this->actingAs($u)->post(route('stock-opname.hitung', $o), ['fisik' => [$itemA->id => 9], 'aksi' => 'ajukan'])
-            ->assertSessionHas('error');
-        $this->assertSame('menghitung', $o->fresh()->status);
-    }
-
-    public function test_SO13_jumlah_fisik_negatif_atau_desimal_ditolak(): void
-    {
-        [$t] = $this->kayu();
-        $u = $this->user('staff');
-        $o = $this->mulaiKayu($u, $t);
-        $id = $o->items()->first()->id;
-        $this->actingAs($u)->post(route('stock-opname.hitung', $o), ['fisik' => [$id => -1], 'aksi' => 'simpan'])
-            ->assertSessionHasErrors("fisik.{$id}");
-        $this->actingAs($u)->post(route('stock-opname.hitung', $o), ['fisik' => [$id => 1.5], 'aksi' => 'simpan'])
-            ->assertSessionHasErrors("fisik.{$id}");
-    }
-
-    public function test_SO14_ajukan_menghitung_selisih(): void
+    public function test_K01_menu_dan_pilih_jenis_kayu_menampilkan_stok_tercatat(): void
     {
         [$t, $a, $b] = $this->kayu(10, 4);
-        $u = $this->user('staff');
-        $o = $this->mulaiKayu($u, $t);
-        $this->hitungDanAjukan($u, $o, fn ($i) => $i->wood_stock_id === $a->id ? 7 : 6)->assertRedirect();
+        $u = $this->user();
 
-        $o->refresh();
-        $this->assertSame('menunggu', $o->status);
-        $ia = $o->items()->where('wood_stock_id', $a->id)->first();
-        $this->assertEquals(-3, $ia->selisih);
-        $this->assertEqualsWithDelta(-0.123, $ia->volume_selisih, 0.0001);
-        $this->assertEqualsWithDelta(-123000, $ia->nilai_selisih, 0.01);
-        $this->assertEquals(2, $o->items()->where('wood_stock_id', $b->id)->value('selisih'));
+        $this->actingAs($u)->get(route('stock-opname.kayu'))->assertOk()
+            ->assertSee('Stock Opname Log Kayu')->assertSee($t->name)->assertDontSee('name="fisik[', false);
+
+        $this->actingAs($u)->get(route('stock-opname.kayu', ['wood_type_id' => $t->id]))->assertOk()
+            ->assertViewHas('stocks', fn ($s) => $s->pluck('id')->all() === [$a->id, $b->id])
+            ->assertSee('Stock Opname Log Kayu - ' . $t->name)->assertSee('Tercatat: 10')->assertSee('Total Fisik')
+            ->assertSee('name="fisik[' . $a->id . ']"', false)
+            ->assertSee('Selisih Volume');
     }
 
-    public function test_SO15_hasil_hitung_tidak_bisa_diubah_setelah_diajukan(): void
-    {
-        [$t, $a] = $this->kayu(10, 4);
-        $u = $this->user('staff');
-        $o = $this->mulaiKayu($u, $t);
-        $this->hitungDanAjukan($u, $o, fn ($i) => 5);
-        $id = $o->items()->first()->id;
-        $this->actingAs($u)->post(route('stock-opname.hitung', $o), ['fisik' => [$id => 100], 'aksi' => 'simpan'])
-            ->assertSessionHas('error');
-        $this->assertEquals(5, $o->items()->first()->qty_fisik);
-    }
-
-    // ========== Persetujuan ==========
-
-    public function test_SO16_staff_tidak_bisa_menyetujui_mengembalikan_membatalkan(): void
-    {
-        [$t] = $this->kayu();
-        $s = $this->user('staff');
-        $o = $this->mulaiKayu($s, $t);
-        $this->hitungDanAjukan($s, $o, fn ($i) => 0);
-        $this->actingAs($s)->post(route('stock-opname.setujui', $o))->assertForbidden();
-        $this->actingAs($s)->post(route('stock-opname.kembalikan', $o))->assertForbidden();
-        $this->actingAs($s)->post(route('stock-opname.batal', $o))->assertForbidden();
-        $this->assertSame('menunggu', $o->fresh()->status);
-    }
-
-    public function test_SO17_setujui_wajib_alasan_untuk_item_selisih(): void
-    {
-        [$t, $a] = $this->kayu(10, 4);
-        $admin = $this->user();
-        $o = $this->mulaiKayu($admin, $t);
-        $this->hitungDanAjukan($admin, $o, fn ($i) => $i->wood_stock_id === $a->id ? 7 : 4);
-        $ia = $o->items()->where('wood_stock_id', $a->id)->first();
-
-        $this->actingAs($admin)->post(route('stock-opname.setujui', $o), [])->assertSessionHasErrors("alasan.{$ia->id}");
-        $this->actingAs($admin)->post(route('stock-opname.setujui', $o), ['alasan' => [$ia->id => 'Ngawur']])->assertSessionHasErrors("alasan.{$ia->id}");
-        $this->assertSame('menunggu', $o->fresh()->status);
-        $this->assertEquals(10, $a->fresh()->quantity);
-    }
-
-    public function test_SO18_setujui_kayu_menyesuaikan_stok_dan_melepas_kunci(): void
+    public function test_K02_simpan_dengan_selisih_menyesuaikan_stok(): void
     {
         [$t, $a, $b] = $this->kayu(10, 4);
-        $admin = $this->user();
-        $o = $this->mulaiKayu($admin, $t);
-        $this->hitungDanAjukan($admin, $o, fn ($i) => $i->wood_stock_id === $a->id ? 7 : 6);
+        $u = $this->user();
+
+        $res = $this->simpanKayu($u, $t, [$a, $b], [7, 6], ['keterangan' => 'Hitung ulang gudang A']);
+
+        $o = StockOpname::latest('id')->first();
+        $res->assertRedirect(route('stock-opname.show', $o))->assertSessionHas('success');
+        $this->assertSame('kayu', $o->jenis);
+        $this->assertSame('Hitung ulang gudang A', $o->catatan);
+        $this->assertSame($u->id, $o->dibuat_oleh);
+
+        // Selisih jumlah & volume tersimpan
         $ia = $o->items()->where('wood_stock_id', $a->id)->first();
+        $this->assertSame([10, 7, -3], [$ia->qty_sistem, $ia->qty_fisik, $ia->selisih]);
+        $this->assertEqualsWithDelta(-0.123, $ia->volume_selisih, 0.0001); // -3 x 0,041
         $ib = $o->items()->where('wood_stock_id', $b->id)->first();
+        $this->assertEqualsWithDelta(0.128, $ib->volume_selisih, 0.0001);  // +2 x 0,064
 
-        $this->actingAs($admin)->post(route('stock-opname.setujui', $o), [
-            'alasan' => [$ia->id => 'Hilang', $ib->id => 'Salah catat'],
-            'keterangan' => [$ia->id => 'Diduga terbawa truk'],
-        ])->assertSessionHas('success');
-
-        $o->refresh();
-        $this->assertSame('selesai', $o->status);
-        $this->assertEquals($admin->id, $o->disetujui_oleh);
-        $this->assertNotNull($o->disetujui_at);
+        // Stok log kayu disesuaikan dengan hasil hitung fisik
         $this->assertEquals(7, $a->fresh()->quantity);
         $this->assertEqualsWithDelta(0.287, (float) $a->fresh()->total_volume, 0.0001);
         $this->assertEquals(6, $b->fresh()->quantity);
-        $this->assertSame('Hilang', $ia->fresh()->alasan);
-        $this->assertSame('Diduga terbawa truk', $ia->fresh()->keterangan);
 
-        // kunci dilepas: transaksi bisa lagi
-        $this->actingAs($admin)->postJson(route('wood_transactions.storeSell'), $this->trxKayu($t, 2))->assertOk();
-        $this->assertEquals(5, $a->fresh()->quantity);
+        $this->actingAs($u)->get(route('stock-opname.show', $o))->assertOk()
+            ->assertSee($o->kode)->assertSee('Hitung ulang gudang A')->assertSee('-0,123');
     }
 
-    public function test_SO19_setujui_tanpa_selisih_tidak_mengubah_stok(): void
+    public function test_K03_tanpa_selisih_tetap_disimpan_tanpa_mengubah_stok(): void
     {
         [$t, $a, $b] = $this->kayu(10, 4);
-        $admin = $this->user();
-        $o = $this->mulaiKayu($admin, $t);
-        $this->hitungDanAjukan($admin, $o, fn ($i) => $i->qty_sistem);
-        $this->actingAs($admin)->post(route('stock-opname.setujui', $o))->assertSessionHas('success');
-        $this->assertSame('selesai', $o->fresh()->status);
+        $sebelum = [$a->updated_at, $b->updated_at];
+
+        $this->simpanKayu($this->user(), $t, [$a, $b], [10, 4])
+            ->assertSessionHas('success', fn ($p) => str_contains($p, 'Tidak ada selisih'));
+
+        $o = StockOpname::latest('id')->first();
+        $this->assertEquals(2, $o->items()->count());
+        $this->assertEquals(0, $o->items()->where('selisih', '!=', 0)->count());
         $this->assertEquals(10, $a->fresh()->quantity);
-        $this->assertEquals(4, $b->fresh()->quantity);
+        $this->assertEquals($sebelum, [$a->fresh()->updated_at, $b->fresh()->updated_at]);
     }
 
-    public function test_SO20_setujui_palet_kurang_fifo_dan_lebih_baris_opn(): void
+    public function test_K04_isian_kosong_memunculkan_pesan_validasi(): void
     {
-        $p1 = $this->palet('8x1.2x100');   // 0.96 / pcs
-        $p2 = $this->palet('10x1.2x130');  // 1.56 / pcs
-        $lama = $this->stokPalet($p1, 3, 'basah', '2026-09-01');
-        $baru = $this->stokPalet($p1, 10, 'basah', '2026-10-01');
-        $admin = $this->user();
-        $o = $this->mulaiPalet($admin, 'basah');
+        [$t, $a, $b] = $this->kayu(10, 4);
+        $jumlah = StockOpname::count();
 
-        // p1: sistem 13, fisik 8 (kurang 5); p2: sistem 0, fisik 4 (lebih 4)
-        $this->hitungDanAjukan($admin, $o, fn ($i) => $i->pallet_code === $p1->pallet_code ? 8 : ($i->pallet_code === $p2->pallet_code ? 4 : $i->qty_sistem));
-        $alasan = $o->items()->where('selisih', '!=', 0)->pluck('id')->mapWithKeys(fn ($id) => [$id => 'Salah catat'])->all();
-        $this->actingAs($admin)->post(route('stock-opname.setujui', $o), ['alasan' => $alasan])->assertSessionHas('success');
+        $this->simpanKayu($this->user(), $t, [$a, $b], [7, ''])
+            ->assertSessionHasErrors(["fisik.{$b->id}" => 'Jumlah fisik wajib diisi untuk semua baris.']);
 
-        // FIFO: stok lama (3) habis, stok baru 10 -> 8, volume ikut turun
-        $this->assertDatabaseMissing('pallet_stocks', ['id' => $lama->id]);
-        $this->assertEquals(8, $baru->fresh()->pcs);
-        $this->assertEqualsWithDelta(7.68, (float) $baru->fresh()->volume, 0.001);
-
-        // kelebihan dicatat sebagai baris baru berkode OPN
-        $opn = PalletStock::where('pallet_code', $p2->pallet_code)->where('status', 'basah')->first();
-        $this->assertNotNull($opn);
-        $this->assertStringStartsWith('OPN', $opn->input_code);
-        $this->assertEquals(4, $opn->pcs);
-        $this->assertEqualsWithDelta(6.24, (float) $opn->volume, 0.001);
-    }
-
-    public function test_SO21_kembalikan_untuk_hitung_ulang(): void
-    {
-        [$t] = $this->kayu();
-        $admin = $this->user();
-        $o = $this->mulaiKayu($admin, $t);
-        $this->hitungDanAjukan($admin, $o, fn ($i) => 1);
-        $this->actingAs($admin)->post(route('stock-opname.kembalikan', $o))->assertSessionHas('success');
-        $this->assertSame('menghitung', $o->fresh()->status);
-        $this->assertNotNull(StockOpname::kunciKayu($t->id), 'Stok harus tetap terkunci');
-    }
-
-    public function test_SO22_batal_melepas_kunci_tanpa_mengubah_stok(): void
-    {
-        [$t, $a] = $this->kayu(10);
-        $admin = $this->user();
-        $o = $this->mulaiKayu($admin, $t);
-        $this->hitungDanAjukan($admin, $o, fn ($i) => 0);
-        $this->actingAs($admin)->post(route('stock-opname.batal', $o))->assertSessionHas('success');
-
-        $this->assertSame('batal', $o->fresh()->status);
+        $this->assertEquals($jumlah, StockOpname::count());
         $this->assertEquals(10, $a->fresh()->quantity);
-        $this->assertNull(StockOpname::kunciKayu($t->id));
-        // setelah batal tidak bisa disetujui
-        $this->actingAs($admin)->post(route('stock-opname.setujui', $o))->assertSessionHas('error');
     }
 
-    public function test_SO23_opname_baru_bisa_dimulai_setelah_selesai(): void
+    public function test_K05_isian_bukan_angka_desimal_atau_negatif_ditolak(): void
     {
-        [$t] = $this->kayu();
-        $admin = $this->user();
-        $o = $this->mulaiKayu($admin, $t);
-        $this->hitungDanAjukan($admin, $o, fn ($i) => $i->qty_sistem);
-        $this->actingAs($admin)->post(route('stock-opname.setujui', $o));
-        $o2 = $this->mulaiKayu($admin, $t);
-        $this->assertNotEquals($o->id, $o2->id);
-        $this->assertNotEquals($o->kode, $o2->kode);
+        [$t, $a, $b] = $this->kayu(10, 4);
+        $u = $this->user();
+
+        $this->simpanKayu($u, $t, [$a, $b], ['abc', 2.5])
+            ->assertSessionHasErrors(["fisik.{$a->id}" => 'Jumlah fisik harus berupa angka bulat.', "fisik.{$b->id}"]);
+        $this->simpanKayu($u, $t, [$a, $b], [-1, 4])
+            ->assertSessionHasErrors(["fisik.{$a->id}" => 'Jumlah fisik tidak boleh negatif.']);
+
+        $this->assertEquals(10, $a->fresh()->quantity);
     }
 
-    // ========== Halaman hasil & PDF ==========
-
-    public function test_SO24_halaman_pemeriksaan_dan_hasil(): void
+    public function test_K06_baris_yang_tidak_dikirim_ditolak(): void
     {
-        [$t, $a] = $this->kayu(10, 4);
-        $admin = $this->user();
+        [$t, $a, $b] = $this->kayu(10, 4);
+
+        $this->simpanKayu($this->user(), $t, [$a], [7])
+            ->assertSessionHasErrors(['fisik' => 'Masih ada 1 baris yang belum diisi. Isi 0 jika barangnya tidak ada.']);
+        $this->assertEquals(10, $a->fresh()->quantity);
+    }
+
+    public function test_K07_stok_berubah_sejak_halaman_dibuka_ditolak(): void
+    {
+        [$t, $a, $b] = $this->kayu(10, 4);
+        $form = $this->isian([$a, $b], [7, 4], 'quantity');
+        $a->update(['quantity' => 12]); // ada transaksi pembelian di antaranya
+
+        $this->actingAs($this->user())->post(route('stock-opname.kayu.store'), ['wood_type_id' => $t->id] + $form)
+            ->assertSessionHasErrors('fisik');
+        $this->assertEquals(12, $a->fresh()->quantity);
+        $this->assertEquals(0, StockOpname::where('wood_type_id', $t->id)->count());
+    }
+
+    public function test_K08_jenis_kayu_kosong_atau_disembunyikan_ditolak(): void
+    {
+        [$t, $a, $b] = $this->kayu(10, 4, true);
+        $u = $this->user();
+
+        $this->simpanKayu($u, $t, [$a, $b], [7, 4], ['wood_type_id' => ''])
+            ->assertSessionHasErrors(['wood_type_id' => 'Jenis kayu wajib dipilih.']);
+        $this->simpanKayu($u, $t, [$a, $b], [7, 4])->assertSessionHasErrors('wood_type_id');
+        $this->assertEquals(10, $a->fresh()->quantity);
+    }
+
+    // ================= UC-GD-21: Stock opname pallet per batch =================
+
+    public function test_P01_menu_dan_pilih_batch_menampilkan_semua_ukuran_beserta_status(): void
+    {
+        $p1 = $this->palet('8x1.2x100');
+        $p2 = $this->palet('10x1.2x130');
+        $p3 = $this->palet('12x1.2x100');  // terdaftar tapi belum ada di batch
+        [$r1, $r2] = $this->batch([[$p1, 20], [$p2, 15]], 'penjemuran');
+        $u = $this->user();
+
+        $this->actingAs($u)->get(route('stock-opname.palet'))->assertOk()
+            ->assertSee('Stock Opname Pallet')->assertSee($r1->input_code);
+
+        $this->actingAs($u)->get(route('stock-opname.palet', ['input_code' => $r1->input_code]))->assertOk()
+            ->assertViewHas('baris', function ($baris) use ($p1, $p2, $p3) {
+                $b = $baris->keyBy('kode');
+                return $baris->count() === PalletPrice::count()
+                    && $b[$p1->pallet_code]->sistem === 20 && $b[$p2->pallet_code]->sistem === 15
+                    && $b[$p3->pallet_code]->sistem === 0 && $b[$p3->pallet_code]->row === null
+                    && $b[$p3->pallet_code]->status === 'penjemuran';
+            })
+            ->assertSee('Stok Tercatat Batch ' . $r1->input_code)
+            ->assertSee('8x1.2x100')->assertSee('12x1.2x100')->assertSee('Penjemuran')
+            ->assertSee('belum ada di batch')
+            ->assertSee('name="fisik[' . $p3->pallet_code . ']"', false);
+    }
+
+    public function test_P01b_ukuran_yang_belum_terinput_ditambahkan_ke_batch(): void
+    {
+        $p1 = $this->palet('8x1.2x100');
+        $p3 = $this->palet('12x1.2x100');  // 0.00144 m³/pcs, belum ada di batch
+        [$r1] = $this->batch([[$p1, 20]], 'penjemuran', '2026-10-08');
+
+        $this->simpanPalet($this->user(), $r1->input_code, [$p3->pallet_code => 6])->assertSessionHas('success');
+
+        // Ditambahkan ke batch yang sama: kode batch, status, dan tanggal ikut batch
+        $baru = PalletStock::where('input_code', $r1->input_code)->where('pallet_code', $p3->pallet_code)->first();
+        $this->assertNotNull($baru);
+        $this->assertSame([6, '12x1.2x100', 'penjemuran', '2026-10-08'],
+            [(int) $baru->pcs, $baru->ukuran, $baru->status, (string) $baru->tanggal_input]);
+        $this->assertEqualsWithDelta(0.009, (float) $baru->volume, 0.0001); // 6 x 0,00144 = 0,00864
+        $this->assertEquals(20, $r1->fresh()->pcs);
+
+        $item = StockOpname::latest('id')->first()->items()->where('pallet_code', $p3->pallet_code)->first();
+        $this->assertSame([0, 6, 6], [$item->qty_sistem, $item->qty_fisik, $item->selisih]);
+    }
+
+    public function test_P02_simpan_menyesuaikan_hanya_batch_yang_dipilih(): void
+    {
+        $p1 = $this->palet('8x1.2x100');   // 0.00096 m³/pcs
+        $p2 = $this->palet('10x1.2x130');  // 0.00156 m³/pcs
+        [$lain] = $this->batch([[$p1, 50]], 'kering', '2026-09-01');
+        [$r1, $r2] = $this->batch([[$p1, 20], [$p2, 15]], 'kering');
+        $u = $this->user();
+
+        // p1 kurang 5, p2 habis (0)
+        $this->simpanPalet($u, $r1->input_code, [$p1->pallet_code => 15, $p2->pallet_code => 0], ['keterangan' => 'Ada yang patah'])
+            ->assertSessionHas('success');
+
+        $o = StockOpname::latest('id')->first();
+        $this->assertSame(['palet', 'kering', $r1->input_code, 'Ada yang patah'], [$o->jenis, $o->pallet_status, $o->input_code, $o->catatan]);
+        $i1 = $o->items()->where('pallet_code', $p1->pallet_code)->first();
+        $this->assertSame([20, 15, -5], [$i1->qty_sistem, $i1->qty_fisik, $i1->selisih]);
+        $this->assertEqualsWithDelta(-0.005, $i1->volume_selisih, 0.0001);     // -5 x 0,00096 = -0,0048
+        $this->assertEqualsWithDelta(-7200, $i1->nilai_selisih, 0.01);         // x Rp 1.500.000/m³ (harga kering)
+
+        // Batch terpilih disesuaikan; ukuran yang fisiknya 0 dihapus dari batch
+        $this->assertEquals(15, $r1->fresh()->pcs);
+        $this->assertEqualsWithDelta(0.014, (float) $r1->fresh()->volume, 0.0001); // 15 x 0,00096 = 0,0144
+        $this->assertDatabaseMissing('pallet_stocks', ['id' => $r2->id]);
+
+        // Batch lain dengan ukuran sama tidak tersentuh (bukan FIFO)
+        $this->assertEquals(50, $lain->fresh()->pcs);
+    }
+
+    public function test_P03_fisik_lebih_banyak_menambah_stok_batch(): void
+    {
+        $p = $this->palet('10x1.2x130');
+        [$r] = $this->batch([[$p, 10]], 'basah');
+
+        $this->simpanPalet($this->user(), $r->input_code, [$p->pallet_code => 14])->assertSessionHas('success');
+
+        $this->assertEquals(14, $r->fresh()->pcs);
+        $this->assertEqualsWithDelta(0.022, (float) $r->fresh()->volume, 0.0001); // 14 x 0,00156 = 0,02184
+        $item = StockOpname::latest('id')->first()->items()->where('pallet_code', $p->pallet_code)->first();
+        $this->assertEquals(4, $item->selisih);
+        $this->assertEqualsWithDelta(6240, $item->nilai_selisih, 0.01); // 4 x 0,00156 x Rp 1.000.000 (harga basah)
+    }
+
+    public function test_P04_tanpa_selisih_tetap_disimpan_tanpa_mengubah_stok(): void
+    {
+        $p = $this->palet();
+        [$r] = $this->batch([[$p, 10]]);
+        $sebelum = $r->updated_at;
+
+        $this->simpanPalet($this->user(), $r->input_code, [])
+            ->assertSessionHas('success', fn ($p) => str_contains($p, 'Tidak ada selisih'));
+        $this->assertEquals(1, PalletStock::where('input_code', $r->input_code)->count()); // tidak ada ukuran baru
+        $this->assertEquals(1, StockOpname::where('input_code', $r->input_code)->count());
+        $this->assertEquals($sebelum, $r->fresh()->updated_at);
+    }
+
+    public function test_P05_isian_kosong_atau_bukan_angka_ditolak(): void
+    {
+        $p1 = $this->palet();
+        $p2 = $this->palet('12x1.2x100');
+        [$r1, $r2] = $this->batch([[$p1, 10], [$p2, 8]]);
+        $u = $this->user();
+
+        $this->simpanPalet($u, $r1->input_code, [$p1->pallet_code => '', $p2->pallet_code => 'x'])->assertSessionHasErrors([
+            "fisik.{$p1->pallet_code}" => 'Jumlah fisik wajib diisi untuk semua baris.',
+            "fisik.{$p2->pallet_code}" => 'Jumlah fisik harus berupa angka bulat.',
+        ]);
+
+        // Ada ukuran yang tidak dikirim
+        $form = $this->isianPalet($r1->input_code, []);
+        unset($form['fisik'][$p2->pallet_code]);
+        $this->actingAs($u)->post(route('stock-opname.palet.store'), ['input_code' => $r1->input_code] + $form)
+            ->assertSessionHasErrors('fisik');
+
+        $this->assertEquals(0, StockOpname::where('input_code', $r1->input_code)->count());
+        $this->assertEquals(10, $r1->fresh()->pcs);
+    }
+
+    public function test_P06_batch_kosong_atau_tidak_ada_ditolak(): void
+    {
+        $p = $this->palet();
+        [$r] = $this->batch([[$p, 10]]);
+        $u = $this->user();
+
+        $this->simpanPalet($u, $r->input_code, [$p->pallet_code => 9], ['input_code' => ''])
+            ->assertSessionHasErrors(['input_code' => 'Batch wajib dipilih.']);
+        $this->simpanPalet($u, $r->input_code, [$p->pallet_code => 9], ['input_code' => 'TIDAKADA-001'])
+            ->assertSessionHasErrors(['input_code' => 'Batch tidak ditemukan atau stoknya sudah habis.']);
+        $this->assertEquals(10, $r->fresh()->pcs);
+    }
+
+    public function test_P07_stok_batch_berubah_sejak_halaman_dibuka_ditolak(): void
+    {
+        $p = $this->palet();
+        [$r] = $this->batch([[$p, 10]]);
+        $form = $this->isianPalet($r->input_code, [$p->pallet_code => 9]);
+        $r->update(['pcs' => 6]); // ada penjualan di antaranya
+
+        $this->actingAs($this->user())->post(route('stock-opname.palet.store'), ['input_code' => $r->input_code] + $form)
+            ->assertSessionHasErrors('fisik');
+        $this->assertEquals(6, $r->fresh()->pcs);
+    }
+
+    // ================= Umum =================
+
+    public function test_U01_riwayat_tampil_dan_detail_hasil_bisa_dibuka(): void
+    {
+        [$t, $a, $b] = $this->kayu(10, 4);
+        $p = $this->palet();
+        [$r] = $this->batch([[$p, 10]]);
+        $u = $this->user();
+        $this->simpanKayu($u, $t, [$a, $b], [9, 4]);
+        $ok = StockOpname::latest('id')->first();
+        $this->simpanPalet($u, $r->input_code, []);
+        $op = StockOpname::latest('id')->first();
+
+        // Satu halaman riwayat, dua tabel bersebelahan: log kayu & pallet
+        $this->actingAs($u)->get(route('stock-opname.index'))->assertOk()
+            ->assertSee('Riwayat Stock Opname Log Kayu')->assertSee('Riwayat Stock Opname Pallet')
+            ->assertSee($ok->kode)->assertSee($op->kode)
+            ->assertSee(route('stock-opname.kayu'), false)->assertSee(route('stock-opname.palet'), false)
+            ->assertViewHas('kayu', fn ($r) => $r->contains($ok) && !$r->contains($op))
+            ->assertViewHas('palet', fn ($r) => $r->contains($op) && !$r->contains($ok));
+        $this->actingAs($u)->get(route('stock-opname.show', $op))->assertOk()->assertSee('Batch ' . $r->input_code);
+        $this->actingAs($u)->get('/stock-opname/999999')->assertNotFound();
+    }
+
+    public function test_U02_hanya_admin_yang_bisa_akses(): void
+    {
+        [$t, $a, $b] = $this->kayu(10, 4);
+        $p = $this->palet();
+        [$r] = $this->batch([[$p, 10]]);
+        $this->simpanKayu($this->user('admin'), $t, [$a, $b], [10, 4]);
+        $o = StockOpname::latest('id')->first();
+
+        $this->actingAs($this->user('admin'))->get(route('stock-opname.index'))->assertOk();
+        $this->actingAs($this->user('admin'))->get(route('stock-opname.palet'))->assertOk();
+
+        // Staff ditolak di semua halaman & aksi stock opname, stok tidak berubah
         $staff = $this->user('staff');
-        $o = $this->mulaiKayu($staff, $t);
-        $this->hitungDanAjukan($staff, $o, fn ($i) => $i->wood_stock_id === $a->id ? 7 : 4);
+        $this->actingAs($staff)->get(route('stock-opname.index'))->assertForbidden();
+        $this->actingAs($staff)->get(route('stock-opname.kayu'))->assertForbidden();
+        $this->actingAs($staff)->get(route('stock-opname.palet'))->assertForbidden();
+        $this->actingAs($staff)->get(route('stock-opname.show', $o))->assertForbidden();
+        $this->simpanKayu($staff, $t, [$a, $b], [1, 1])->assertForbidden();
+        $this->simpanPalet($staff, $r->input_code, [$p->pallet_code => 1])->assertForbidden();
+        $this->assertEquals(10, $a->fresh()->quantity);
+        $this->assertEquals(10, $r->fresh()->pcs);
 
-        $this->actingAs($admin)->get(route('stock-opname.show', $o))->assertOk()->assertSee('Setujui');
-        $this->actingAs($staff)->get(route('stock-opname.show', $o))->assertOk()
-            ->assertSee('menunggu pemeriksaan admin')->assertDontSee('Setujui &amp; Sesuaikan', false);
-        $this->actingAs($staff)->get(route('stock-opname.index'))->assertOk()->assertSee($o->kode);
+        auth()->logout();
+        $this->get(route('stock-opname.palet'))->assertRedirect(route('login'));
     }
 
-    public function test_SO25_lembar_hitung_dan_laporan_pdf(): void
+    public function test_U03_menu_stock_opname_hanya_tampil_untuk_admin(): void
     {
-        [$t, $a] = $this->kayu(10, 4);
-        $admin = $this->user();
-        $o = $this->mulaiKayu($admin, $t);
-        $this->actingAs($admin)->get(route('stock-opname.lembar', $o))->assertOk()->assertHeader('content-type', 'application/pdf');
+        // Satu menu Stock Opname menuju halaman riwayat
+        $this->actingAs($this->user('admin'))->get(route('dashboard'))
+            ->assertSee('href="' . route('stock-opname.index') . '"', false)
+            ->assertDontSee('href="' . route('stock-opname.kayu') . '"', false);
 
-        $this->hitungDanAjukan($admin, $o, fn ($i) => $i->wood_stock_id === $a->id ? 7 : 4);
-        $ia = $o->items()->where('wood_stock_id', $a->id)->first();
-        $this->actingAs($admin)->post(route('stock-opname.setujui', $o), ['alasan' => [$ia->id => 'Susut']]);
-        $this->actingAs($admin)->get(route('stock-opname.laporan', $o))->assertOk()->assertHeader('content-type', 'application/pdf');
-    }
-
-    public function test_SO26_opname_tidak_ada(): void
-    {
-        $this->actingAs($this->user())->get(route('stock-opname.show', 999999))->assertNotFound();
+        $this->actingAs($this->user('staff'))->get(route('dashboard'))
+            ->assertDontSee('href="' . route('stock-opname.index') . '"', false);
     }
 }

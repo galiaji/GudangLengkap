@@ -131,7 +131,7 @@
                         <table class="table table-bordered table-sm">
                             <thead class="table-success">
                                 <tr>
-                                    <th>Ukuran</th>
+                                    <th>Ukuran (L x T x P)</th>
                                     <th>PCS</th>
                                     <th>Volume</th>
                                     <th>Subtotal</th>
@@ -171,7 +171,7 @@
                         <table class="table table-bordered table-sm">
                             <thead class="table-info">
                                 <tr>
-                                    <th>Ukuran</th>
+                                    <th>Ukuran (L x T x P)</th>
                                     <th>PCS</th>
                                     <th>Volume</th>
                                     <th>Subtotal</th>

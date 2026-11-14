@@ -72,7 +72,7 @@
 
                 <tr>
                     <td colspan="6" style="text-align:center">
-                        Tidak ada data pembelian.
+                        Data Transaksi Kosong
                     </td>
                 </tr>
 
@@ -160,7 +160,7 @@
 
                 <tr>
                     <td colspan="6" style="text-align:center">
-                        Tidak ada data penjualan.
+                        Data Transaksi Kosong
                     </td>
                 </tr>
 

@@ -10,7 +10,6 @@ use App\Http\Controllers\PalletPriceController;
 use App\Http\Controllers\WetPalletStockController;
 use App\Http\Controllers\DryingPalletStockController;
 use App\Http\Controllers\PalletStockController;
-use App\Http\Controllers\StockExportController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\WoodTypeController;
 use App\Http\Controllers\StockOpnameController;
@@ -42,7 +41,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('account/{hashid}', [AccountController::class, 'destroy'])->name('account.destroy');
         Route::get('pallet-prices/create', [PalletStockController::class, 'createUkuran'])->name('pallet-prices.create');
         Route::post('pallet-prices', [PalletStockController::class, 'storeUkuran'])->name('pallet-prices.store');
-        Route::resource('pallet-prices', \App\Http\Controllers\PalletPriceController::class)->only(['index', 'update']);
+        Route::resource('pallet-prices', \App\Http\Controllers\PalletPriceController::class)->only(['index', 'update', 'destroy']);
         Route::get('/stok/rentang/tambah', [StockController::class, 'createRange'])->name('stok.range.create');
         Route::post('/stok/rentang/simpan', [StockController::class, 'storeRange'])->name('stok.range.store');
         Route::get('/wood-types', [WoodTypeController::class, 'index'])->name('wood-types.index');
@@ -94,21 +93,17 @@ Route::middleware('auth')->group(function () {
     Route::get('pallet-sales/{id}/nota', [\App\Http\Controllers\PalletSaleController::class, 'exportNota'])->name('pallet-sales.nota');
     Route::get('/pallet-sales/laporan-mingguan', [\App\Http\Controllers\PalletSaleController::class, 'laporanMingguan'])->name('pallet-sales.laporan-mingguan');
 
-    // Stock opname: staff memulai & menghitung, admin memeriksa & menyetujui
-    Route::get('stock-opname', [StockOpnameController::class, 'index'])->name('stock-opname.index');
-    Route::get('stock-opname/create', [StockOpnameController::class, 'create'])->name('stock-opname.create');
-    Route::post('stock-opname', [StockOpnameController::class, 'store'])->name('stock-opname.store');
-    Route::get('stock-opname/{opname}', [StockOpnameController::class, 'show'])->name('stock-opname.show');
-    Route::post('stock-opname/{opname}/hitung', [StockOpnameController::class, 'simpanHitung'])->name('stock-opname.hitung');
-    Route::get('stock-opname/{opname}/lembar', [StockOpnameController::class, 'lembar'])->name('stock-opname.lembar');
-    Route::get('stock-opname/{opname}/laporan', [StockOpnameController::class, 'laporan'])->name('stock-opname.laporan');
+    // Stock opname (khusus admin): UC-GD-20 log kayu (per jenis kayu), UC-GD-21 pallet (per batch)
     Route::middleware('role:admin')->group(function () {
-        Route::post('stock-opname/{opname}/setujui', [StockOpnameController::class, 'setujui'])->name('stock-opname.setujui');
-        Route::post('stock-opname/{opname}/kembalikan', [StockOpnameController::class, 'kembalikan'])->name('stock-opname.kembalikan');
-        Route::post('stock-opname/{opname}/batal', [StockOpnameController::class, 'batal'])->name('stock-opname.batal');
+        Route::get('stock-opname', [StockOpnameController::class, 'index'])->name('stock-opname.index');
+        Route::get('stock-opname/kayu', [StockOpnameController::class, 'kayu'])->name('stock-opname.kayu');
+        Route::post('stock-opname/kayu', [StockOpnameController::class, 'storeKayu'])->name('stock-opname.kayu.store');
+        Route::get('stock-opname/palet', [StockOpnameController::class, 'palet'])->name('stock-opname.palet');
+        Route::post('stock-opname/palet', [StockOpnameController::class, 'storePalet'])->name('stock-opname.palet.store');
+        Route::get('stock-opname/{opname}', [StockOpnameController::class, 'show'])->name('stock-opname.show');
     });
 
-    Route::get('/export-stok-pdf/{woodType}', [StockExportController::class, 'exportPdf'])->name('export.stok.pdf');
+    Route::get('/export-stok-pdf/{woodType}', [StockController::class, 'exportPdf'])->name('export.stok.pdf');
     Route::get('/stock/potong-gergaji/{woodType}', [\App\Http\Controllers\StockController::class, 'showPotongGergajiForm'])->name('stock.potongGergaji.form');
     Route::post('/wood-transactions/store-saw', [\App\Http\Controllers\StockController::class, 'storeSaw'])->name('wood_transactions.storeSaw');
 });

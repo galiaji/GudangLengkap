@@ -97,7 +97,7 @@
                     </th>
                     <th>Customer</th>
                     <th>Keterangan</th>
-                    <th>Detail Item</th>
+                    <th>Detail Item (Ukuran L x T x P)</th>
                     <th>Grand Total</th>
                     <th>Aksi</th> <!-- Tambahkan ini -->
                 </tr>
@@ -115,7 +115,7 @@
                                 <li class="{{ $index >= 2 ? 'more-item-'.$sale->id.' d-none' : '' }}" style="margin-bottom:2px;">
                                     <span class="badge bg-light text-dark border">{{ $item->ukuran }}</span>
                                     <span class="text-success fw-bold">{{ $item->pcs }}x</span>
-                                    <span class="text-secondary small">Vol: {{ number_format($item->pcs * $item->volume, 3, ',', '.') }}</span>
+                                    <span class="text-secondary small">Vol: {{ number_format($item->volume, 3, ',', '.') }}</span>
                                 </li>
                             @endforeach
                             @if($sale->items->count() > 2)
@@ -129,9 +129,8 @@
                     <td>
                         @php
                             $grand_total = $sale->items->sum('subtotal');
-                            $total_volume = $sale->items->sum(function($item) {
-                                return $item->pcs * $item->volume;
-                            });
+                            // Volume item sudah total (pcs × volume per pcs), cukup dijumlahkan
+                            $total_volume = $sale->items->sum('volume');
                         @endphp
                         <div><span class="fw-bold">Total Volume:</span> {{ number_format($total_volume, 3, ',', '.') }}</div>
                         <div><span class="fw-bold">Nilai Barang:</span> Rp{{ number_format($grand_total,0,',','.') }}</div>
